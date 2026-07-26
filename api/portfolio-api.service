@@ -1,0 +1,13 @@
+[Unit]
+Description=dobsinsky.xyz portfolio API
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/portfolio/api
+EnvironmentFile=/opt/portfolio/api/.env
+ExecStart=/opt/portfolio/api/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
