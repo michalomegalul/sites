@@ -1,0 +1,13 @@
+name: deploy portfolio
+on:
+  push:
+    branches: [master]
+    paths: ['portfolio/**', 'deploy/**']
+  workflow_dispatch:
+concurrency:
+  group: deploy-portfolio
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - run: /opt/sites/deploy/deploy.sh portfolio
