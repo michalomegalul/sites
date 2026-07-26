@@ -1,0 +1,13 @@
+name: deploy quiz
+on:
+  push:
+    branches: [master]
+    paths: ['quiz/**', 'deploy/**']
+  workflow_dispatch:
+concurrency:
+  group: deploy-quiz
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - run: /opt/sites/deploy/deploy.sh quiz
