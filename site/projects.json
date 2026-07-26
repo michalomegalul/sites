@@ -1,0 +1,48 @@
+{
+  "featured": [
+    {
+      "name": "Home Camera AI Detection",
+      "stack": "PYTHON · OPENCV · YOLOV8 · OAK-D",
+      "desc": "Real-time monitoring with a Luxonis OAK-D LR depth camera. Detects people and vehicles, draws dynamic heatmaps, counts line crossings, watches zones like the property gate.",
+      "url": "https://github.com/michalomegalul"
+    },
+    {
+      "name": "Steam CZ Behavior Analysis",
+      "stack": "R · STATISTICS · STL · ANOVA",
+      "desc": "Semestral research project at VŠE: ten years of Czech Steam user behavior. Changepoint detection, cohort analysis, seasonal decomposition - with a paper and presentation to match.",
+      "url": "https://github.com/michalomegalul/semestralwork-serhii_rusakov_michal_dobsinsky"
+    },
+    {
+      "name": "Gemma - Discord Voice Bot",
+      "stack": "PYTHON · WHISPER · PIPER TTS · OLLAMA",
+      "desc": "A bot that joins voice channels, listens with faster-whisper, thinks with a local LLM and answers out loud with Piper TTS. Fully self-hosted in an LXC container.",
+      "url": "https://github.com/michalomegalul"
+    },
+    {
+      "name": "Full-stack E-shop",
+      "stack": "FLASK · REACT · TAILWIND · STRIPE",
+      "desc": "E-commerce app with a Flask backend and React frontend. JWT auth, local cart, Stripe payments.",
+      "url": "https://github.com/michalomegalul/Eshop_MAP"
+    }
+  ],
+  "archive": [
+    {
+      "name": "Instagram Chat Analyzer",
+      "stack": "PYTHON · PANDAS · MATPLOTLIB",
+      "desc": "Offline tool that turns exported Instagram DM JSON into statistics and plots. Nobody asked for it, I wanted it.",
+      "url": "https://github.com/michalomegalul"
+    },
+    {
+      "name": "Products REST API",
+      "stack": "FLASK · GRAFANA · PYTEST · DOCKER",
+      "desc": "Token-authenticated product API with automated price/stock sync from an external service. Dockerized, tested, monitored.",
+      "url": "https://github.com/michalomegalul"
+    },
+    {
+      "name": "AC Automation",
+      "stack": "ESP8266 · MQTT · HOME ASSISTANT",
+      "desc": "HVAC control via ESP8266 and PWM DACs, wired into Home Assistant, in a 3D-printed enclosure. It still runs.",
+      "url": ""
+    }
+  ]
+}

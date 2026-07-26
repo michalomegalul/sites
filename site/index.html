@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dobsinsky.xyz - zone file</title>
+<meta name="description" content="Michal Dobšínský - junior developer @ NIC.cz, data analytics @ VŠE, homelab operator.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-bg="ink">
+
+<!-- ============ STICKY STATUS BAR ============ -->
+<header class="statusbar" id="statusbar">
+  <span class="statusbar__zone">dobsinsky.xyz</span>
+  <span class="statusbar__sep">·</span>
+  <span class="statusbar__item" id="clock">--:--:--</span>
+  <span class="statusbar__sep">·</span>
+  <span class="statusbar__item" id="conn-status" data-state="public">PUBLIC</span>
+  <button class="statusbar__shell" id="term-open">SHELL ~</button>
+  <nav class="statusbar__nav">
+    <a href="#rec-a">A</a>
+    <a href="#rec-txt">TXT</a>
+    <a href="#rec-srv" id="nav-srv" hidden>SRV</a>
+    <a href="#rec-mx">MX</a>
+  </nav>
+</header>
+
+<!-- ============ HERO / SOA RECORD ============ -->
+<section class="sec sec--hero" data-bg="ink" id="top">
+  <p class="dig-line">;; zone transfer: dobsinsky.xyz - human-readable</p>
+  <p class="dig-line dig-line--dim">;; ANSWER SECTION:</p>
+
+  <h1 class="hero__name">
+    <span class="hero__row" data-depth="1">MICHAL</span>
+    <span class="hero__row hero__row--offset" data-depth="2">DOBŠÍNSKÝ</span>
+  </h1>
+
+  <div class="hero__soa">
+    <div class="soa__line"><span class="soa__key">ROLE</span><span>junior developer @ <a href="https://www.nic.cz" target="_blank" rel="noopener">NIC.cz</a> - the .cz registry</span></div>
+    <div class="soa__line"><span class="soa__key">EDU</span><span>data analytics @ VŠE Praha · FIS</span></div>
+    <div class="soa__line"><span class="soa__key">ALSO</span><span>requalifying as an electrician - software AND hardware fail differently</span></div>
+    <div class="soa__line"><span class="soa__key">LOC</span><span>Prague, CZ</span></div>
+  </div>
+
+  <p class="hero__greeting" id="friend-greeting" hidden></p>
+
+  <p class="hero__scrollhint" aria-hidden="true">;; scroll to resolve ↓ · press ~ for shell</p>
+</section>
+
+<!-- ============ A RECORD - WHO / NOW ============ -->
+<section class="sec" data-bg="cobalt" id="rec-a">
+  <h2 class="rec__header"><span class="rec__type">;; A</span> who answers at this address</h2>
+
+  <div class="grid grid--2">
+    <div class="panel" data-tilt>
+      <p class="panel__label">RECORD</p>
+      <p class="panel__body">
+        I build things that run unattended. Day job: developer at the Czech domain
+        registry. Studies: statistics, R, machine learning at VŠE. Nights: playing with my
+        server - a Proxmox box with ~15 containers - and games: Factorio factories
+        that must grow, League queues that must be lost. Currently also learning to
+        wire actual buildings, because someone has to ground all this hardware.
+      </p>
+      <p class="panel__foot" id="steam-now" hidden></p>
+    </div>
+
+    <div class="panel panel--terminal" data-tilt>
+      <p class="panel__label">NOW - live from my notebook</p>
+      <pre class="now__output" id="now-output">loading…</pre>
+      <p class="panel__foot" id="last-commit">fetching last commit…</p>
+    </div>
+
+    <div class="panel panel--terminal" data-tilt>
+      <p class="panel__label">VITALS - the box, live</p>
+      <pre class="now__output" id="pulse-output">querying…</pre>
+    </div>
+  </div>
+
+  <div class="stack__marquee" aria-hidden="true">
+    <div class="stack__track">
+      <span>PYTHON</span><span>FLASK</span><span>POSTGRESQL</span><span>R 😭</span><span>DOCKER</span><span>PROXMOX</span><span>LINUX</span><span>OPENCV</span><span>SQL</span><span>BASH</span><span>ESP32</span><span>HOME ASSISTANT</span><span>NGINX</span><span>GIT</span>
+      <span>PYTHON</span><span>FLASK</span><span>POSTGRESQL</span><span>R 😭</span><span>DOCKER</span><span>PROXMOX</span><span>LINUX</span><span>OPENCV</span><span>SQL</span><span>BASH</span><span>ESP32</span><span>HOME ASSISTANT</span><span>NGINX</span><span>GIT</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TXT RECORDS - PROJECTS ============ -->
+<section class="sec" data-bg="oxide" id="rec-txt">
+  <h2 class="rec__header"><span class="rec__type">;; TXT</span> things I made</h2>
+  <div class="projects" id="projects-featured"></div>
+
+  <button class="archive-toggle" id="archive-toggle" aria-expanded="false">
+    $ cat ./archive - the less polished stuff
+  </button>
+  <div class="projects projects--archive" id="projects-archive" hidden></div>
+</section>
+
+<!-- ============ SRV RECORDS - HOMELAB (TRUSTED ONLY) ============ -->
+<section class="sec sec--srv" data-bg="bone" id="rec-srv" hidden>
+  <h2 class="rec__header"><span class="rec__type">;; SRV</span> internal services <span class="rec__badge">TRUSTED NET</span></h2>
+
+  <div class="grid grid--stats" id="pve-stats">
+    <p class="dig-line">querying proxmox…</p>
+  </div>
+
+  <div class="grid grid--services" id="service-links"></div>
+
+  <details class="visitors">
+    <summary>$ tail -f visitors.log</summary>
+    <div id="visitors-list"></div>
+  </details>
+</section>
+
+<!-- ============ MX RECORD - CONTACT ============ -->
+<section class="sec sec--mx" data-bg="ink" id="rec-mx">
+  <h2 class="rec__header"><span class="rec__type">;; MX</span> mail exchange</h2>
+  <a class="mx__addr" href="mailto:dog560154@gmail.com" id="mx-addr">dog560154<span class="mx__at">@</span>gmail.com</a>
+  <button class="mx__copy" id="mx-copy">copy address</button>
+  <div class="mx__links">
+    <a href="https://github.com/michalomegalul" target="_blank" rel="noopener">github/michalomegalul</a>
+    <a href="https://www.linkedin.com/in/michal-dobsinsky-496617268" target="_blank" rel="noopener">linkedin</a>
+  </div>
+  <footer class="footer">
+    <p>;; Query time: <span id="render-time">0</span> msec · WHEN: <span id="footer-date"></span></p>
+    <p>;; SERVER: self-hosted on proxmox · no trackers except mine <span class="footer__vid" id="footer-vid"></span></p>
+  </footer>
+</section>
+
+
+<!-- ============ TERMINAL OVERLAY ============ -->
+<div class="term" id="term" hidden>
+  <div class="term__win" role="dialog" aria-label="pseudo-shell">
+    <div class="term__bar">
+      <span>guest@dobsinsky.xyz - pts/0</span>
+      <button class="term__close" id="term-close" aria-label="close">✕</button>
+    </div>
+    <div class="term__out" id="term-out"></div>
+    <div class="term__inputrow">
+      <span class="term__ps1">guest@dobsinsky.xyz:~$</span>
+      <input class="term__input" id="term-in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="command input">
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="js/app.js"></script>
+<script src="js/terminal.js"></script>
+</body>
+</html>
