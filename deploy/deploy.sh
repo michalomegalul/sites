@@ -16,6 +16,10 @@ flock 9
 [ -d "$DIR" ] || { echo "no such site: $SITE"; exit 1; }
 
 cd "$ROOT"
+if [ ! -w "$ROOT/.git/objects" ]; then
+  echo "repairing $ROOT/.git ownership for $(id -un)"
+  sudo chown -R "$(id -un):$(id -gn)" "$ROOT/.git"
+fi
 git fetch --prune origin master
 git reset --hard origin/master
 
