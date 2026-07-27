@@ -16,6 +16,9 @@ flock 9
 [ -d "$DIR" ] || { echo "no such site: $SITE"; exit 1; }
 
 cd "$ROOT"
+if [ ! -w .git/objects ]; then
+  sudo chown -R -- "$(id -u):$(id -g)" .git
+fi
 git fetch --prune origin master
 git reset --hard origin/master
 

@@ -20,8 +20,9 @@ quiz/                 /  and its own systemd unit
 Push to `master`. A workflow fires for each site whose paths changed and runs
 `/opt/sites/deploy/deploy.sh <site>` on the self-hosted runner.
 
-The deploy script does **only** these: fetch and `git reset --hard`, rebuild the
-venv if `requirements.txt` exists, restart `<site>-api` **if that unit is already
+The deploy script does **only** these: self-heal `.git` ownership if needed so
+`git fetch` can write objects, fetch and `git reset --hard`, rebuild the venv if
+`requirements.txt` exists, restart `<site>-api` **if that unit is already
 installed**, then `nginx -t && systemctl reload nginx`.
 
 It deliberately does not install systemd units, write `.env`, symlink nginx
