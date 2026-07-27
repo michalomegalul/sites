@@ -379,7 +379,15 @@ def patch_response(response_id):
             if not ok:
                 rejected.append(code)
                 continue
-            if cleaned is None or cleaned == [] or cleaned == {} or cleaned == "":
+            # An empty body map is a real answer — "no pain in any of these
+            # areas" — and must be stored, or a respondent with nothing to mark
+            # can never satisfy a required body-map question. Every other kind
+            # treats empty as "clear this answer". Send null to clear a bodymap.
+            blank = cleaned is None or cleaned == "" or cleaned == []
+            if cleaned == {} and q["kind"] != "bodymap":
+                blank = True
+
+            if blank:
                 cur.execute(
                     "DELETE FROM answers WHERE response_id = %s AND question_id = %s",
                     (response_id, q["id"]),

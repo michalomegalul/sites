@@ -132,7 +132,18 @@ personalization are off, because this must not feed advertising audiences.
 
 The nginx `Content-Security-Policy` allow-lists `googletagmanager.com` and
 `google-analytics.com` and nothing else third-party. If you add another tag it
-is blocked until you add it there too — that is intentional.
+is blocked until you add it there too — that is intentional. After you set a
+real measurement ID, open the survey once with the browser console visible and
+check for CSP violations; that combination cannot be tested with an empty ID.
+
+**Where to look in GA4.** `send_page_view` is off, so the *Pages and screens*
+reports stay empty — that is expected, not a broken install. The data is under
+**Reports → Engagement → Events**, as `survey_start`, `question_view` (with a
+`question` parameter) and `survey_submit`, plus **Realtime** while testing. To
+chart `question_view` by question you must register `question` as a custom
+dimension in **Admin → Custom definitions** first, and GA only collects it from
+that point on. The dashboard's drop-off view gives you the same answer with no
+setup and no third party, so treat GA as the secondary source here.
 
 > Worth knowing, since it is a thesis on the line: the respondents are a small
 > group approached personally. A GA client ID plus a timestamp, combined with

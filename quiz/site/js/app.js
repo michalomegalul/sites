@@ -334,7 +334,7 @@
     var next = h('button', 'btn', t.next);
     next.type = 'button';
     next.addEventListener('click', function () {
-      if (q.required && isEmpty(state.answers[q.code])) {
+      if (q.required && isEmpty(state.answers[q.code], q.kind)) {
         errorSlot.textContent = '';
         errorSlot.appendChild(h('div', 'error', t.required));
         return;
@@ -361,9 +361,13 @@
     show(wrap);
   }
 
-  function isEmpty(v) {
+  function isEmpty(v, kind) {
     if (v == null || v === '') return true;
     if (Array.isArray(v)) return v.length === 0;
+    // A body map with nothing marked is an answer ("no pain in any of these
+    // areas") once the respondent has said so explicitly, not a blank. The
+    // difference between {} and undefined is the whole point here.
+    if (kind === 'bodymap') return false;
     if (typeof v === 'object') return Object.keys(v).length === 0;
     return false;
   }
@@ -443,6 +447,7 @@
         labels: labels,
         levels: spec.levels || 3,
         value: current || {},
+        answered: current !== undefined,
         t: t,
         onChange: function (v) { queueSave(q.code, v); }
       });

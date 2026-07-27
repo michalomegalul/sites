@@ -48,6 +48,7 @@ window.I18N = {
     painMod: 'Střední',
     painSevere: 'Silná',
     bodyEmpty: 'Zatím jste nevybrala žádnou oblast.',
+    bodyNone: 'Na žádném z těchto míst bolest nemám',
     regionState: (name, level) => `${name}: ${level}`,
     printTitle: 'Tiskový formulář',
     printNote: 'Nevyplněná verze dotazníku pro přílohu odborné práce.'
@@ -96,6 +97,7 @@ window.I18N = {
     painMod: 'Moderate',
     painSevere: 'Severe',
     bodyEmpty: 'No areas selected yet.',
+    bodyNone: 'I have no pain in any of these areas',
     regionState: (name, level) => `${name}: ${level}`,
     printTitle: 'Printable form',
     printNote: 'Blank version of the questionnaire, for the thesis appendix.'

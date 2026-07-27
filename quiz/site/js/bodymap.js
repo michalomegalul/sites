@@ -131,7 +131,29 @@
     live.setAttribute('aria-live', 'polite');
     live.className = 'hp';
 
-    wrap.append(toggle, stage, legend, picked, live);
+    // "No pain in any of these areas" — without this a required body map is a
+    // dead end for anyone with nothing to mark, and an empty map is otherwise
+    // indistinguishable from an unanswered one.
+    var noneLabel = document.createElement('label');
+    noneLabel.className = 'check';
+    var noneInput = document.createElement('input');
+    noneInput.type = 'checkbox';
+    var noneMark = document.createElement('span');
+    noneMark.className = 'mark';
+    var noneText = document.createElement('span');
+    noneText.className = 'check-text';
+    noneText.textContent = t.bodyNone;
+    noneLabel.append(noneInput, noneMark, noneText);
+    noneInput.checked = !!opts.answered && !Object.keys(value).length;
+
+    noneInput.addEventListener('change', function () {
+      if (!noneInput.checked) return;
+      value = {};
+      paint();
+      if (opts.onChange) opts.onChange({});
+    });
+
+    wrap.append(toggle, stage, legend, picked, noneLabel, live);
 
     function label(code) { return labels[code] || code; }
 
@@ -171,6 +193,7 @@
       var next = ((value[code] || 0) + 1) % (levels + 1);
       if (next === 0) delete value[code];
       else value[code] = next;
+      noneInput.checked = false;
       paint();
       live.textContent = t.regionState(label(code), levelNames[next]);
       if (opts.onChange) opts.onChange(Object.assign({}, value));
