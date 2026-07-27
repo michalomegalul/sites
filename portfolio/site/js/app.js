@@ -33,13 +33,17 @@ addEventListener('load', () => {
 const cssVar = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim();
 let currentBgKey = 'ink';
-/* random theme on every page load — latte never, current excluded */
+/* restore the saved theme; amber is the default.
+ * This used to pick a random theme on every load, which also meant a theme
+ * chosen from the terminal (`theme <name>`) was overwritten on the next
+ * reload. Whatever setTheme() last wrote is what comes back. */
 (function () {
-  const THEMES = ['amber', 'magma', 'mocha', 'dracula', 'gruvbox', 'nord'];
-  const pick = THEMES[(Math.random() * THEMES.length) | 0];
-  if (pick === 'amber') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = pick;
-  localStorage.setItem('theme', pick);
+  const THEMES = ['amber', 'magma', 'mocha', 'latte', 'dracula', 'gruvbox', 'nord'];
+  let saved;
+  try { saved = localStorage.getItem('theme'); } catch (e) { saved = null; }
+  const theme = THEMES.includes(saved) ? saved : 'amber';
+  if (theme === 'amber') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
 })();
 
 window.__themeChosen = () => sessionStorage.setItem('themeOverride', '1');

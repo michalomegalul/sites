@@ -187,6 +187,56 @@ forms, a minimum time between `start` and `submit` (`MIN_FILL_SECONDS`, default
 kept in process memory and keyed on the Cloudflare client IP, which is never
 written to the database — an IP must not end up in Postgres next to health data.
 
+### CrowdSec (the shared-blocklist one)
+
+CrowdSec is the tool where detections are pooled: it reads your nginx logs
+locally, and IPs that misbehave against *anyone* in the community land in a
+blocklist that everyone pulls. It runs as its own service (or container) with a
+separate "bouncer" that does the actual blocking.
+
+It fits here, but **read the real-IP warning below before installing it.**
+
+```bash
+curl -s https://install.crowdsec.net | sudo sh
+apt install -y crowdsec crowdsec-firewall-bouncer-iptables
+cscli collections install crowdsecurity/nginx
+systemctl reload crowdsec
+```
+
+Check it is parsing real addresses, not loopback:
+
+```bash
+cscli metrics                 # nginx lines should be climbing
+cscli alerts list
+cscli decisions list          # who is currently blocked
+cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
+```
+
+> **The trap.** cloudflared connects from localhost, so by default every public
+> request is logged with `remote_addr = 127.0.0.1`. CrowdSec would attribute all
+> traffic — including attacks — to the loopback address and eventually ban it,
+> which takes the whole site down while looking like a random outage.
+>
+> `quiz/nginx.conf` already fixes this: `set_real_ip_from 127.0.0.1` plus
+> `real_ip_header CF-Connecting-IP` in the public block, so `$remote_addr` and
+> the log line carry the true client IP. **`portfolio/nginx.conf` does not have
+> those two lines yet** — add them to its Cloudflare-facing block before pointing
+> CrowdSec at a shared access log, or portfolio traffic will poison the parser.
+> Keep them out of the internal blocks, where `$remote_addr` must stay the real
+> LAN peer.
+
+Because traffic arrives through the tunnel, the firewall bouncer blocks at the
+LXC, after Cloudflare. To block at the edge instead — cheaper, and the visitor
+never reaches your box — use the Cloudflare bouncer with a scoped API token:
+
+```bash
+apt install -y crowdsec-cloudflare-bouncer
+nano /etc/crowdsec/bouncers/crowdsec-cloudflare-bouncer.yaml
+```
+
+Either way, keep the nginx `limit_req` zones. CrowdSec reacts to a pattern over
+time; the rate limiter caps a single burst immediately.
+
 ## Privacy invariants
 
 These came out of the GDPR analysis in `quiz/SPEC.md` and are easy to break by
