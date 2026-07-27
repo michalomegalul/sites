@@ -1,0 +1,146 @@
+/* Researcher dashboard. LAN/Tailscale only — never served publicly.
+ *
+ * Colour here follows one rule: every chart on this page shows a single
+ * measure, so every chart uses ONE hue. Nothing is coloured by rank, and no
+ * chart carries two scales. The sequential steps are the validated blue ramp
+ * (light 250→650, dark 100→400); text never wears the series colour.
+ */
+
+.viz {
+  color-scheme: light;
+  --surface:   #fcfcfb;
+  --raised:    #ffffff;
+  --ink:       #0b0b0b;
+  --ink-2:     #52514e;
+  --ink-3:     #7b7a76;
+  --rule:      #e6e5e1;
+  --series:    #2a78d6;
+  --heat-0:    #eef1f4;
+  --heat-1:    #86b6ef;
+  --heat-2:    #3987e5;
+  --heat-3:    #256abf;
+  --heat-4:    #0d366b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --raised:  #232322;
+    --ink:     #ffffff;
+    --ink-2:   #c3c2b7;
+    --ink-3:   #8e8d85;
+    --rule:    #35352f;
+    --series:  #3987e5;
+    --heat-0:  #2a2a28;
+    --heat-1:  #3987e5;
+    --heat-2:  #6da7ec;
+    --heat-3:  #9ec5f4;
+    --heat-4:  #cde2fb;
+  }
+}
+:root[data-theme="dark"] .viz {
+  color-scheme: dark;
+  --surface: #1a1a19; --raised: #232322; --ink: #fff; --ink-2: #c3c2b7;
+  --ink-3: #8e8d85; --rule: #35352f; --series: #3987e5;
+  --heat-0: #2a2a28; --heat-1: #3987e5; --heat-2: #6da7ec; --heat-3: #9ec5f4; --heat-4: #cde2fb;
+}
+
+.viz {
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 2rem 1.25rem 5rem;
+}
+
+.viz-inner { max-width: 60rem; margin: 0 auto; }
+
+.viz h1 { font-size: 1.6rem; letter-spacing: -.02em; margin: 0 0 .25rem; }
+.viz .sub { color: var(--ink-2); margin: 0 0 2rem; font-size: .92rem; }
+
+.viz section { margin-bottom: 2.75rem; }
+.viz h2 {
+  font-size: .78rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 .3rem; padding-bottom: .5rem; border-bottom: 1px solid var(--rule);
+}
+.viz .note { color: var(--ink-2); font-size: .85rem; margin: .55rem 0 1.1rem; }
+
+/* ------------------------------------------------------------- stat tiles */
+/* A single headline number is not a chart. These are numbers. */
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; }
+.tile { background: var(--raised); border: 1px solid var(--rule); border-radius: 12px; padding: 1rem 1.1rem; }
+.tile .k { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.tile .v { font-size: 2rem; font-weight: 300; line-height: 1.1; margin-top: .3rem; font-variant-numeric: tabular-nums; }
+.tile .x { font-size: .8rem; color: var(--ink-2); margin-top: .15rem; }
+
+/* ------------------------------------------------------------------- bars */
+
+.bars { display: grid; gap: 2px; }          /* 2px surface gap between fills */
+.bar-row {
+  display: grid; grid-template-columns: minmax(7rem, 15rem) 1fr auto;
+  gap: .8rem; align-items: center;
+  padding: .3rem .4rem; border-radius: 8px;
+}
+.bar-row:hover { background: var(--raised); }
+.bar-label { font-size: .87rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 14px; background: transparent; position: relative; }
+.bar-fill {
+  height: 100%; background: var(--series);
+  border-radius: 0 4px 4px 0;               /* rounded data-end, anchored at 0 */
+  min-width: 2px; transition: width .3s;
+}
+.bar-val { font-size: .82rem; font-variant-numeric: tabular-nums; color: var(--ink-2); min-width: 3.5rem; text-align: right; }
+.bar-row.zero .bar-val { color: var(--ink-3); }
+
+/* ------------------------------------------------------------------ table */
+
+.viz table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+.viz th, .viz td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--rule); }
+.viz th { font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.viz td.num, .viz th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.scroller { overflow-x: auto; }
+
+/* --------------------------------------------------------------- heat map */
+
+.bodymap.heat { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.bodymap.heat svg { max-width: 240px; }
+.bodymap.heat .body-silhouette { fill: var(--raised); stroke: var(--rule); }
+.bodymap.heat .region { stroke: var(--rule); stroke-width: 1; cursor: default; }
+.bodymap.heat .region[data-heat="0"] { fill: var(--heat-0); }
+.bodymap.heat .region[data-heat="1"] { fill: var(--heat-1); }
+.bodymap.heat .region[data-heat="2"] { fill: var(--heat-2); }
+.bodymap.heat .region[data-heat="3"] { fill: var(--heat-3); }
+.bodymap.heat .region[data-heat="4"] { fill: var(--heat-4); }
+.bodymap.heat .region:hover { stroke: var(--ink); stroke-width: 2; }
+
+.ramp { display: flex; align-items: center; gap: .5rem; justify-content: center; margin-top: .9rem; font-size: .78rem; color: var(--ink-2); }
+.ramp i { width: 26px; height: 12px; display: inline-block; border: 1px solid var(--rule); }
+.ramp i:nth-child(2) { background: var(--heat-0); }
+.ramp i:nth-child(3) { background: var(--heat-1); }
+.ramp i:nth-child(4) { background: var(--heat-2); }
+.ramp i:nth-child(5) { background: var(--heat-3); }
+.ramp i:nth-child(6) { background: var(--heat-4); }
+
+.readout { text-align: center; min-height: 1.4rem; font-size: .87rem; color: var(--ink-2); margin-top: .6rem; }
+
+/* ---------------------------------------------------------------- chrome */
+
+.toolbar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2rem; }
+.viz a.dl, .viz button.toggle {
+  font: inherit; font-size: .85rem;
+  padding: .5rem 1rem; min-height: 40px;
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--raised); color: var(--ink-2); text-decoration: none; cursor: pointer;
+}
+.viz a.dl:hover, .viz button.toggle:hover { border-color: var(--series); color: var(--series); }
+.viz button.toggle[aria-pressed="true"] { border-color: var(--series); color: var(--series); }
+
+.warn {
+  background: var(--raised); border: 1px solid var(--rule); border-left: 3px solid var(--series);
+  border-radius: 8px; padding: .9rem 1.1rem; font-size: .87rem; color: var(--ink-2); margin-bottom: 2rem;
+}
+.empty { color: var(--ink-3); font-size: .87rem; padding: .5rem 0; }

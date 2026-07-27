@@ -1,0 +1,273 @@
+/* Interactive body map — the centrepiece question.
+ *
+ * SPEC: named anatomical regions, never freehand coordinates, because the
+ * thesis needs tables and charts and coordinates cannot be tabulated. Tapping a
+ * region cycles 0 → 1 → 2 → 3 → 0.
+ *
+ * Region set deliberately includes referral sites, not just the obvious ones:
+ * shoulders are in here because diaphragmatic lesions refer pain there and a
+ * plain checkbox list never catches it.
+ *
+ * Sides are named from the RESPONDENT's point of view. In the front view the
+ * respondent's left is on the viewer's right; in the back view it is on the
+ * viewer's left. The coordinates below already account for that — check it
+ * before moving anything.
+ */
+(function () {
+  'use strict';
+
+  var SVG = 'http://www.w3.org/2000/svg';
+
+  // A stylised figure built from primitives rather than one hand-drawn path:
+  // easier to keep symmetrical, and it scales cleanly on a small screen.
+  var SILHOUETTE = [
+    ['ellipse', { cx: 100, cy: 34, rx: 24, ry: 28 }],           // head
+    ['rect', { x: 90, y: 56, width: 20, height: 22, rx: 9 }],   // neck
+    ['path', { d: 'M60 96 Q60 78 100 78 Q140 78 140 96 L136 160 Q133 200 126 238 Q100 248 74 238 Q67 200 64 160 Z' }],
+    ['rect', { x: 37, y: 92, width: 22, height: 132, rx: 11 }], // arm
+    ['rect', { x: 141, y: 92, width: 22, height: 132, rx: 11 }],
+    ['rect', { x: 74, y: 228, width: 24, height: 198, rx: 12 }],// leg
+    ['rect', { x: 102, y: 228, width: 24, height: 198, rx: 12 }]
+  ];
+
+  var FRONT = [
+    ['shoulder-r',        { cx: 66,  cy: 97,  rx: 17, ry: 13 }],
+    ['shoulder-l',        { cx: 134, cy: 97,  rx: 17, ry: 13 }],
+    ['ribs-r',            { cx: 81,  cy: 140, rx: 17, ry: 17 }],
+    ['ribs-l',            { cx: 119, cy: 140, rx: 17, ry: 17 }],
+    ['abdomen-upper',     { cx: 100, cy: 172, rx: 25, ry: 15 }],
+    ['abdomen-lower-r',   { cx: 84,  cy: 203, rx: 17, ry: 16 }],
+    ['abdomen-lower-l',   { cx: 116, cy: 203, rx: 17, ry: 16 }],
+    ['pelvis-suprapubic', { cx: 100, cy: 230, rx: 21, ry: 13 }],
+    ['groin-r',           { cx: 85,  cy: 254, rx: 13, ry: 12 }],
+    ['groin-l',           { cx: 115, cy: 254, rx: 13, ry: 12 }],
+    ['thigh-r',           { cx: 86,  cy: 306, rx: 14, ry: 36 }],
+    ['thigh-l',           { cx: 114, cy: 306, rx: 14, ry: 36 }]
+  ];
+
+  var BACK = [
+    ['shoulder-l',  { cx: 66,  cy: 97,  rx: 17, ry: 13 }],
+    ['shoulder-r',  { cx: 134, cy: 97,  rx: 17, ry: 13 }],
+    ['back-lower',  { cx: 100, cy: 185, rx: 28, ry: 24 }],
+    ['sacrum',      { cx: 100, cy: 224, rx: 19, ry: 15 }],
+    ['buttock-l',   { cx: 74,  cy: 264, rx: 18, ry: 19 }],
+    ['buttock-r',   { cx: 126, cy: 264, rx: 18, ry: 19 }],
+    ['coccyx',      { cx: 100, cy: 252, rx: 10, ry: 11 }],
+    ['rectal-deep', { cx: 100, cy: 284, rx: 14, ry: 12 }]
+  ];
+
+  function el(name, attrs, cls) {
+    var node = document.createElementNS(SVG, name);
+    for (var k in attrs) node.setAttribute(k, attrs[k]);
+    if (cls) node.setAttribute('class', cls);
+    return node;
+  }
+
+  function buildView(shapes, allowed) {
+    var svg = el('svg', {
+      viewBox: '0 0 200 440',
+      role: 'group',
+      'aria-label': 'body map'
+    });
+    var body = el('g', {}, 'body-silhouette');
+    SILHOUETTE.forEach(function (s) { body.appendChild(el(s[0], s[1])); });
+    svg.appendChild(body);
+
+    shapes.forEach(function (r) {
+      // A view only draws regions the question's spec actually declares, so a
+      // survey with a reduced region set still renders correctly.
+      if (allowed && allowed.indexOf(r[0]) === -1) return;
+      var node = el('ellipse', r[1], 'region');
+      node.setAttribute('data-region', r[0]);
+      node.setAttribute('data-level', '0');
+      node.setAttribute('tabindex', '0');
+      node.setAttribute('role', 'button');
+      node.appendChild(el('title'));
+      svg.appendChild(node);
+    });
+    return svg;
+  }
+
+  /* create({ regions, labels, levels, value, onChange, t, readonly }) → element
+   *
+   * `value` is the SPEC shape: { "pelvis-suprapubic": 3, "sacrum": 2 }.
+   * Regions at zero are absent from the object rather than stored as 0.
+   */
+  function create(opts) {
+    var t = opts.t;
+    var labels = opts.labels || {};
+    var levels = opts.levels || 3;
+    var value = Object.assign({}, opts.value || {});
+    var levelNames = [t.painNone, t.painMild, t.painMod, t.painSevere];
+
+    var wrap = document.createElement('div');
+    wrap.className = 'bodymap';
+
+    var toggle = document.createElement('div');
+    toggle.className = 'view-toggle';
+    var frontBtn = document.createElement('button');
+    var backBtn = document.createElement('button');
+    frontBtn.type = backBtn.type = 'button';
+    frontBtn.textContent = t.bodyFront;
+    backBtn.textContent = t.bodyBack;
+    toggle.append(frontBtn, backBtn);
+
+    var stage = document.createElement('div');
+    var frontSvg = buildView(FRONT, opts.regions);
+    var backSvg = buildView(BACK, opts.regions);
+    stage.append(frontSvg, backSvg);
+
+    var legend = document.createElement('div');
+    legend.className = 'legend';
+    legend.innerHTML =
+      '<span><i class="swatch l1"></i>' + t.painMild + '</span>' +
+      '<span><i class="swatch l2"></i>' + t.painMod + '</span>' +
+      '<span><i class="swatch l3"></i>' + t.painSevere + '</span>';
+
+    var picked = document.createElement('ul');
+    picked.className = 'picked';
+
+    var live = document.createElement('div');
+    live.setAttribute('aria-live', 'polite');
+    live.className = 'hp';
+
+    wrap.append(toggle, stage, legend, picked, live);
+
+    function label(code) { return labels[code] || code; }
+
+    function paint() {
+      // Shoulders appear in both views and share one code, so every matching
+      // node is updated, not just the one that was tapped.
+      wrap.querySelectorAll('.region').forEach(function (node) {
+        var code = node.getAttribute('data-region');
+        var lvl = value[code] || 0;
+        node.setAttribute('data-level', String(lvl));
+        var text = t.regionState(label(code), levelNames[lvl]);
+        node.setAttribute('aria-label', text);
+        node.querySelector('title').textContent = text;
+      });
+
+      picked.textContent = '';
+      var codes = Object.keys(value).sort(function (a, b) {
+        return value[b] - value[a] || label(a).localeCompare(label(b));
+      });
+      if (!codes.length) {
+        var empty = document.createElement('li');
+        empty.textContent = t.bodyEmpty;
+        empty.style.background = 'transparent';
+        empty.style.border = '0';
+        picked.appendChild(empty);
+      } else {
+        codes.forEach(function (code) {
+          var li = document.createElement('li');
+          li.textContent = label(code) + ' · ' + levelNames[value[code]];
+          picked.appendChild(li);
+        });
+      }
+    }
+
+    function cycle(code) {
+      if (opts.readonly) return;
+      var next = ((value[code] || 0) + 1) % (levels + 1);
+      if (next === 0) delete value[code];
+      else value[code] = next;
+      paint();
+      live.textContent = t.regionState(label(code), levelNames[next]);
+      if (opts.onChange) opts.onChange(Object.assign({}, value));
+    }
+
+    wrap.addEventListener('click', function (e) {
+      var node = e.target.closest('.region');
+      if (node) cycle(node.getAttribute('data-region'));
+    });
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var node = e.target.closest && e.target.closest('.region');
+      if (!node) return;
+      e.preventDefault();
+      cycle(node.getAttribute('data-region'));
+    });
+
+    function show(front) {
+      frontSvg.hidden = !front;
+      backSvg.hidden = front;
+      frontBtn.setAttribute('aria-pressed', String(front));
+      backBtn.setAttribute('aria-pressed', String(!front));
+    }
+    frontBtn.addEventListener('click', function () { show(true); });
+    backBtn.addEventListener('click', function () { show(false); });
+
+    show(true);
+    paint();
+    return wrap;
+  }
+
+  /* Static, unfilled, both views side by side — the printable appendix. */
+  function createPrint(opts) {
+    var wrap = document.createElement('div');
+    wrap.className = 'bodymap';
+    wrap.style.display = 'flex';
+    wrap.style.gap = '1rem';
+    var front = buildView(FRONT, opts.regions);
+    var back = buildView(BACK, opts.regions);
+    [front, back].forEach(function (svg) {
+      svg.querySelectorAll('.region').forEach(function (n) {
+        n.removeAttribute('tabindex');
+        n.removeAttribute('role');
+        var code = n.getAttribute('data-region');
+        n.querySelector('title').textContent = (opts.labels || {})[code] || code;
+      });
+      wrap.appendChild(svg);
+    });
+    return wrap;
+  }
+
+  /* Researcher heat map. Both views at once, no interaction beyond hover.
+   *
+   * Colour encodes ONE thing — how many respondents marked the region — on a
+   * single-hue sequential ramp (see admin.css). Mean intensity is a second
+   * measure and is written as text rather than folded into the same colour,
+   * because two measures on one scale cannot be read back apart.
+   *
+   * data: { region: { respondents, mean_intensity } }
+   */
+  function createHeat(opts) {
+    var data = opts.data || {};
+    var labels = opts.labels || {};
+    var max = 0;
+    Object.keys(data).forEach(function (k) {
+      if (data[k].respondents > max) max = data[k].respondents;
+    });
+
+    var wrap = document.createElement('div');
+    wrap.className = 'bodymap heat';
+
+    [buildView(FRONT, opts.regions), buildView(BACK, opts.regions)].forEach(function (svg) {
+      svg.querySelectorAll('.region').forEach(function (node) {
+        node.removeAttribute('tabindex');
+        node.setAttribute('role', 'img');
+        var code = node.getAttribute('data-region');
+        var d = data[code];
+        var n = d ? d.respondents : 0;
+        // Five buckets: 0 recedes to the surface, 1–4 climb the ramp.
+        var step = (!n || !max) ? 0 : Math.max(1, Math.ceil((n / max) * 4));
+        node.setAttribute('data-heat', String(step));
+        var text = (labels[code] || code) + ' — ' + n +
+          (d ? ' (⌀ ' + d.mean_intensity + ')' : '');
+        node.querySelector('title').textContent = text;
+        node.setAttribute('aria-label', text);
+        if (opts.onHover) {
+          node.addEventListener('mouseenter', function () { opts.onHover(code, d); });
+          node.addEventListener('mouseleave', function () { opts.onHover(null, null); });
+        }
+      });
+      wrap.appendChild(svg);
+    });
+    return wrap;
+  }
+
+  window.BodyMap = {
+    create: create, createPrint: createPrint, createHeat: createHeat,
+    FRONT: FRONT, BACK: BACK
+  };
+})();
