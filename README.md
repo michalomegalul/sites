@@ -1,68 +1,212 @@
-# dobsinsky.xyz — portfolio
+# sites
 
-Static brutalist site + tiny Flask API. Public side: CV, projects, contact.
-Trusted side (LAN/Tailscale only): Proxmox stats, service links, visitor tagging.
+Monorepo for everything served off the `cloudflared` LXC. One checkout at
+`/opt/sites`, one deploy script, one runner.
 
-## Layout
+| Site | Domain | What it is |
+|---|---|---|
+| [`portfolio/`](portfolio/) | `dobsinsky.xyz` | CV, projects, and a trusted-only Proxmox panel |
+| [`quiz/`](quiz/) | `quiz.dobsinsky.xyz` | self-hosted survey engine — see [`quiz/SPEC.md`](quiz/SPEC.md) |
 
 ```
-site/        static frontend (nginx serves this)
-api/         Flask API (gunicorn on 127.0.0.1:5050)
-nginx.conf   the trust contract — read the comments before touching
+deploy/deploy.sh      shared: git reset --hard, rebuild venv, restart unit, reload nginx
+.github/workflows/    one workflow per site, path-filtered
+portfolio/            \  each site owns its own site/, api/, nginx.conf
+quiz/                 /  and its own systemd unit
 ```
 
-## Deploy (fresh LXC, Debian/Ubuntu)
+## Deploying
+
+Push to `master`. A workflow fires for each site whose paths changed and runs
+`/opt/sites/deploy/deploy.sh <site>` on the self-hosted runner.
+
+The deploy script does **only** these: fetch and `git reset --hard`, rebuild the
+venv if `requirements.txt` exists, restart `<site>-api` **if that unit is already
+installed**, then `nginx -t && systemctl reload nginx`.
+
+It deliberately does not install systemd units, write `.env`, symlink nginx
+configs, or run database migrations. Those are one-time, root-owned, and
+sometimes destructive — so they stay manual. **A green workflow does not mean a
+working site on first deploy.** See the first-time setup below.
+
+> `git reset --hard` runs every time. Nothing that must survive a deploy may
+> live inside the checkout.
+
+## quiz — first-time setup
+
+Everything here is done once, as root on the `cloudflared` LXC.
+
+**1. Database** (Postgres on 192.168.4.32). Migrations are numbered SQL applied
+by hand — there is no migration tool.
 
 ```bash
-apt install -y nginx python3-venv
-mkdir -p /opt/portfolio && cp -r site api /opt/portfolio/
+psql -h 192.168.4.32 -U postgres -c "CREATE DATABASE quiz;"
+psql -h 192.168.4.32 -U postgres -c "CREATE USER quiz PASSWORD 'something-long';"
+for f in /opt/sites/quiz/db/0*.sql; do
+  psql -h 192.168.4.32 -U postgres -d quiz -v ON_ERROR_STOP=1 -f "$f"
+done
+psql -h 192.168.4.32 -U postgres -d quiz -c \
+  "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO quiz;
+   GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO quiz;"
+```
 
-cd /opt/portfolio/api
-python3 -m venv venv && venv/bin/pip install -r requirements.txt
-cp .env.example .env && nano .env        # PVE token + nets
+`003_seed_endo_2026.sql` deletes and recreates the survey, and responses cascade
+off it. **Run it once, before collection starts, and never again.**
 
-cp portfolio-api.service /etc/systemd/system/
-systemctl enable --now portfolio-api
+**2. Config.** `.env` must be `640 root:www-data` — python-dotenv raises on an
+unreadable file rather than skipping it, and the app loads it as `www-data`.
 
-cp /path/to/nginx.conf /etc/nginx/sites-available/portfolio
-ln -s /etc/nginx/sites-available/portfolio /etc/nginx/sites-enabled/
-nano /etc/nginx/sites-enabled/portfolio   # set LAN IP of this container
+```bash
+cd /opt/sites/quiz/api
+cp .env.example .env && nano .env          # DATABASE_URL
+chown root:www-data .env && chmod 640 .env
+```
+
+**3. Service and nginx.** Entries in `sites-enabled/` must be symlinks; a
+regular file there silently diverges from `sites-available/`.
+
+```bash
+cp /opt/sites/quiz/api/quiz-api.service /etc/systemd/system/
+systemctl enable --now quiz-api
+
+cp /opt/sites/quiz/nginx.conf /etc/nginx/sites-available/quiz
+ln -s /etc/nginx/sites-available/quiz /etc/nginx/sites-enabled/
+nano /etc/nginx/sites-enabled/quiz        # confirm the LAN IP in the internal block
 nginx -t && systemctl reload nginx
 ```
 
-Cloudflare Tunnel: point the `dobsinsky.xyz` ingress at `http://127.0.0.1:8480`.
+**4. Cloudflare Tunnel.** Add a `quiz.dobsinsky.xyz` ingress pointing at
+`http://127.0.0.1:8480`. Both sites share that port and are separated by
+`server_name`.
 
-## Proxmox token (read-only!)
+Check it: `curl -s localhost:5051/api/health` → `{"ok":true}`.
 
-```bash
-pveum user add portfolio@pam
-pveum acl modify / --users portfolio@pam --roles PVEAuditor
-pveum user token add portfolio@pam readonly --privsep 0
-# paste the value into .env as PVE_TOKEN=portfolio@pam!readonly=<uuid>
+## Links to hand out
+
+```
+https://quiz.dobsinsky.xyz/cs/s/endo-2026?src=insta
+https://quiz.dobsinsky.xyz/en/s/endo-2026?src=insta
 ```
 
-## How trusted mode works
+Language is the path segment, never a cookie — a Czech link pasted into a Czech
+group cannot land someone in English. `?src=` must match a row in `sources`
+(`direct`, `insta`, `fb-group`, `reddit`, `clinic`, `word`); anything else is
+stored as NULL rather than auto-created, so the funnel cannot be polluted from
+the query string.
 
-The frontend POSTs `/api/whoami`. The API answers `trusted: true` only when
-nginx tagged the request `X-Net: lan` (internal server block) **or** the
-X-Real-IP falls in `TRUSTED_NETS` (Tailscale CGNAT 100.64.0.0/10, LAN).
-Public traffic comes through the Cloudflare block which forces
-`X-Net: public` and sets X-Real-IP from CF-Connecting-IP, so nobody can
-spoof their way in by sending headers — nginx overwrites them.
+## Reading the results
 
-When trusted: the `;; SRV` section appears with live Proxmox stats
-(15 s refresh, 10 s server-side cache), service shortcuts, and the
-visitor log.
+The dashboard and exports are on the internal hostname only —
+`http://quiz.internal/admin.html` over LAN or Tailscale. The public block
+returns 404 for both the page and the admin API, and the API checks the network
+itself as well.
 
-## Friend tagging
+| What | Where |
+|---|---|
+| Completion, sources, drop-off, pain heat map | `/admin.html` |
+| Spreadsheet export, one row per response | `/api/admin/endo-2026/export.csv` |
+| Long format, one row per answer | `…/export.csv?format=long` |
+| Blank questionnaire for the thesis appendix | `/cs/s/endo-2026/print` → print to PDF |
 
-Every browser gets a random `vid` in localStorage and is logged on visit.
-From a trusted device, open `;; SRV → tail -f visitors.log`, recognize a
-friend (timing + user agent), give them a name and a custom greeting.
-Next time they open the site, the greeting shows in the hero.
+CSV columns are keyed on `questions.code`, never on prompt text, so renaming a
+question in Czech does not break a half-finished analysis. The file carries a
+UTF-8 BOM so Excel opens Czech diacritics correctly.
 
-## Editing content
+**The useful number is drop-off.** `v_dropoff` gives the last question answered
+by everyone who started but never submitted. A spike at one question means that
+question is the problem — too personal, too confusing, or too much typing.
+Position 0 means they consented and left immediately, which points at the
+consent screen or the first question rather than anything deeper in.
 
-- `site/projects.json` — featured vs archive cards
-- `api/now.json` — the "what am I doing" panel; edit anytime, no restart
-- `api/app.py` → `SERVICES` — your service shortcuts (fix the IPs)
+## Analytics
+
+Google Analytics is wired in and **opt-in**. Set `gaMeasurementId` in
+`quiz/site/js/config.js`; leaving it empty disables analytics entirely and the
+checkbox never appears.
+
+Nothing is requested from Google until the respondent ticks the analytics box on
+the consent screen — the tag is injected at that moment, not before. Events
+carry screen names and question codes (`pain_map`), never answer values, free
+text, or the `response_id`. `anonymize_ip` is on, and Google Signals and ad
+personalization are off, because this must not feed advertising audiences.
+
+The nginx `Content-Security-Policy` allow-lists `googletagmanager.com` and
+`google-analytics.com` and nothing else third-party. If you add another tag it
+is blocked until you add it there too — that is intentional.
+
+> Worth knowing, since it is a thesis on the line: the respondents are a small
+> group approached personally. A GA client ID plus a timestamp, combined with
+> knowing who was sent a link and when, is a re-identification path that the
+> survey data alone does not have. The drop-off and funnel views answer "how do
+> I make this better?" without that exposure, so prefer them for anything that
+> goes near the methodology write-up.
+
+## Blocking bots
+
+Three layers, outside-in. The first two need no script on the page.
+
+**1. Cloudflare (do this first — it is where the traffic actually arrives).**
+In the dashboard for `dobsinsky.xyz`:
+
+- **Security → Bots → Bot Fight Mode: on.** Challenges known bad automation at
+  the edge, before it ever reaches the tunnel.
+- **Security → WAF → Rate limiting rules.** Add one: expression
+  `(http.host eq "quiz.dobsinsky.xyz" and starts_with(http.request.uri.path, "/api/"))`,
+  10 requests per 10 seconds per IP, action *Block*, duration 60 s.
+- **Security → WAF → Custom rules.** Managed Challenge where
+  `cf.threat_score gt 20` on that hostname.
+- **Scrape Shield → Email obfuscation: on.**
+
+Turnstile is the escalation if these are not enough. It is deliberately not used
+yet: it is a third-party script in the page, which the SPEC rules out, and the
+edge rules cost nothing in privacy.
+
+**2. nginx** (`quiz/nginx.conf`) — defense in depth, already configured:
+30 req/min per IP on `/api/`, 5 req/min on `start`, 20 concurrent connections,
+256 KB body cap.
+
+The zones key on `$http_cf_connecting_ip`, **not** `$binary_remote_addr`.
+cloudflared connects from localhost, so every public request has
+`$remote_addr = 127.0.0.1`; a zone keyed on that would throttle the entire site
+as one bucket. If you copy these rules to another block, check that first.
+
+**3. The app** — a honeypot field hidden with CSS on both the start and followup
+forms, a minimum time between `start` and `submit` (`MIN_FILL_SECONDS`, default
+15 s), and per-IP hourly caps on `start` and `followup`. Rate-limit state is
+kept in process memory and keyed on the Cloudflare client IP, which is never
+written to the database — an IP must not end up in Postgres next to health data.
+
+## Privacy invariants
+
+These came out of the GDPR analysis in `quiz/SPEC.md` and are easy to break by
+accident. If you change the schema or the API, re-check all five.
+
+1. No name, email, or IP is stored on or joinable to a response.
+2. Answers store language-neutral codes, never display text — a Czech "Ano" and
+   an English "Yes" must land in the database as the same value.
+3. `followups` has no foreign key to `responses`, and the followup endpoint
+   never receives a `response_id` — not even for convenience. `created_at` is a
+   **date**, not a timestamp, because in a small sample a timestamp seconds away
+   from a submission is a de facto join.
+4. Consent is recorded as data, with the version of the text agreed to
+   (`responses.consent_ver`).
+5. User-agent is stored as a coarse family (`Chrome/Android`), never the full
+   string, which is near-unique.
+
+## Adding a question
+
+Surveys are rows, not code.
+
+```sql
+INSERT INTO questions (survey_id, position, code, kind, required, spec)
+SELECT id, 195, 'new_code', 'single', false,
+       '{"options":["a","b"]}'::jsonb
+FROM surveys WHERE slug = 'endo-2026';
+```
+
+Then a `question_i18n` row per locale with `prompt` and a `labels` map covering
+every option code. Positions step by 10 so there is room to insert without
+renumbering. **Never change a `code` once collection has started** — it is the
+export key, and changing it splits a column in the spreadsheet.
+
+Kinds: `text` `textarea` `single` `multi` `scale` `number` `date` `bodymap`.

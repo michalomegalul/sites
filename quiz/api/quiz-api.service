@@ -1,0 +1,20 @@
+[Unit]
+Description=quiz.dobsinsky.xyz survey API
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/sites/quiz/api
+EnvironmentFile=/opt/sites/quiz/api/.env
+ExecStart=/opt/sites/quiz/api/venv/bin/gunicorn -w 2 -b 127.0.0.1:5051 app:app
+Restart=always
+
+# The checkout is git reset --hard on every deploy and holds no runtime state,
+# so the service never needs to write to it.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
