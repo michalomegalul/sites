@@ -6,6 +6,21 @@
 
 BEGIN;
 
+-- Guard. The README tells you to apply migrations with `for f in db/0*.sql`,
+-- which re-runs this file every time a 004 is added. The DELETE below cascades
+-- to responses, so without this a routine migration would silently destroy the
+-- collected data. Refuse instead.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM responses r
+             JOIN surveys s ON s.id = r.survey_id
+             WHERE s.slug = 'endo-2026') THEN
+    RAISE EXCEPTION
+      'endo-2026 already has responses — refusing to reseed. '
+      'Drop this file from the glob, or delete the responses deliberately first.';
+  END IF;
+END $$;
+
 DELETE FROM surveys WHERE slug = 'endo-2026';
 
 INSERT INTO surveys (slug, default_locale, locales, consent_ver, is_open)

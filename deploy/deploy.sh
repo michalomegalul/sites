@@ -5,6 +5,14 @@ SITE="${1:?usage: deploy.sh <site-slug>}"
 ROOT=/opt/sites
 DIR="$ROOT/$SITE"
 
+# Both sites share this one checkout and every deploy runs `git reset --hard`
+# on it. A commit touching portfolio/ and quiz/ fires both workflows, and their
+# concurrency groups are per-workflow so they cannot see each other — with more
+# than one self-hosted runner they would reset the tree under each other. Wait
+# our turn instead.
+exec 9>/var/lock/sites-deploy.lock
+flock 9
+
 [ -d "$DIR" ] || { echo "no such site: $SITE"; exit 1; }
 
 cd "$ROOT"
