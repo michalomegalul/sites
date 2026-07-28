@@ -152,7 +152,7 @@ def ua_family():
 
 def load_survey(cur, slug, locale=None):
     cur.execute(
-        "SELECT id, slug, default_locale, locales, consent_ver, is_open"
+        "SELECT id, slug, default_locale, locales, consent_ver, is_open, mode"
         " FROM surveys WHERE slug = %s",
         (slug,),
     )
@@ -196,12 +196,24 @@ def get_survey(slug):
         )
         questions = cur.fetchall()
 
+    # Never ship the answer key. In quiz mode the correct options and the
+    # explanation come back from PATCH, once the answer is already recorded —
+    # otherwise the survey measures who thought to open devtools.
+    for q in questions:
+        spec = q.get("spec") or {}
+        if "correct" in spec:
+            q["spec"] = {k: v for k, v in spec.items() if k != "correct"}
+            q["graded"] = True
+        else:
+            q["graded"] = False
+
     return jsonify(
         slug=survey["slug"],
         locale=locale,
         locales=survey["locales"],
         is_open=survey["is_open"],
         consent_ver=survey["consent_ver"],
+        mode=survey["mode"],
         **text,
         questions=questions,
     )
@@ -308,9 +320,24 @@ def validate(kind, spec, value):
     return False, None
 
 
+def grade(kind, spec, value):
+    """True/False for a gradable question, None if it is not graded.
+
+    Kept identical to the SQL in db/004_quiz_mode.sql — a multi must match the
+    correct set exactly, so ticking everything scores nothing.
+    """
+    correct = spec.get("correct")
+    if correct is None:
+        return None
+    if kind == "multi":
+        return sorted(value or []) == sorted(correct)
+    return value in correct
+
+
 def open_response(cur, response_id):
     cur.execute(
-        "SELECT id, survey_id, submitted_at, started_at FROM responses WHERE id = %s",
+        "SELECT id, survey_id, submitted_at, started_at, locale"
+        " FROM responses WHERE id = %s",
         (response_id,),
     )
     return cur.fetchone()
@@ -364,12 +391,16 @@ def patch_response(response_id):
             return jsonify(error="already_submitted"), 409
 
         cur.execute(
-            "SELECT id, code, kind, spec FROM questions WHERE survey_id = %s",
-            (resp["survey_id"],),
+            "SELECT q.id, q.code, q.kind, q.spec, i.explain_md"
+            " FROM questions q"
+            " LEFT JOIN question_i18n i"
+            "        ON i.question_id = q.id AND i.locale = %s"
+            " WHERE q.survey_id = %s",
+            (resp["locale"], resp["survey_id"]),
         )
         by_code = {q["code"]: q for q in cur.fetchall()}
 
-        saved, rejected = [], []
+        saved, rejected, feedback = [], [], {}
         for code, value in body.items():
             q = by_code.get(code)
             if q is None:
@@ -401,10 +432,21 @@ def patch_response(response_id):
                     (response_id, q["id"], psycopg.types.json.Jsonb(cleaned)),
                 )
             saved.append(code)
+
+            # Grade only after the answer is committed to the row above, so the
+            # recorded answer is always the one given before the respondent saw
+            # the solution. Nothing here is sent for ungraded questions.
+            verdict = grade(q["kind"], q["spec"], cleaned)
+            if verdict is not None:
+                feedback[code] = {
+                    "correct": verdict,
+                    "correct_options": q["spec"].get("correct", []),
+                    "explain_md": q["explain_md"],
+                }
         db().commit()
 
     status = 200 if saved else 400
-    return jsonify(saved=saved, rejected=rejected), status
+    return jsonify(saved=saved, rejected=rejected, feedback=feedback), status
 
 
 @app.post("/api/r/<response_id>/submit")
@@ -443,9 +485,39 @@ def submit(response_id):
         cur.execute(
             "UPDATE responses SET submitted_at = now() WHERE id = %s", (response_id,)
         )
+
+        # Score, for the recap screen. It has to be computed here: once
+        # submitted_at is set, GET /api/r/<id> stops answering, so the client
+        # cannot read its own answers back to work this out.
+        cur.execute(
+            "SELECT q.code, q.kind, q.spec, q.position, i.prompt, i.explain_md, a.value"
+            " FROM questions q"
+            " JOIN answers a ON a.question_id = q.id AND a.response_id = %s"
+            " LEFT JOIN question_i18n i"
+            "        ON i.question_id = q.id AND i.locale = %s"
+            " WHERE q.survey_id = %s AND q.spec ? 'correct'"
+            " ORDER BY q.position",
+            (response_id, resp["locale"], resp["survey_id"]),
+        )
+        review = []
+        for row in cur.fetchall():
+            review.append({
+                "code": row["code"],
+                "prompt": row["prompt"],
+                "correct": grade(row["kind"], row["spec"], row["value"]),
+                "correct_options": row["spec"].get("correct", []),
+                "explain_md": row["explain_md"],
+            })
         db().commit()
 
-    return jsonify(ok=True)
+    if not review:
+        return jsonify(ok=True)
+    return jsonify(
+        ok=True,
+        score=sum(1 for r in review if r["correct"]),
+        out_of=len(review),
+        review=review,
+    )
 
 
 @app.post("/api/s/<slug>/followup")
@@ -546,9 +618,26 @@ def admin_stats(slug):
         )
         devices = cur.fetchall()
 
+        # Awareness results, for quiz-mode surveys. Empty list on a plain
+        # questionnaire, so the dashboard just omits the section.
+        cur.execute(
+            "SELECT position, question, answered, correct, pct_correct"
+            " FROM v_quiz_stats WHERE survey_id = %s ORDER BY position",
+            (sid,),
+        )
+        knowledge = cur.fetchall()
+        cur.execute(
+            "SELECT score, out_of, count(*) AS n FROM v_quiz_scores"
+            " WHERE survey_id = %s GROUP BY 1, 2 ORDER BY 1",
+            (sid,),
+        )
+        score_hist = cur.fetchall()
+
     return jsonify(
+        mode=survey["mode"],
         sources=sources, funnel=funnel, dropoff=dropoff, duration=duration,
         bodymap=bodymap, tallies=tallies, devices=devices,
+        knowledge=knowledge, score_hist=score_hist,
     )
 
 

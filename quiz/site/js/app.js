@@ -10,7 +10,11 @@
   var CFG = window.QUIZ_CONFIG;
   var state = {
     slug: null, locale: null, src: null, survey: null,
-    responseId: null, answers: {}, index: 0, print: false
+    responseId: null, answers: {}, index: 0, print: false,
+    // Quiz mode only: what the server said about each graded answer. Kept in
+    // memory rather than localStorage, because the server is the authority and
+    // re-sending the same answer returns the same verdict.
+    feedback: {}
   };
 
   var screen = document.getElementById('screen');
@@ -310,6 +314,8 @@
 
   function questions() { return state.survey.questions || []; }
 
+  function isQuiz() { return state.survey && state.survey.mode === 'quiz'; }
+
   function renderQuestion() {
     var qs = questions();
     if (state.index >= qs.length) return renderReview();
@@ -328,6 +334,9 @@
 
     var errorSlot = h('div');
     wrap.appendChild(errorSlot);
+
+    if (isQuiz() && q.graded) return renderGraded(q, wrap, errorSlot);
+
     wrap.appendChild(fieldFor(q));
 
     var actions = h('div', 'actions');
@@ -361,6 +370,102 @@
     show(wrap);
   }
 
+  /* A graded question. The answer is deliberately NOT autosaved while the
+   * respondent is still choosing: it is sent once, when they commit, and the
+   * verdict comes back from that same request. That way the recorded answer is
+   * always the one given before the explanation was visible. */
+  function renderGraded(q, wrap, errorSlot) {
+    var chosen = state.answers[q.code];
+    var field = fieldFor(q, function (code, value) { chosen = value; update(); });
+    wrap.appendChild(field);
+
+    var panel = h('div');
+    wrap.appendChild(panel);
+
+    var actions = h('div', 'actions');
+    var btn = h('button', 'btn', t.checkAnswer);
+    btn.type = 'button';
+    actions.appendChild(btn);
+    wrap.appendChild(actions);
+
+    function update() {
+      btn.disabled = isEmpty(chosen, q.kind);
+    }
+
+    function lock() {
+      field.querySelectorAll('input').forEach(function (i) { i.disabled = true; });
+      field.querySelectorAll('.opt').forEach(function (o) { o.style.cursor = 'default'; });
+    }
+
+    function showVerdict(fb) {
+      state.feedback[q.code] = fb;
+      lock();
+      panel.textContent = '';
+      panel.appendChild(verdictPanel(q, fb));
+      btn.textContent = t.next;
+      btn.disabled = false;
+      btn.onclick = function () { state.index++; renderQuestion(); };
+      track('question_answered', {
+        survey: state.slug, question: q.code, correct: fb.correct ? 1 : 0
+      });
+    }
+
+    btn.addEventListener('click', function () {
+      if (state.feedback[q.code]) { state.index++; renderQuestion(); return; }
+      btn.disabled = true;
+      errorSlot.textContent = '';
+      state.answers[q.code] = chosen;
+      api('PATCH', '/r/' + state.responseId, kv(q.code, chosen))
+        .then(function (res) {
+          var fb = (res.feedback || {})[q.code];
+          if (!fb) { state.index++; return renderQuestion(); }
+          showVerdict(fb);
+        })
+        .catch(function () {
+          btn.disabled = false;
+          errorSlot.appendChild(h('div', 'error', t.saveFailed));
+        });
+    });
+
+    update();
+    // Coming back to an already-answered question: re-send the same answer to
+    // recover the verdict rather than storing the answer key client-side.
+    if (state.feedback[q.code]) {
+      showVerdict(state.feedback[q.code]);
+    } else if (!isEmpty(chosen, q.kind)) {
+      api('PATCH', '/r/' + state.responseId, kv(q.code, chosen))
+        .then(function (res) {
+          var fb = (res.feedback || {})[q.code];
+          if (fb) showVerdict(fb);
+        })
+        .catch(function () {});
+    }
+    show(wrap);
+  }
+
+  function kv(k, v) { var o = {}; o[k] = v; return o; }
+
+  function verdictPanel(q, fb) {
+    var box = h('div', 'verdict ' + (fb.correct ? 'verdict--ok' : 'verdict--no'));
+    var head = h('p', 'verdict-head');
+    head.appendChild(h('span', 'verdict-mark', fb.correct ? '✓' : '✕'));
+    head.appendChild(document.createTextNode(fb.correct ? t.correctLabel : t.wrongLabel));
+    box.appendChild(head);
+
+    if (!fb.correct) {
+      var labels = q.labels || {};
+      var names = (fb.correct_options || []).map(function (c) { return labels[c] || c; });
+      if (names.length) {
+        var line = h('p', 'verdict-answer');
+        line.appendChild(h('strong', null, t.correctAnswerWas + ' '));
+        line.appendChild(document.createTextNode(names.join(', ')));
+        box.appendChild(line);
+      }
+    }
+    if (fb.explain_md) renderMarkdown(fb.explain_md, box.appendChild(h('div', 'prose')));
+    return box;
+  }
+
   function isEmpty(v, kind) {
     if (v == null || v === '') return true;
     if (Array.isArray(v)) return v.length === 0;
@@ -372,7 +477,11 @@
     return false;
   }
 
-  function fieldFor(q) {
+  /* `sink` receives (code, value) whenever the field changes. It defaults to
+   * the autosaving path; graded quiz questions pass their own so the answer is
+   * held locally until the respondent commits it. */
+  function fieldFor(q, sink) {
+    var save = sink || queueSave;
     var spec = q.spec || {};
     var labels = q.labels || {};
     var current = state.answers[q.code];
@@ -391,7 +500,7 @@
 
         input.addEventListener('change', function () {
           if (q.kind === 'single') {
-            queueSave(q.code, code);
+            save(q.code, code);
             return;
           }
           var chosen = Array.prototype.filter
@@ -408,7 +517,7 @@
           list.querySelectorAll('input').forEach(function (i) {
             i.checked = chosen.indexOf(i.value) !== -1;
           });
-          queueSave(q.code, chosen);
+          save(q.code, chosen);
         });
 
         label.append(input, h('span', 'mark'), h('span', null, labels[code] || code));
@@ -434,7 +543,7 @@
         value.textContent = range.value;
         value.classList.remove('unset');
       });
-      range.addEventListener('change', function () { queueSave(q.code, Number(range.value)); });
+      range.addEventListener('change', function () { save(q.code, Number(range.value)); });
       var ends = h('div', 'scale-ends');
       ends.append(h('span', null, labels.min || String(min)), h('span', null, labels.max || String(max)));
       box.append(value, range, ends);
@@ -449,7 +558,7 @@
         value: current || {},
         answered: current !== undefined,
         t: t,
-        onChange: function (v) { queueSave(q.code, v); }
+        onChange: function (v) { save(q.code, v); }
       });
     }
 
@@ -464,7 +573,7 @@
       field.addEventListener('input', function () {
         counter.textContent = t.chars(field.value.length, maxlen);
         counter.classList.toggle('over', field.value.length >= maxlen);
-        queueSave(q.code, field.value);
+        save(q.code, field.value);
       });
       var box2 = h('div');
       box2.append(field, counter);
@@ -481,8 +590,8 @@
       input2.value = current != null ? current : '';
       input2.setAttribute('aria-label', q.prompt || q.code);
       input2.addEventListener('change', function () {
-        if (input2.value === '') queueSave(q.code, null);
-        else queueSave(q.code, q.kind === 'number' ? Number(input2.value) : input2.value);
+        if (input2.value === '') save(q.code, null);
+        else save(q.code, q.kind === 'number' ? Number(input2.value) : input2.value);
       });
       return input2;
     }
@@ -516,10 +625,13 @@
       clearTimeout(saveTimer);
       flush()
         .then(function () { return api('POST', '/r/' + state.responseId + '/submit'); })
-        .then(function () {
-          track('survey_submit', { survey: state.slug, locale: state.locale, source: state.src || 'direct' });
+        .then(function (res) {
+          track('survey_submit', {
+            survey: state.slug, locale: state.locale, source: state.src || 'direct',
+            score: res && res.score
+          });
           clearStored();
-          renderThanks();
+          renderThanks(res || {});
         })
         .catch(function (e) {
           send.disabled = false;
@@ -548,11 +660,21 @@
     show(wrap);
   }
 
-  function renderThanks() {
+  function renderThanks(result) {
+    result = result || {};
     bar.hidden = true;
     var wrap = h('div');
-    wrap.appendChild(h('div', 'big-emoji center', '🌼'));
+
+    if (result.out_of) {
+      wrap.appendChild(scoreCard(result));
+    } else {
+      wrap.appendChild(h('div', 'big-emoji center', '🌼'));
+    }
     renderMarkdown(state.survey.thanks_md, wrap.appendChild(h('div', 'prose')));
+    if (result.out_of) {
+      wrap.appendChild(recap(result));
+      wrap.appendChild(shareBox());
+    }
 
     // Follow-up form. Note it posts to the survey, not to the response: this
     // page never sends an email and a response_id in the same request, which
@@ -598,6 +720,70 @@
     wrap.appendChild(box);
     wrap.appendChild(langSwitcher());
     show(wrap);
+  }
+
+  // ------------------------------------------------------- quiz result screen
+
+  function scoreCard(result) {
+    var pct = result.out_of ? result.score / result.out_of : 0;
+    var box = h('div', 'scorecard');
+    box.appendChild(h('p', 'eyebrow center', t.scoreHead));
+    var big = h('p', 'score-big');
+    big.appendChild(h('strong', null, String(result.score)));
+    big.appendChild(document.createTextNode(' / ' + result.out_of));
+    box.appendChild(big);
+
+    // A ring rather than a bar: this is one number, not a comparison.
+    var track = h('div', 'score-track');
+    var fillEl = h('div', 'score-fill');
+    fillEl.style.width = Math.round(pct * 100) + '%';
+    track.appendChild(fillEl);
+    box.appendChild(track);
+
+    var msg = pct === 1 ? t.scoreAllRight : (pct >= 0.6 ? t.scoreGood : t.scoreLow);
+    box.appendChild(h('p', 'help center', msg));
+    return box;
+  }
+
+  function recap(result) {
+    var box = h('div');
+    box.appendChild(h('h2', null, t.reviewHead));
+    (result.review || []).forEach(function (item) {
+      var row = h('details', 'recap' + (item.correct ? ' recap--ok' : ' recap--no'));
+      var sum = h('summary');
+      sum.appendChild(h('span', 'verdict-mark', item.correct ? '✓' : '✕'));
+      sum.appendChild(document.createTextNode(item.prompt || item.code));
+      row.appendChild(sum);
+      if (item.explain_md) renderMarkdown(item.explain_md, row.appendChild(h('div', 'prose')));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  function shareBox() {
+    var box = h('div', 'consent-box');
+    box.appendChild(h('h2', null, t.shareHead));
+    box.appendChild(h('p', 'help', t.shareBody));
+    var url = location.origin + '/' + state.locale + '/s/' + state.slug;
+    var btn = h('button', 'btn', t.copyLink);
+    btn.type = 'button';
+    btn.addEventListener('click', function () {
+      var done = function () { btn.textContent = t.copied; };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(done, done);
+      } else {
+        // Older mobile browsers: select-and-copy from a temporary field.
+        var tmp = document.createElement('input');
+        tmp.value = url;
+        box.appendChild(tmp);
+        tmp.select();
+        try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+        box.removeChild(tmp);
+        done();
+      }
+    });
+    box.appendChild(btn);
+    return box;
   }
 
   // ------------------------------------------------------------- print view

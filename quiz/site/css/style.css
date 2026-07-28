@@ -359,6 +359,86 @@ input[type="range"]::-moz-range-thumb {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* --------------------------------------------------------------- quiz mode */
+/* Feedback shown after a graded answer is committed. Right and wrong are
+ * distinguished by mark and wording as well as colour — never colour alone. */
+
+.verdict {
+  border: 1.5px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  margin: 1.25rem 0 0;
+  background: var(--bg-raised);
+  animation: rise .28s cubic-bezier(.2, .7, .3, 1) both;
+}
+.verdict--ok { border-left-color: #2f8f5b; }
+.verdict--no { border-left-color: var(--accent); }
+
+.verdict-head {
+  display: flex; align-items: center; gap: .55rem;
+  font-weight: 650; margin: 0 0 .5rem;
+}
+.verdict--ok .verdict-head { color: #2f8f5b; }
+.verdict--no .verdict-head { color: var(--accent); }
+@media (prefers-color-scheme: dark) { .verdict--ok .verdict-head { color: #6cc48d; } }
+
+.verdict-mark {
+  flex: 0 0 auto;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  font-size: .82rem; color: #fff;
+  background: currentColor;
+}
+.verdict-mark::first-letter { color: #fff; }
+.verdict--ok .verdict-mark { background: #2f8f5b; color: #fff; }
+.verdict--no .verdict-mark { background: var(--accent); color: #fff; }
+
+.verdict-answer { font-size: .93rem; margin-bottom: .6rem; }
+.verdict .prose { font-size: .93rem; }
+.verdict .prose p:last-child { margin-bottom: 0; }
+
+/* score card */
+.scorecard {
+  background: var(--bg-raised);
+  border: 1.5px solid var(--line); border-radius: var(--radius);
+  padding: 1.5rem 1.25rem; margin-bottom: 1.5rem;
+  box-shadow: var(--shadow); text-align: center;
+}
+.score-big {
+  font-size: 3rem; line-height: 1; font-weight: 300;
+  font-variant-numeric: tabular-nums; color: var(--ink-soft);
+  margin: .25rem 0 1rem;
+}
+.score-big strong { font-weight: 600; color: var(--accent); }
+.score-track {
+  height: 10px; background: var(--line); border-radius: 99px;
+  overflow: hidden; margin-bottom: 1rem;
+}
+.score-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width .6s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* recap — collapsed by default so the screen is not a wall of text */
+.recap {
+  border: 1.5px solid var(--line); border-left-width: 4px;
+  border-radius: 14px; padding: .85rem 1rem; margin-bottom: .5rem;
+  background: var(--bg-raised);
+}
+.recap--ok { border-left-color: #2f8f5b; }
+.recap--no { border-left-color: var(--accent); }
+.recap summary {
+  display: flex; align-items: flex-start; gap: .6rem;
+  cursor: pointer; font-size: .94rem; list-style: none;
+  min-height: 32px;
+}
+.recap summary::-webkit-details-marker { display: none; }
+.recap[open] summary { margin-bottom: .6rem; font-weight: 600; }
+.recap .prose { font-size: .9rem; }
+.recap .prose p:last-child { margin-bottom: 0; }
+
 /* -------------------------------------------------------------- print view */
 /* SPEC: the blank questionnaire is a required thesis appendix. */
 

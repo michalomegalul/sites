@@ -81,11 +81,42 @@ nginx -t && systemctl reload nginx
 
 Check it: `curl -s localhost:5051/api/health` → `{"ok":true}`.
 
+## The two surveys
+
+| Slug | Mode | Audience | Point |
+|---|---|---|---|
+| `endo-2026` | survey | people who have or suspect endometriosis | collect symptoms, impact, care experience |
+| `endo-znalosti` | quiz | the general public | measure what people know, and teach them |
+
+`endo-znalosti` is the awareness quiz: 12 graded questions plus 4 ungraded
+context ones. Each graded answer is recorded **and then** the respondent is
+shown whether they were right, with a short explanation; the end screen gives a
+score and a recap.
+
+Two things make the numbers trustworthy:
+
+- **The answer key never reaches the browser.** `GET /api/s/{slug}` strips
+  `correct` from every spec and sends `graded: true` instead. Correct options
+  and explanations come back from the `PATCH` that saves the answer, so the
+  recorded answer is always the one given *before* the solution was visible.
+- **A multi-choice answer must match the correct set exactly**, so ticking
+  every box scores nothing. The SQL view and the Python grader implement the
+  same rule.
+
+For the thesis, `v_quiz_stats` gives the per-question table directly ("83 %
+knew that pregnancy does not cure it") and `v_quiz_scores` gives the score
+distribution. Both appear on the dashboard under *What people knew*.
+
+Because `heard_before` and `knows_someone` are ungraded context questions, you
+can segment awareness by them — for example, whether knowing someone with the
+diagnosis predicts a higher score.
+
 ## Links to hand out
 
 ```
-https://quiz.dobsinsky.xyz/cs/s/endo-2026?src=insta
-https://quiz.dobsinsky.xyz/en/s/endo-2026?src=insta
+https://quiz.dobsinsky.xyz/cs/s/endo-2026?src=insta        patient questionnaire
+https://quiz.dobsinsky.xyz/cs/s/endo-znalosti?src=insta    awareness quiz
+https://quiz.dobsinsky.xyz/en/s/endo-znalosti?src=insta
 ```
 
 Language is the path segment, never a cookie — a Czech link pasted into a Czech
@@ -271,3 +302,19 @@ renumbering. **Never change a `code` once collection has started** — it is the
 export key, and changing it splits a column in the spreadsheet.
 
 Kinds: `text` `textarea` `single` `multi` `scale` `number` `date` `bodymap`.
+
+To make a question **graded**, add `correct` to its spec and an `explain_md` to
+each `question_i18n` row. The survey itself must be `mode = 'quiz'`, or the
+frontend will not show feedback:
+
+```sql
+UPDATE questions SET spec = spec || '{"correct":["b"]}'::jsonb
+WHERE code = 'new_code';
+
+UPDATE question_i18n SET explain_md = 'Proč to tak je…'
+WHERE question_id = (SELECT id FROM questions WHERE code = 'new_code')
+  AND locale = 'cs';
+```
+
+Correct answers are option **codes**, like the answers themselves, so grading is
+identical in both languages.

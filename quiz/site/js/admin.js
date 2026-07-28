@@ -204,6 +204,36 @@
       root.appendChild(s4);
     }
 
+    // ---- awareness results (quiz-mode surveys only)
+    if ((stats.knowledge || []).length) {
+      var s4b = section('What people knew',
+        'Share of completed responses answering each question correctly. ' +
+        'A low bar is not a failure — it is the finding.');
+      s4b.appendChild(barChart(stats.knowledge.map(function (k) {
+        return { label: promptOf[k.question] || k.question,
+                 value: Number(k.pct_correct),
+                 suffix: k.pct_correct + '%  (' + k.correct + '/' + k.answered + ')' };
+      }), { labelHead: 'Question', valueHead: 'Correct' }));
+      root.appendChild(s4b);
+
+      var hist = stats.score_hist || [];
+      if (hist.length) {
+        var outOf = Number(hist[0].out_of);
+        var s4c = section('Score distribution',
+          'How many correct answers each respondent got, out of ' + outOf + '.');
+        // Every possible score gets a row, including the empty ones — gaps in
+        // the distribution are part of its shape.
+        var byScore = {};
+        hist.forEach(function (r) { byScore[Number(r.score)] = Number(r.n); });
+        var rows = [];
+        for (var sc = 0; sc <= outOf; sc++) {
+          rows.push({ label: sc + ' / ' + outOf, value: byScore[sc] || 0 });
+        }
+        s4c.appendChild(barChart(rows, { labelHead: 'Score', valueHead: 'Respondents' }));
+        root.appendChild(s4c);
+      }
+    }
+
     // ---- per-question tallies
     var s5 = section('Answers', 'Completed responses only.');
     (survey.questions || []).forEach(function (q) {
