@@ -10,10 +10,38 @@ DIR="$ROOT/$SITE"
 # concurrency groups are per-workflow so they cannot see each other — with more
 # than one self-hosted runner they would reset the tree under each other. Wait
 # our turn instead.
-exec 9>/var/lock/sites-deploy.lock
+#
+# Pick a lock path this user can actually open: a lock file left behind by a
+# root-run deploy is not writable by the runner, and `exec 9>` on it would kill
+# the script with a bare "Permission denied" that names nothing.
+LOCK=/var/lock/sites-deploy.lock
+if [ -e "$LOCK" ]; then
+  [ -w "$LOCK" ] || LOCK="/tmp/sites-deploy.$(id -u).lock"
+else
+  [ -w "$(dirname "$LOCK")" ] || LOCK="/tmp/sites-deploy.$(id -u).lock"
+fi
+exec 9>"$LOCK"
 flock 9
 
 [ -d "$DIR" ] || { echo "no such site: $SITE"; exit 1; }
+
+# Preflight. Every deploy writes into .git. If anything in there belongs to
+# another user — a deploy once run under sudo, or a clone made as root — git
+# dies inside fetch with "insufficient permission for adding an object to
+# repository database .git/objects", which names neither the user nor the file.
+# Say it plainly instead, and point at the fix.
+ME=$(id -un)
+FOREIGN=$(find "$ROOT/.git" ! -user "$ME" -print -quit 2>/dev/null || true)
+if [ -n "$FOREIGN" ]; then
+  cat >&2 <<EOF
+deploy: $ROOT/.git contains files owned by another user, so git cannot write.
+        first offender: $FOREIGN
+        this deploy runs as: $ME
+        fix on the host, as root:
+            chown -R $ME:$ME $ROOT
+EOF
+  exit 1
+fi
 
 cd "$ROOT"
 git fetch --prune origin master
