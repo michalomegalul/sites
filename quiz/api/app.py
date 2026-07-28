@@ -730,6 +730,363 @@ def flatten(kind, value):
     return value
 
 
+# ------------------------------------------------------------------ editor API
+# Authoring, trusted networks only. Writes here change a live instrument, so the
+# rules that protect collected data are enforced server-side, not in the UI:
+#   * a question's `code` is the export key — it cannot change once answers exist
+#   * deleting a question cascades to its answers, so that needs ?force=1
+#   * option codes may not be removed while answers reference them
+
+# A question code becomes a column header in the CSV export, so it stays a
+# conservative identifier. Option codes are only ever map keys and the seeded
+# ones already start with digits ("25_34") or contain hyphens ("shoulder-l"),
+# so they get the looser rule — a validator stricter than the existing data
+# would make those questions uneditable.
+CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
+OPT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+KINDS = ("text", "textarea", "single", "multi", "scale", "number", "date", "bodymap")
+
+
+def question_answer_counts(cur, survey_id):
+    cur.execute(
+        "SELECT q.code, count(a.response_id) AS n"
+        " FROM questions q LEFT JOIN answers a ON a.question_id = q.id"
+        " WHERE q.survey_id = %s GROUP BY q.code",
+        (survey_id,),
+    )
+    return {r["code"]: r["n"] for r in cur.fetchall()}
+
+
+@app.get("/api/admin/surveys")
+@trusted_only
+def admin_surveys():
+    with db().cursor() as cur:
+        cur.execute(
+            "SELECT s.slug, s.mode, s.is_open, s.default_locale, s.locales,"
+            "       (SELECT count(*) FROM questions q WHERE q.survey_id = s.id) AS questions,"
+            "       (SELECT count(*) FROM responses r"
+            "         WHERE r.survey_id = s.id AND r.submitted_at IS NOT NULL) AS responses,"
+            "       (SELECT title FROM survey_i18n i"
+            "         WHERE i.survey_id = s.id AND i.locale = s.default_locale) AS title"
+            " FROM surveys s ORDER BY s.slug",
+            (),
+        )
+        return jsonify(surveys=cur.fetchall())
+
+
+@app.get("/api/admin/<slug>/edit")
+@trusted_only
+def admin_edit_get(slug):
+    """Full authoring view. Unlike the public endpoint this DOES include correct
+    answers and explanations — it is only reachable from a trusted network."""
+    if not SLUG_RE.match(slug):
+        return jsonify(error="bad_slug"), 400
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+
+        cur.execute(
+            "SELECT locale, title, intro_md, consent_md, thanks_md"
+            " FROM survey_i18n WHERE survey_id = %s",
+            (survey["id"],),
+        )
+        i18n = {r.pop("locale"): r for r in cur.fetchall()}
+
+        cur.execute(
+            "SELECT id, code, kind, required, position, spec FROM questions"
+            " WHERE survey_id = %s ORDER BY position",
+            (survey["id"],),
+        )
+        questions = cur.fetchall()
+        by_id = {q["id"]: q for q in questions}
+        for q in questions:
+            q["i18n"] = {}
+
+        cur.execute(
+            "SELECT question_id, locale, prompt, help, labels, explain_md"
+            " FROM question_i18n WHERE question_id = ANY(%s)",
+            ([q["id"] for q in questions],),
+        )
+        for row in cur.fetchall():
+            q = by_id.get(row.pop("question_id"))
+            if q is not None:
+                q["i18n"][row.pop("locale")] = row
+
+        counts = question_answer_counts(cur, survey["id"])
+        for q in questions:
+            q["answers"] = counts.get(q["code"], 0)
+            q.pop("id", None)
+
+    return jsonify(
+        slug=survey["slug"], mode=survey["mode"], is_open=survey["is_open"],
+        default_locale=survey["default_locale"], locales=survey["locales"],
+        consent_ver=survey["consent_ver"], i18n=i18n, questions=questions,
+    )
+
+
+@app.put("/api/admin/<slug>/survey")
+@trusted_only
+def admin_edit_survey(slug):
+    if not SLUG_RE.match(slug):
+        return jsonify(error="bad_slug"), 400
+    body = request.get_json(silent=True) or {}
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+
+        if "is_open" in body:
+            cur.execute("UPDATE surveys SET is_open = %s WHERE id = %s",
+                        (bool(body["is_open"]), survey["id"]))
+
+        for locale, text in (body.get("i18n") or {}).items():
+            if locale not in survey["locales"]:
+                continue
+            cur.execute(
+                "INSERT INTO survey_i18n"
+                " (survey_id, locale, title, intro_md, consent_md, thanks_md)"
+                " VALUES (%s, %s, %s, %s, %s, %s)"
+                " ON CONFLICT (survey_id, locale) DO UPDATE SET"
+                "   title = EXCLUDED.title, intro_md = EXCLUDED.intro_md,"
+                "   consent_md = EXCLUDED.consent_md, thanks_md = EXCLUDED.thanks_md",
+                (survey["id"], locale, (text.get("title") or "").strip() or slug,
+                 text.get("intro_md"), text.get("consent_md"), text.get("thanks_md")),
+            )
+        db().commit()
+    return jsonify(ok=True)
+
+
+def validate_question_body(body, survey, existing_code=None):
+    """Returns (error_message, cleaned) — cleaned is ready to write."""
+    code = (body.get("code") or "").strip()
+    if not CODE_RE.match(code):
+        return "code must be lowercase letters, digits and underscores", None
+    kind = body.get("kind")
+    if kind not in KINDS:
+        return "unknown kind", None
+
+    spec = body.get("spec")
+    if not isinstance(spec, dict):
+        return "spec must be an object", None
+
+    if kind in ("single", "multi"):
+        options = spec.get("options")
+        if not isinstance(options, list) or not options:
+            return "this kind needs at least one option", None
+        if not all(isinstance(o, str) and OPT_RE.match(o) for o in options):
+            return ("option codes must be lowercase letters, digits, "
+                    "underscores or hyphens"), None
+        if len(set(options)) != len(options):
+            return "duplicate option codes", None
+        for key in ("correct", "exclusive"):
+            vals = spec.get(key)
+            if vals is not None:
+                if not isinstance(vals, list) or not all(v in options for v in vals):
+                    return "%s must reference existing option codes" % key, None
+    if kind == "bodymap" and not isinstance(spec.get("regions"), list):
+        return "bodymap needs a regions list", None
+    if kind == "scale":
+        lo, hi = spec.get("min", 0), spec.get("max", 10)
+        if not isinstance(lo, int) or not isinstance(hi, int) or lo >= hi:
+            return "scale needs integer min < max", None
+
+    return None, {
+        "code": code,
+        "kind": kind,
+        "required": bool(body.get("required")),
+        "spec": spec,
+        "i18n": body.get("i18n") or {},
+    }
+
+
+def write_question_i18n(cur, question_id, i18n, locales):
+    for locale, text in i18n.items():
+        if locale not in locales:
+            continue
+        cur.execute(
+            "INSERT INTO question_i18n"
+            " (question_id, locale, prompt, help, labels, explain_md)"
+            " VALUES (%s, %s, %s, %s, %s, %s)"
+            " ON CONFLICT (question_id, locale) DO UPDATE SET"
+            "   prompt = EXCLUDED.prompt, help = EXCLUDED.help,"
+            "   labels = EXCLUDED.labels, explain_md = EXCLUDED.explain_md",
+            (question_id, locale, (text.get("prompt") or "").strip() or "(untitled)",
+             text.get("help"),
+             psycopg.types.json.Jsonb(text.get("labels") or {}),
+             text.get("explain_md")),
+        )
+
+
+@app.post("/api/admin/<slug>/questions")
+@trusted_only
+def admin_question_create(slug):
+    if not SLUG_RE.match(slug):
+        return jsonify(error="bad_slug"), 400
+    body = request.get_json(silent=True) or {}
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+
+        err, q = validate_question_body(body, survey)
+        if err:
+            return jsonify(error="invalid", detail=err), 422
+
+        cur.execute("SELECT 1 FROM questions WHERE survey_id = %s AND code = %s",
+                    (survey["id"], q["code"]))
+        if cur.fetchone():
+            return jsonify(error="duplicate_code"), 409
+
+        cur.execute(
+            "SELECT COALESCE(max(position), 0) + 10 AS p FROM questions WHERE survey_id = %s",
+            (survey["id"],),
+        )
+        pos = cur.fetchone()["p"]
+        cur.execute(
+            "INSERT INTO questions (survey_id, position, code, kind, required, spec)"
+            " VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            (survey["id"], pos, q["code"], q["kind"], q["required"],
+             psycopg.types.json.Jsonb(q["spec"])),
+        )
+        qid = cur.fetchone()["id"]
+        write_question_i18n(cur, qid, q["i18n"], survey["locales"])
+        db().commit()
+    return jsonify(ok=True, code=q["code"]), 201
+
+
+@app.put("/api/admin/<slug>/questions/<code>")
+@trusted_only
+def admin_question_update(slug, code):
+    if not SLUG_RE.match(slug) or not CODE_RE.match(code):
+        return jsonify(error="bad_request"), 400
+    body = request.get_json(silent=True) or {}
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+
+        cur.execute(
+            "SELECT q.id, q.spec, q.kind, count(a.response_id) AS answers"
+            " FROM questions q LEFT JOIN answers a ON a.question_id = q.id"
+            " WHERE q.survey_id = %s AND q.code = %s GROUP BY q.id",
+            (survey["id"], code),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return jsonify(error="not_found"), 404
+
+        err, q = validate_question_body(body, survey, code)
+        if err:
+            return jsonify(error="invalid", detail=err), 422
+
+        answered = row["answers"] > 0
+        # The export key must not move once data exists, or a half-finished
+        # analysis silently splits into two columns.
+        if answered and q["code"] != code:
+            return jsonify(error="code_locked", detail=(
+                "%d answers already use this code; renaming it would split the "
+                "export column" % row["answers"]), answers=row["answers"]), 409
+        if answered and q["kind"] != row["kind"]:
+            return jsonify(error="kind_locked", detail=(
+                "%d answers are stored in the old shape; changing the kind would "
+                "make them unreadable" % row["answers"]), answers=row["answers"]), 409
+
+        # Removing an option that answers already point at would orphan them.
+        if answered and q["kind"] in ("single", "multi"):
+            old = set((row["spec"] or {}).get("options", []))
+            gone = old - set(q["spec"].get("options", []))
+            if gone:
+                cur.execute(
+                    "SELECT count(*) AS n FROM answers a"
+                    " WHERE a.question_id = %s AND ("
+                    "   a.value #>> '{}' = ANY(%s)"
+                    "   OR EXISTS (SELECT 1 FROM jsonb_array_elements_text("
+                    "       CASE WHEN jsonb_typeof(a.value)='array' THEN a.value"
+                    "            ELSE '[]'::jsonb END) v WHERE v = ANY(%s)))",
+                    (row["id"], list(gone), list(gone)),
+                )
+                used = cur.fetchone()["n"]
+                if used:
+                    return jsonify(error="option_in_use", detail=(
+                        "%d answers still use: %s" % (used, ", ".join(sorted(gone)))
+                    )), 409
+
+        cur.execute(
+            "UPDATE questions SET code = %s, kind = %s, required = %s, spec = %s"
+            " WHERE id = %s",
+            (q["code"], q["kind"], q["required"],
+             psycopg.types.json.Jsonb(q["spec"]), row["id"]),
+        )
+        write_question_i18n(cur, row["id"], q["i18n"], survey["locales"])
+        db().commit()
+    return jsonify(ok=True, code=q["code"])
+
+
+@app.delete("/api/admin/<slug>/questions/<code>")
+@trusted_only
+def admin_question_delete(slug, code):
+    if not SLUG_RE.match(slug) or not CODE_RE.match(code):
+        return jsonify(error="bad_request"), 400
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+        cur.execute(
+            "SELECT q.id, count(a.response_id) AS answers"
+            " FROM questions q LEFT JOIN answers a ON a.question_id = q.id"
+            " WHERE q.survey_id = %s AND q.code = %s GROUP BY q.id",
+            (survey["id"], code),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return jsonify(error="not_found"), 404
+
+        # Deleting cascades to answers. Never do that on a single click.
+        if row["answers"] and request.args.get("force") != "1":
+            return jsonify(error="has_answers", answers=row["answers"], detail=(
+                "%d collected answers would be deleted with it" % row["answers"]
+            )), 409
+
+        cur.execute("DELETE FROM questions WHERE id = %s", (row["id"],))
+        db().commit()
+    return jsonify(ok=True, deleted=code, answers_deleted=row["answers"])
+
+
+@app.post("/api/admin/<slug>/questions/reorder")
+@trusted_only
+def admin_question_reorder(slug):
+    if not SLUG_RE.match(slug):
+        return jsonify(error="bad_slug"), 400
+    codes = (request.get_json(silent=True) or {}).get("codes")
+    if not isinstance(codes, list) or not codes:
+        return jsonify(error="codes required"), 400
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+        cur.execute("SELECT code FROM questions WHERE survey_id = %s", (survey["id"],))
+        known = {r["code"] for r in cur.fetchall()}
+        if set(codes) != known:
+            return jsonify(error="codes must list every question exactly once"), 422
+
+        # UNIQUE(survey_id, position) is DEFERRABLE INITIALLY DEFERRED, so the
+        # positions can be rewritten in place without shuffling through a gap.
+        for i, code in enumerate(codes, start=1):
+            cur.execute(
+                "UPDATE questions SET position = %s WHERE survey_id = %s AND code = %s",
+                (i * 10, survey["id"], code),
+            )
+        db().commit()
+    return jsonify(ok=True)
+
+
 @app.get("/api/health")
 def health():
     with db().cursor() as cur:

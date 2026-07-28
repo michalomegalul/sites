@@ -36,22 +36,36 @@ working site on first deploy.** See the first-time setup below.
 
 Everything here is done once, as root on the `cloudflared` LXC.
 
-**1. Database** (Postgres on 192.168.4.32). Migrations are numbered SQL applied
-by hand — there is no migration tool.
+**1. Database** (Postgres on 192.168.4.32). Create the database and roles once:
 
 ```bash
 psql -h 192.168.4.32 -U postgres -c "CREATE DATABASE quiz;"
-psql -h 192.168.4.32 -U postgres -c "CREATE USER quiz PASSWORD 'something-long';"
-for f in /opt/sites/quiz/db/0*.sql; do
-  psql -h 192.168.4.32 -U postgres -d quiz -v ON_ERROR_STOP=1 -f "$f"
-done
+psql -h 192.168.4.32 -U postgres -c "CREATE ROLE quiz LOGIN PASSWORD 'something-long';"
 psql -h 192.168.4.32 -U postgres -d quiz -c \
   "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO quiz;
-   GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO quiz;"
+   GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO quiz;
+   ALTER DEFAULT PRIVILEGES IN SCHEMA public
+     GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO quiz;"
 ```
 
-`003_seed_endo_2026.sql` deletes and recreates the survey, and responses cascade
-off it. **Run it once, before collection starts, and never again.**
+**Migrations then run themselves.** `deploy.sh` runs `db/migrate.py` before
+restarting the service, so the schema is never behind the code — the failure
+that motivated this was deploying an app that selected `surveys.mode` before
+that column existed, which 500s every request including the survey that was
+already working.
+
+The runner records what it applied in `schema_migrations` and skips it
+afterwards, so it is a no-op once you are current. On a database that already
+has tables but no `schema_migrations` it adopts `001`–`003` as a baseline
+rather than replaying them — `001` is not idempotent and `003` would delete
+collected responses. Run it by hand any time with:
+
+```bash
+/opt/sites/quiz/api/venv/bin/python /opt/sites/quiz/db/migrate.py --dry-run
+```
+
+The `ALTER DEFAULT PRIVILEGES` line matters: without it, every migration that
+adds a table or view needs a fresh `GRANT` before the app can read it.
 
 **2. Config.** `.env` must be `640 root:www-data` — python-dotenv raises on an
 unreadable file rather than skipping it, and the app loads it as `www-data`.
@@ -134,6 +148,7 @@ itself as well.
 
 | What | Where |
 |---|---|
+| **Edit questions and survey text** | `/editor.html` |
 | Completion, sources, drop-off, pain heat map | `/admin.html` |
 | Spreadsheet export, one row per response | `/api/admin/endo-2026/export.csv` |
 | Long format, one row per answer | `…/export.csv?format=long` |
@@ -285,9 +300,33 @@ accident. If you change the schema or the API, re-check all five.
 5. User-agent is stored as a coarse family (`Chrome/Android`), never the full
    string, which is near-unique.
 
-## Adding a question
+## Editing the surveys
 
-Surveys are rows, not code.
+`http://quiz.internal/editor.html` — LAN/Tailscale only, same gate as the
+dashboard. Edit survey text per locale, add/edit/reorder/delete questions,
+manage options and their labels, and tick which options are correct.
+
+Three guards are enforced by the API, not the UI, so they hold no matter what
+sends the request:
+
+- **A question's `code` locks once it has answers.** It is the CSV column
+  header; renaming it mid-collection splits one variable into two.
+- **So does its `kind`.** The stored answers are shaped for the old kind and
+  would become unreadable.
+- **An option still referenced by an answer cannot be removed**, and deleting a
+  question that has answers needs an explicit confirm, because it cascades.
+
+Wording — prompts, help text, labels, explanations — stays editable at any
+time. That is the point: fixing a confusing question mid-collection is exactly
+what the drop-off view is for.
+
+Editing the other locale is a separate tab; the editor preserves the locale it
+is not showing, so switching tabs never blanks the other language.
+
+## Adding a question by hand
+
+The editor is the easy path. If you would rather write SQL: surveys are rows,
+not code.
 
 ```sql
 INSERT INTO questions (survey_id, position, code, kind, required, spec)

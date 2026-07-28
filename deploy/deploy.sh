@@ -53,6 +53,13 @@ if [ -f "$API/requirements.txt" ]; then
   "$API/venv/bin/pip" install -q --upgrade -r "$API/requirements.txt"
 fi
 
+# Migrations before the restart, so the schema is never behind the code. The
+# runner records what it applied and skips the rest, so this is a no-op once
+# everything is up to date.
+if [ -f "$DIR/db/migrate.py" ] && [ -x "$API/venv/bin/python" ]; then
+  "$API/venv/bin/python" "$DIR/db/migrate.py"
+fi
+
 if systemctl list-unit-files --no-legend | grep -q "^${SITE}-api\.service"; then
   sudo systemctl restart "${SITE}-api"
   sleep 2

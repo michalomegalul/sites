@@ -1,0 +1,136 @@
+/* Survey editor. Loads on top of admin.css and reuses its tokens. */
+
+.ed-field { margin-bottom: 1rem; }
+.ed-field > label {
+  display: block; font-size: .74rem; font-weight: 650;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: .35rem;
+}
+.ed-field .hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-3); }
+
+.viz input[type="text"], .viz textarea, .viz select {
+  width: 100%; padding: .6rem .75rem;
+  font: inherit; font-size: .93rem;
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 8px;
+}
+.viz textarea { min-height: 6rem; resize: vertical; line-height: 1.55; font-family: inherit; }
+.viz input[type="text"]:focus, .viz textarea:focus, .viz select:focus {
+  outline: 2px solid var(--series); outline-offset: 1px; border-color: var(--series);
+}
+.viz input.mono, .viz textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86rem; }
+
+.ed-row { display: flex; gap: .75rem; flex-wrap: wrap; align-items: flex-end; }
+.ed-row > * { flex: 1 1 12rem; }
+.ed-row > .narrow { flex: 0 0 9rem; }
+
+.ed-check { display: flex; align-items: center; gap: .5rem; font-size: .9rem; min-height: 40px; }
+.ed-check input { width: 18px; height: 18px; accent-color: var(--series); }
+
+/* locale tabs */
+.tabs { display: flex; gap: .25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--rule); }
+.tabs button {
+  font: inherit; font-size: .86rem; font-weight: 600;
+  padding: .5rem .9rem; min-height: 40px;
+  border: 0; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--ink-3); cursor: pointer;
+}
+.tabs button[aria-selected="true"] { color: var(--series); border-bottom-color: var(--series); }
+
+/* question list */
+.qlist { display: grid; gap: .4rem; margin-bottom: 1.25rem; }
+.qitem {
+  display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: center;
+  background: var(--raised); border: 1px solid var(--rule); border-radius: 10px;
+  padding: .6rem .75rem;
+}
+.qitem.editing { border-color: var(--series); }
+.qitem .qmeta { min-width: 0; }
+.qitem .qcode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .78rem; color: var(--ink-3);
+}
+.qitem .qprompt {
+  font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qitem .qtags { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .2rem; }
+.tag {
+  font-size: .68rem; letter-spacing: .04em; text-transform: uppercase;
+  padding: .12rem .45rem; border-radius: 99px;
+  border: 1px solid var(--rule); color: var(--ink-3);
+}
+.tag.req { border-color: var(--series); color: var(--series); }
+.tag.graded { border-color: #2f8f5b; color: #2f8f5b; }
+.tag.locked { border-color: var(--ink-3); }
+
+.qmove { display: flex; flex-direction: column; gap: 2px; }
+.qmove button {
+  width: 26px; height: 20px; padding: 0; line-height: 1;
+  border: 1px solid var(--rule); border-radius: 5px;
+  background: var(--surface); color: var(--ink-3); cursor: pointer; font-size: .7rem;
+}
+.qmove button:hover:not(:disabled) { border-color: var(--series); color: var(--series); }
+.qmove button:disabled { opacity: .3; cursor: default; }
+
+.qactions { display: flex; gap: .35rem; }
+.viz button.mini {
+  font: inherit; font-size: .8rem; padding: .35rem .7rem; min-height: 34px;
+  border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--surface); color: var(--ink-2); cursor: pointer;
+}
+.viz button.mini:hover { border-color: var(--series); color: var(--series); }
+.viz button.mini.danger:hover { border-color: #c4453f; color: #c4453f; }
+
+/* editing panel */
+.qedit {
+  background: var(--raised); border: 1px solid var(--series);
+  border-radius: 10px; padding: 1.1rem; margin: .4rem 0 1rem;
+}
+
+.opts { display: grid; gap: .4rem; }
+.optrow {
+  display: grid; grid-template-columns: 8rem 1fr auto auto; gap: .5rem; align-items: center;
+}
+.optrow .isc { display: flex; align-items: center; justify-content: center; }
+.optrow input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2f8f5b; }
+.opthead {
+  display: grid; grid-template-columns: 8rem 1fr auto auto; gap: .5rem;
+  font-size: .7rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: .25rem;
+}
+@media (max-width: 640px) {
+  .optrow, .opthead { grid-template-columns: 1fr auto auto; }
+  .opthead span:nth-child(2) { display: none; }
+}
+
+.saverow {
+  display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+  margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+}
+.viz button.primary {
+  font: inherit; font-size: .9rem; font-weight: 600;
+  padding: .55rem 1.2rem; min-height: 40px;
+  border: 0; border-radius: 8px;
+  background: var(--series); color: #fff; cursor: pointer;
+}
+.viz button.primary:disabled { opacity: .5; cursor: default; }
+.viz button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+.msg { font-size: .85rem; padding: .5rem .8rem; border-radius: 8px; }
+.msg.ok { color: #2f8f5b; }
+.msg.err { color: #c4453f; background: color-mix(in srgb, #c4453f 8%, transparent); }
+
+.danger-box {
+  border: 1px solid #c4453f; border-radius: 10px; padding: 1rem;
+  margin-top: 1rem; background: color-mix(in srgb, #c4453f 6%, transparent);
+  font-size: .87rem;
+}
+.danger-box p { margin: 0 0 .75rem; }
+
+.surveycard {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  background: var(--raised); border: 1px solid var(--rule);
+  border-radius: 10px; padding: .9rem 1.05rem; margin-bottom: .5rem;
+}
+.surveycard a { color: var(--series); text-decoration: none; font-weight: 600; }
+.surveycard .meta { font-size: .8rem; color: var(--ink-3); margin-top: .15rem; }
