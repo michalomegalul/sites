@@ -9,5 +9,15 @@ EnvironmentFile=/opt/sites/portfolio/api/.env
 ExecStart=/opt/sites/portfolio/api/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 app:app
 Restart=always
 
+# gunicorn 26's control server writes into $HOME. www-data's home is /var/www,
+# which it cannot write, so every start logged "Control server error:
+# Permission denied: '/var/www/.gunicorn'". systemd creates this directory
+# owned by User= on each start and removes it on stop.
+RuntimeDirectory=portfolio-api
+Environment=HOME=/run/portfolio-api
+
+# No ProtectSystem=strict here, unlike quiz-api: this app writes visitors.db
+# and now.json inside the checkout, so it needs the tree writable.
+
 [Install]
 WantedBy=multi-user.target

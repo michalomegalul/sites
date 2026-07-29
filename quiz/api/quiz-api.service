@@ -9,6 +9,14 @@ EnvironmentFile=/opt/sites/quiz/api/.env
 ExecStart=/opt/sites/quiz/api/venv/bin/gunicorn -w 2 -b 127.0.0.1:5051 app:app
 Restart=always
 
+# gunicorn 26's control server writes into $HOME, and www-data's home is
+# /var/www, which is not writable — and ProtectSystem=strict below makes it
+# read-only regardless. Without these two lines every start logs
+# "Control server error: Permission denied: '/var/www/.gunicorn'". systemd
+# creates /run/quiz-api owned by User= and it is writable even under strict.
+RuntimeDirectory=quiz-api
+Environment=HOME=/run/quiz-api
+
 # The checkout is git reset --hard on every deploy and holds no runtime state,
 # so the service never needs to write to it.
 ProtectSystem=strict

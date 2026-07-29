@@ -112,6 +112,22 @@ cp .env.example .env && nano .env          # DATABASE_URL
 chown root:www-data .env && chmod 640 .env
 ```
 
+**Two users need to read that file, not one.** The app reads it as `www-data`,
+but `deploy.sh` runs `db/migrate.py` as the **runner**, so `ghrunner` needs it
+too. With `640 root:www-data` and nothing else, every deploy dies in migrate.py
+with `PermissionError: '/opt/sites/quiz/db/../api/.env'` — and because the
+migration step precedes the service restart, the deploy stops there. Loosening
+the mode to `644` is the wrong fix: `DATABASE_URL` contains the password. Put the
+runner in the group instead:
+
+```bash
+usermod -aG www-data ghrunner
+sudo -u ghrunner cat /opt/sites/quiz/api/.env >/dev/null && echo "runner can read it"
+```
+
+One-time, and it survives the `chown -R` recipe above because that keeps the
+group as `www-data`.
+
 **3. Service and nginx.** Entries in `sites-enabled/` must be symlinks; a
 regular file there silently diverges from `sites-available/`.
 
