@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- quiz.dobsinsky.xyz — the same daisy the thanks screen shows, in the rose
+     palette's accent. Deliberately not a medical cross or a clipboard: this is a
+     questionnaire people fill in while feeling awful, and the tab it sits in
+     should not look clinical.
+
+     currentColor is not used: a favicon renders outside the page, so the colours
+     are fixed here rather than inherited. It stays legible on both light and dark
+     browser chrome because the disc carries its own background. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Endometrióza">
+  <rect width="64" height="64" rx="14" fill="#fbeef4"/>
+  <g transform="translate(32 32)">
+    <g fill="#c2557f">
+      <!-- six petals, 60° apart -->
+      <ellipse cx="0" cy="-13" rx="6.5" ry="10"/>
+      <ellipse cx="0" cy="-13" rx="6.5" ry="10" transform="rotate(60)"/>
+      <ellipse cx="0" cy="-13" rx="6.5" ry="10" transform="rotate(120)"/>
+      <ellipse cx="0" cy="-13" rx="6.5" ry="10" transform="rotate(180)"/>
+      <ellipse cx="0" cy="-13" rx="6.5" ry="10" transform="rotate(240)"/>
+      <ellipse cx="0" cy="-13" rx="6.5" ry="10" transform="rotate(300)"/>
+    </g>
+    <circle r="7" fill="#8d3f66"/>
+  </g>
+</svg>

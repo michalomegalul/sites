@@ -6,12 +6,37 @@
 <meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex, nofollow">
 <title>Dotazník</title>
+
+<!-- Link preview. This is what a pasted link looks like in Messenger, WhatsApp
+     or an Instagram DM — which is how this survey is actually distributed, so it
+     is worth more here than on a site people reach by searching.
+
+     noindex above and these tags are not in conflict: the preview bots read Open
+     Graph and generate a card, they do not index. robots.txt allows them by name
+     for exactly that reason.
+
+     og:url is the chooser rather than a specific questionnaire, because a shared
+     link should let people pick. Absolute URLs are required — a relative
+     og:image is ignored by most scrapers. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="quiz.dobsinsky.xyz">
+<meta property="og:locale" content="cs_CZ">
+<meta property="og:locale:alternate" content="en_GB">
+<meta property="og:url" content="https://quiz.dobsinsky.xyz/">
+<meta property="og:title" content="Co víte o endometrióze?">
+<meta property="og:description" content="Anonymní dotazník pro odbornou práci. Dvanáct otázek — u každé se hned dozvíte, jak to je.">
+<meta property="og:image" content="https://quiz.dobsinsky.xyz/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Co víte o endometrióze? Anonymní dotazník.">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <!-- Before the stylesheet, and not deferred: this sets data-theme so the correct
      palette is the first thing painted. See js/theme.js for why it is a file
      and not an inline block. -->
 <script src="/js/theme.js"></script>
 <link rel="stylesheet" href="/css/style.css">
-<link rel="icon" href="data:,">
 </head>
 <body>
 

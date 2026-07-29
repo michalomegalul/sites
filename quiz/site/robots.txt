@@ -1,17 +1,46 @@
-# quiz.dobsinsky.xyz — do not index anything here.
+# quiz.dobsinsky.xyz — no search indexing, but link previews must still work.
 #
-# index.html already carries <meta name="robots" content="noindex, nofollow">,
-# and this says the same thing one layer earlier for crawlers that read the file
-# but never fetch the page.
+# Why not indexed: a search result pointing at a live health survey invites
+# respondents who were never approached personally and arrive with no ?src=
+# attribution, which breaks the sampling the thesis relies on. index.html also
+# carries <meta name="robots" content="noindex, nofollow"> for crawlers that
+# fetch the page but never read this file.
 #
-# Why a questionnaire should not be indexed: a search result pointing at a live
-# health survey invites traffic that was never approached personally, which
-# breaks the sampling the thesis relies on — the funnel is supposed to be the
-# links that were handed out, attributed by ?src=. Search-engine visitors would
-# arrive with no source and no consent context.
+# Why the preview bots are allowed anyway: they honour robots.txt, and a blanket
+# Disallow would stop Messenger, WhatsApp and Instagram from reading the
+# Open Graph tags — so a link pasted into the group chats this survey is actually
+# distributed through would show a bare URL instead of a title and an image.
+# These agents generate previews; they do not index.
 #
-# This is a request, not enforcement. Well-behaved crawlers honour it; the
-# blocking that actually holds is in nginx, the rate limits and CrowdSec.
+# Most specific User-agent group wins, so the allows below beat the catch-all.
 
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: facebookcatalog
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Slackbot-LinkExpanding
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: SkypeUriPreview
+Allow: /
+
+# Everything else, including every search engine.
 User-agent: *
 Disallow: /
