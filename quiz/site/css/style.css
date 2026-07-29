@@ -42,6 +42,64 @@
   }
 }
 
+/* ------------------------------------------------------------------ palettes
+ * Picked from the header; the choice is stored in localStorage and re-applied
+ * before first paint. `rose` is the default above, so a browser with no JS and
+ * no stored choice still gets the intended design.
+ *
+ * Every palette defines a light and a dark form and follows the OS setting —
+ * the picker chooses the hue, the system chooses the brightness. That is
+ * deliberate: someone filling this in at 2am with night mode on should not be
+ * flashbanged because a palette was light-only.
+ *
+ * The --pain-* ramp stays warm-to-red in every palette. It encodes intensity on
+ * the body map, so it is data, not decoration, and must not be re-hued to match
+ * a theme. It also must stay distinguishable from --accent, or a selected
+ * region reads as a painful one.
+ */
+
+/* plum — deeper and cooler than rose */
+:root[data-theme="plum"] {
+  --bg: #f8f6fb; --bg-raised: #ffffff; --ink: #221c2e; --ink-soft: #635a72;
+  --line: #e2dcec; --accent: #5b3f8d; --accent-2: #7d5cb8; --accent-bg: #f0ebfa;
+  --focus: #5b3f8d;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="plum"] {
+    --bg: #141220; --bg-raised: #1e1a2c; --ink: #ece8f5; --ink-soft: #a09ab3;
+    --line: #322c44; --accent: #b9a3e8; --accent-2: #9d84d1; --accent-bg: #262038;
+    --focus: #b9a3e8;
+  }
+}
+
+/* sage — quiet green, the least clinical of the four */
+:root[data-theme="sage"] {
+  --bg: #f6f8f5; --bg-raised: #ffffff; --ink: #1e261f; --ink-soft: #5a6b5c;
+  --line: #dde5da; --accent: #3d6b4f; --accent-2: #57906c; --accent-bg: #e9f2eb;
+  --focus: #3d6b4f;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="sage"] {
+    --bg: #121711; --bg-raised: #1b211a; --ink: #e8efe7; --ink-soft: #97a898;
+    --line: #2b332a; --accent: #9fd0ac; --accent-2: #7fb38d; --accent-bg: #1f2a20;
+    --focus: #9fd0ac;
+  }
+}
+
+/* slate — near-neutral, for anyone who finds colour itself tiring */
+:root[data-theme="slate"] {
+  --bg: #f6f7f9; --bg-raised: #ffffff; --ink: #1c2027; --ink-soft: #5b6472;
+  --line: #dde1e7; --accent: #37546f; --accent-2: #527693; --accent-bg: #eaeff4;
+  --focus: #37546f;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="slate"] {
+    --bg: #111418; --bg-raised: #1a1e24; --ink: #e9ecf1; --ink-soft: #98a2b0;
+    --line: #2a3038; --accent: #a6c4de; --accent-2: #85a6c2; --accent-bg: #1f262e;
+    --focus: #a6c4de;
+  }
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -68,6 +126,57 @@ body {
   outline-offset: 3px;
   border-radius: 6px;
 }
+
+/* ---------------------------------------------------------------- site bar */
+/* Brand, theme picker, language. Deliberately NOT sticky: #bar below it is,
+   and two stacked sticky bars on a phone eat the vertical space the SPEC
+   reserves for one question per screen. This one scrolls away; the progress
+   bar is the part that has to stay. */
+
+#sitebar {
+  border-bottom: 1px solid var(--line);
+  padding: max(.55rem, env(safe-area-inset-top)) 1rem .55rem;
+}
+.sitebar-row {
+  max-width: 42rem; margin: 0 auto;
+  display: flex; align-items: center; gap: .75rem;
+}
+.sitebar__brand {
+  font-weight: 650; font-size: .9rem; letter-spacing: -.01em;
+  color: var(--ink); text-decoration: none; margin-right: auto;
+}
+.sitebar__brand:hover { color: var(--accent); }
+
+/* Theme picker. Swatches rather than a <select>: it is a colour choice, so the
+   control should show the colours. 44px hit area on a 16px dot. */
+.themes { display: flex; gap: .15rem; }
+.theme-dot {
+  width: 30px; height: 30px; padding: 0; border: 0; border-radius: 99px;
+  background: transparent; cursor: pointer;
+  display: grid; place-items: center;
+}
+.theme-dot::before {
+  content: ''; width: 16px; height: 16px; border-radius: 99px;
+  background: var(--swatch); border: 1.5px solid rgba(0, 0, 0, .18);
+}
+.theme-dot:hover::before { transform: scale(1.15); }
+.theme-dot[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.theme-dot:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+
+/* ------------------------------------------------------------------ footer */
+
+.sitefoot {
+  max-width: 42rem; margin: 3.5rem auto 0;
+  padding: 1.25rem 0 max(1.25rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  font-size: .82rem; color: var(--ink-soft);
+  display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center;
+}
+.sitefoot a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--line); }
+.sitefoot a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.sitefoot__spacer { margin-left: auto; }
 
 /* ------------------------------------------------------------------ header */
 
@@ -341,6 +450,14 @@ input[type="range"]::-moz-range-thumb {
 }
 .lang a[aria-current="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 
+/* Same switcher, compacted for the site bar. The 44px pill is right at the
+   bottom of a screen where it is the only target; in the bar it would make the
+   header twice as tall as it needs to be. The one at the bottom of the consent
+   and thanks screens keeps the full size. */
+.lang--bar { margin-top: 0; gap: .2rem; }
+.lang--bar a { font-size: .76rem; padding: .3rem .55rem; min-height: 32px; }
+.lang--bar:empty { display: none; }
+
 .error {
   background: var(--accent-bg); border: 1.5px solid var(--accent);
   border-radius: 14px; padding: .9rem 1.1rem; margin-bottom: 1.2rem;
@@ -541,7 +658,7 @@ input[type="range"]::-moz-range-thumb {
     --bg: #fff; --bg-raised: #fff; --ink: #000; --ink-soft: #444;
     --line: #999; --accent: #000; --accent-bg: #fff; --shadow: none;
   }
-  #bar, .lang, .actions, .skip, .btn { display: none !important; }
+  #bar, #sitebar, .sitefoot, .lang, .actions, .skip, .btn { display: none !important; }
   body { font-size: 11pt; }
   main { max-width: none; padding: 0; }
   h1 { font-size: 18pt; }

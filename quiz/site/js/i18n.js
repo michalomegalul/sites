@@ -83,7 +83,15 @@ window.I18N = {
     adminHelp: 'Tuto část vidíte jen z domácí sítě nebo přes Tailscale. Z internetu se nezobrazuje.',
     adminDash: 'Výsledky',
     adminEditor: 'Upravit otázky',
-    adminExport: 'Export CSV'
+    adminExport: 'Export CSV',
+    brand: 'Endometrióza',
+    themeNames: {
+      rose: 'Růžové téma', plum: 'Fialové téma',
+      sage: 'Zelené téma', slate: 'Šedé téma'
+    },
+    footNote: 'Anonymní dotazník pro odbornou práci.',
+    footAllSurveys: 'Všechny dotazníky',
+    footPrint: 'Tisková verze'
   },
 
   en: {
@@ -164,6 +172,14 @@ window.I18N = {
     adminHelp: 'This section is visible only from the home network or over Tailscale. It is never shown from the internet.',
     adminDash: 'Results',
     adminEditor: 'Edit questions',
-    adminExport: 'Export CSV'
+    adminExport: 'Export CSV',
+    brand: 'Endometriosis',
+    themeNames: {
+      rose: 'Rose theme', plum: 'Plum theme',
+      sage: 'Sage theme', slate: 'Slate theme'
+    },
+    footNote: 'Anonymous questionnaire for a school thesis.',
+    footAllSurveys: 'All questionnaires',
+    footPrint: 'Printable version'
   }
 };

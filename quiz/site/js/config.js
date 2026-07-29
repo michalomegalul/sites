@@ -11,7 +11,7 @@
 window.QUIZ_CONFIG = {
   // From Google Analytics → Admin → Data streams → Measurement ID.
   // Leave empty to disable analytics entirely.
-  gaMeasurementId: '',
+  gaMeasurementId: 'G-M93DGR0VS8',
 
   // Passed to gtag as config. anonymize_ip truncates the address before
   // storage; ads signals are off because this is a health questionnaire and

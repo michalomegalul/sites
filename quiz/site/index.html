@@ -6,12 +6,24 @@
 <meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex, nofollow">
 <title>Dotazník</title>
+<!-- Before the stylesheet, and not deferred: this sets data-theme so the correct
+     palette is the first thing painted. See js/theme.js for why it is a file
+     and not an inline block. -->
+<script src="/js/theme.js"></script>
 <link rel="stylesheet" href="/css/style.css">
 <link rel="icon" href="data:,">
 </head>
 <body>
 
 <a class="skip" href="#screen">Přeskočit na obsah</a>
+
+<header id="sitebar">
+  <div class="sitebar-row">
+    <a class="sitebar__brand" id="brand" href="/">Endometrióza</a>
+    <div class="themes" id="themes" role="group" aria-label="Barevné téma"></div>
+    <nav class="lang lang--bar" id="sitebar-lang"></nav>
+  </div>
+</header>
 
 <header id="bar" hidden>
   <div class="bar-row">
@@ -28,6 +40,8 @@
 
 <main id="screen" tabindex="-1"></main>
 
+<footer class="sitefoot" id="sitefoot" hidden></footer>
+
 <noscript>
   <div class="noscript">
     <p>Tento dotazník potřebuje zapnutý JavaScript. Odpovědi se totiž ukládají
@@ -38,6 +52,7 @@
 </noscript>
 
 <script src="/js/config.js"></script>
+<!-- theme.js already ran in <head>; app.js reuses the globals it defined. -->
 <script src="/js/i18n.js"></script>
 <script src="/js/bodymap.js"></script>
 <script src="/js/app.js"></script>

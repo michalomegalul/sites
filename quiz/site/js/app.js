@@ -11,6 +11,9 @@
   var state = {
     slug: null, locale: null, src: null, survey: null,
     responseId: null, answers: {}, index: 0, print: false,
+    // Which screen is showing, so the footer can appear on the calm screens and
+    // stay out of the way while someone is answering.
+    screen: null,
     // Set when the respondent jumped back from the review screen to fix a
     // missing answer, so that screen can offer a direct way back to Submit
     // instead of making them click Continue through everything after it.
@@ -94,6 +97,97 @@
       localStorage.removeItem(key('idx'));
       localStorage.removeItem(key('answers'));
     } catch (e) { /* ignore */ }
+  }
+
+  // ------------------------------------------------------------- site chrome
+  // The palette choice is global, not per-survey, so it deliberately bypasses
+  // the survey-scoped key() helper above — switching questionnaire should not
+  // change your colours. theme.js owns the list and the pre-paint application;
+  // this only draws the control and writes the choice.
+
+  function currentTheme() {
+    try { return localStorage.getItem(window.QUIZ_THEME_KEY) || 'rose'; }
+    catch (e) { return 'rose'; }
+  }
+
+  function renderThemePicker() {
+    var host = document.getElementById('themes');
+    if (!host) return;
+    host.textContent = '';
+    var active = currentTheme();
+    (window.QUIZ_THEMES || []).forEach(function (th) {
+      var name = (t.themeNames || {})[th.id] || th.id;
+      var b = h('button', 'theme-dot');
+      b.type = 'button';
+      b.style.setProperty('--swatch', th.swatch);
+      b.setAttribute('aria-pressed', String(th.id === active));
+      b.setAttribute('aria-label', name);
+      b.title = name;
+      b.addEventListener('click', function () {
+        window.quizApplyTheme(th.id);
+        try { localStorage.setItem(window.QUIZ_THEME_KEY, th.id); } catch (e) { /* ignore */ }
+        renderThemePicker();
+      });
+      host.appendChild(b);
+    });
+  }
+
+  function renderBrand() {
+    var a = document.getElementById('brand');
+    if (!a) return;
+    a.textContent = t.brand;
+    a.href = homePath(state.locale);
+  }
+
+  /* Language in the header. A survey offers only the locales it actually has
+     text for; the chooser offers whatever the deployment configures. A
+     single-language survey gets no switcher rather than a dead one. */
+  function renderSiteBarLang() {
+    var host = document.getElementById('sitebar-lang');
+    if (!host) return;
+    host.textContent = '';
+    var locales = (state.view === 'survey' && state.survey)
+      ? (state.survey.locales || [])
+      : (CFG.locales || []);
+    var pathFor = (state.view === 'survey' && state.survey) ? surveyPath : homePath;
+    if (locales.length < 2) return;
+    locales.forEach(function (loc) {
+      var a = h('a', null, loc.toUpperCase());
+      a.href = pathFor(loc);
+      if (loc === state.locale) a.setAttribute('aria-current', 'true');
+      host.appendChild(a);
+    });
+  }
+
+  /* Shown on the chooser, consent and thanks screens — not while answering.
+     A question screen is supposed to hold one question and nothing competing
+     with it, and an "all questionnaires" link mid-survey is an accidental exit
+     waiting to happen. */
+  var FOOTER_SCREENS = ['home', 'consent', 'thanks'];
+
+  function renderFooter() {
+    var foot = document.getElementById('sitefoot');
+    if (!foot) return;
+    if (FOOTER_SCREENS.indexOf(state.screen) === -1) {
+      foot.hidden = true;
+      return;
+    }
+    foot.textContent = '';
+    foot.appendChild(h('span', null, t.footNote));
+    foot.appendChild(h('span', 'sitefoot__spacer'));
+
+    var home = h('a', null, t.footAllSurveys);
+    home.href = homePath(state.locale);
+    foot.appendChild(home);
+
+    // The print view is a real page and a thesis requirement, so it belongs in
+    // the footer rather than only in the README.
+    if (state.slug) {
+      var pr = h('a', null, t.footPrint);
+      pr.href = '/' + state.locale + '/s/' + state.slug + '/print';
+      foot.appendChild(pr);
+    }
+    foot.hidden = false;
   }
 
   // ------------------------------------------------------------------ google
@@ -245,6 +339,7 @@
     screen.textContent = '';
     node.classList.add('step');
     screen.appendChild(node);
+    renderFooter();
     screen.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
@@ -274,6 +369,7 @@
 
   function renderHome() {
     bar.hidden = true;
+    state.screen = 'home';
     document.title = t.homeTitle;
 
     api('GET', '/surveys?locale=' + encodeURIComponent(state.locale))
@@ -380,6 +476,7 @@
 
   function renderConsent() {
     bar.hidden = true;
+    state.screen = 'consent';
     var wrap = h('div');
     wrap.appendChild(h('h1', null, state.survey.title));
     renderMarkdown(state.survey.intro_md, wrap.appendChild(h('div', 'prose')));
@@ -462,6 +559,7 @@
 
     var q = qs[state.index];
     store('idx', String(state.index));
+    state.screen = 'question';
     bar.hidden = false;
     backBtn.hidden = state.index === 0;
     setProgress(state.index + 1, qs.length + 1);
@@ -788,6 +886,7 @@
     var qs = questions();
     // Arriving here is the end of any fix-a-missing-answer detour.
     state.returnToReview = false;
+    state.screen = 'review';
     bar.hidden = false;
     backBtn.hidden = false;
     setProgress(qs.length + 1, qs.length + 1);
@@ -861,6 +960,7 @@
   function renderThanks(result) {
     result = result || {};
     bar.hidden = true;
+    state.screen = 'thanks';
     var wrap = h('div');
 
     if (result.out_of) {
@@ -990,6 +1090,10 @@
 
   function renderPrint() {
     bar.hidden = true;
+    state.screen = 'print';
+    // The print view is a document, not a page of the site: no chrome around it.
+    var sitebar = document.getElementById('sitebar');
+    if (sitebar) sitebar.hidden = true;
     document.title = state.survey.title;
     var wrap = h('div');
     wrap.appendChild(h('h1', null, state.survey.title));
@@ -1081,6 +1185,10 @@
     document.documentElement.lang = state.locale;
     screen.appendChild(h('div', 'spinner'));
 
+    renderThemePicker();
+    renderBrand();
+    renderSiteBarLang();
+
     if (state.view === 'home') return renderHome();
 
     api('GET', '/s/' + state.slug + '?locale=' + encodeURIComponent(state.locale))
@@ -1095,6 +1203,10 @@
           history.replaceState(null, '', surveyPath(state.locale));
         }
         document.title = survey.title;
+        // The survey's own locale list is only known now, so the header switcher
+        // is rebuilt from it rather than from the deployment-wide config.
+        renderBrand();
+        renderSiteBarLang();
 
         if (state.print) return renderPrint();
         if (!survey.is_open) {

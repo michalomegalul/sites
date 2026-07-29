@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(python3 -)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'quiz: a site bar, a footer, and four palettes to choose from *)",
+      "Bash(git push *)"
+    ]
+  }
+}
