@@ -300,15 +300,23 @@ cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
 > client IP. They are deliberately **not** in the internal blocks, where
 > `$remote_addr` must stay the real LAN peer.
 >
-> Since `deploy.sh` never copies nginx configs, confirm the live files actually
-> have them before trusting the parser:
+> Since `deploy.sh` never copies nginx configs, a fix in this repo is not a fix
+> on the box. Confirm the live files before trusting the parser:
 >
 > ```bash
 > grep -c real_ip_header /etc/nginx/sites-enabled/portfolio /etc/nginx/sites-enabled/quiz
 > ```
 >
-> Two `1`s means you are good. A `0` means that file is still the old copy —
-> `cp` it from the repo and reload.
+> Two `1`s means you are good. A `0` means that file predates the fix. **Add the
+> two lines by hand** rather than copying the repo file over it — the live
+> portfolio config has diverged (its `root` is `/opt/portfolio/site`, not the
+> monorepo path), so a blind `cp` can replace a working config with a broken
+> one:
+>
+> ```bash
+> nano /etc/nginx/sites-enabled/portfolio    # add both lines to the :8480 block
+> nginx -t && systemctl reload nginx
+> ```
 
 ### The counter on the portfolio
 

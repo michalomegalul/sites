@@ -13,6 +13,7 @@ import subprocess
 import time
 from functools import wraps
 from pathlib import Path
+from threading import Lock
 
 import requests
 from dotenv import load_dotenv
@@ -349,6 +350,10 @@ CSCLI = os.getenv("CSCLI", "/usr/bin/cscli")
 CS_TTL = 120
 
 _cs_cache = {"t": 0, "data": None}
+# gunicorn runs 2 workers. Three cscli calls at 5 s each is 15 s worst case, so
+# a cache miss must not be something every concurrent request joins in on: one
+# refresh at a time per worker, everyone else gets the previous answer.
+_cs_lock = Lock()
 
 
 def _cscli(*args):
@@ -362,31 +367,39 @@ def _cscli(*args):
     """
     out = subprocess.run(
         ["sudo", "-n", CSCLI, *args],
-        capture_output=True, text=True, timeout=8, check=True,
+        capture_output=True, text=True, timeout=5, check=True,
     ).stdout.strip()
     # cscli prints the JSON literal `null`, not `[]`, for an empty result.
     return json.loads(out) if out and out != "null" else []
 
 
 def _crowdsec_data():
-    if time.time() - _cs_cache["t"] < CS_TTL and _cs_cache["data"]:
+    fresh = time.time() - _cs_cache["t"] < CS_TTL and _cs_cache["data"]
+    if fresh:
         return _cs_cache["data"]
 
-    decisions = _cscli("decisions", "list", "-o", "json")
-    alerts_24h = _cscli("alerts", "list", "-o", "json", "--since", "24h", "--limit", "0")
-    alerts_7d = _cscli("alerts", "list", "-o", "json", "--since", "168h", "--limit", "0")
+    # Someone else is already refreshing: hand back the stale numbers rather
+    # than queueing behind them. Only a cold cache has nothing to give.
+    if not _cs_lock.acquire(blocking=_cs_cache["data"] is None):
+        return _cs_cache["data"]
+    try:
+        decisions = _cscli("decisions", "list", "-o", "json")
+        alerts_24h = _cscli("alerts", "list", "-o", "json", "--since", "24h", "--limit", "0")
+        alerts_7d = _cscli("alerts", "list", "-o", "json", "--since", "168h", "--limit", "0")
 
-    data = {
-        "blocked_now": len(decisions),
-        "alerts_24h": len(alerts_24h),
-        "alerts_7d": len(alerts_7d),
-        # An alert bundles the several requests that triggered it, so this is
-        # the "how many malicious requests" number rather than "how many
-        # incidents". It is the bigger and more honest of the two.
-        "events_7d": sum(int(a.get("events_count") or 0) for a in alerts_7d),
-    }
-    _cs_cache.update(t=time.time(), data=data)
-    return data
+        data = {
+            "blocked_now": len(decisions),
+            "alerts_24h": len(alerts_24h),
+            "alerts_7d": len(alerts_7d),
+            # An alert bundles the several requests that triggered it, so this
+            # is the "how many malicious requests" number rather than "how many
+            # incidents". It is the bigger and more honest of the two.
+            "events_7d": sum(int(a.get("events_count") or 0) for a in alerts_7d),
+        }
+        _cs_cache.update(t=time.time(), data=data)
+        return data
+    finally:
+        _cs_lock.release()
 
 
 @app.get("/api/crowdsec")
