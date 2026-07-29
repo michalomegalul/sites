@@ -51,6 +51,10 @@ a:hover { background: var(--signal); color: var(--ink); }
 .statusbar__sep { color: var(--fg-dim); }
 .statusbar__item { color: var(--fg-dim); }
 #conn-status[data-state="trusted"] { color: var(--signal); font-weight: 700; }
+/* CrowdSec counter. Stays hidden unless the API answers, so the bar never
+   shows a stale or dead number. */
+.statusbar__shield { color: var(--fg); cursor: help; white-space: nowrap; }
+@media (max-width: 640px) { .statusbar__shield, #crowdsec-sep { display: none; } }
 .statusbar__nav { margin-left: auto; display: flex; gap: 1rem; }
 .statusbar__nav a { border-bottom: none; color: var(--fg); }
 .statusbar__nav a:hover { color: var(--ink); }

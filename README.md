@@ -163,9 +163,19 @@ the query string.
 ## Reading the results
 
 The dashboard and exports are on the internal hostname only —
-`http://quiz.internal/admin.html` over LAN or Tailscale. The public block
-returns 404 for both the page and the admin API, and the API checks the network
-itself as well.
+`http://quiz.internal/` over LAN or Tailscale. The public block returns 404 for
+both the pages and the admin API, and the API checks the network itself as well.
+
+**Start at `http://quiz.internal/`**, not at a remembered filename. That is the
+same chooser the public sees, except the admin block is rendered: one row per
+survey with links to its dashboard, its editor and its CSV export. Install
+Tailscale on your phone and the same URL works from anywhere, with nothing
+exposed to the internet.
+
+This is deliberately *not* reachable at `quiz.dobsinsky.xyz` from your home
+broadband. It would mean allowlisting a residential IP, and the editor can
+delete collected answers — the day the ISP reassigns that address, whoever gets
+it inherits the access. Tailscale costs one app and has no such failure mode.
 
 | What | Where |
 |---|---|
@@ -284,13 +294,85 @@ cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
 > traffic — including attacks — to the loopback address and eventually ban it,
 > which takes the whole site down while looking like a random outage.
 >
-> `quiz/nginx.conf` already fixes this: `set_real_ip_from 127.0.0.1` plus
-> `real_ip_header CF-Connecting-IP` in the public block, so `$remote_addr` and
-> the log line carry the true client IP. **`portfolio/nginx.conf` does not have
-> those two lines yet** — add them to its Cloudflare-facing block before pointing
-> CrowdSec at a shared access log, or portfolio traffic will poison the parser.
-> Keep them out of the internal blocks, where `$remote_addr` must stay the real
-> LAN peer.
+> Both `quiz/nginx.conf` and `portfolio/nginx.conf` now carry the fix:
+> `set_real_ip_from 127.0.0.1` plus `real_ip_header CF-Connecting-IP` in the
+> Cloudflare-facing block, so `$remote_addr` and the log line carry the true
+> client IP. They are deliberately **not** in the internal blocks, where
+> `$remote_addr` must stay the real LAN peer.
+>
+> Since `deploy.sh` never copies nginx configs, confirm the live files actually
+> have them before trusting the parser:
+>
+> ```bash
+> grep -c real_ip_header /etc/nginx/sites-enabled/portfolio /etc/nginx/sites-enabled/quiz
+> ```
+>
+> Two `1`s means you are good. A `0` means that file is still the old copy —
+> `cp` it from the repo and reload.
+
+### The counter on the portfolio
+
+The status bar on `dobsinsky.xyz` shows `⛨ N BLOCKED · M/7D`, served by
+`GET /api/crowdsec`. It is public but returns **counts only** — the addresses
+behind them never leave the box. Publishing a blocked-IP list would be both a
+privacy problem and a free reputation feed for whoever wanted one.
+
+`cscli` needs root to read the local API credentials, so the API calls it
+through `sudo -n` with a fixed argument list. Grant exactly the two read-only
+subcommands and nothing else:
+
+```bash
+cat >/etc/sudoers.d/portfolio-crowdsec <<'EOF'
+www-data ALL=(root) NOPASSWD: /usr/bin/cscli decisions list -o json
+www-data ALL=(root) NOPASSWD: /usr/bin/cscli alerts list -o json --since * --limit 0
+EOF
+chmod 440 /etc/sudoers.d/portfolio-crowdsec
+visudo -c
+```
+
+Check it works as the service user, which is the thing that actually matters:
+
+```bash
+sudo -u www-data sudo -n /usr/bin/cscli decisions list -o json | head -c 200
+curl -s localhost:5050/api/crowdsec
+```
+
+The response caches for 120 s, so the counter costs one `cscli` pair per two
+minutes no matter how many people load the page. If CrowdSec is not installed
+yet the endpoint 502s and the status bar simply stays empty — set `CROWDSEC=0`
+in `.env` to switch it off deliberately.
+
+`events_7d` is the number of malicious *requests*, not incidents: one alert
+bundles the several requests that triggered it. That is the bigger number and
+the one on the bar.
+
+### Verifying the Cloudflare bouncer
+
+The firewall bouncer blocks at the LXC, after Cloudflare. The Cloudflare
+bouncer blocks at the edge instead, so the visitor never reaches the box — but
+it fails quietly if the API token is wrong, and a quiet failure looks exactly
+like "no attacks today". Check it explicitly:
+
+```bash
+systemctl status crowdsec-cloudflare-bouncer --no-pager
+cscli bouncers list                      # yours must show a recent "last pull"
+journalctl -u crowdsec-cloudflare-bouncer -n 40 --no-pager
+```
+
+The decisive test is whether decisions actually reach Cloudflare. Add one for a
+harmless address, then look for it in the dashboard under **Security → WAF →
+Tools → IP Access Rules**:
+
+```bash
+cscli decisions add --ip 203.0.113.42 --duration 5m --reason "bouncer test"
+sleep 30 && journalctl -u crowdsec-cloudflare-bouncer -n 20 --no-pager
+cscli decisions delete --ip 203.0.113.42
+```
+
+`203.0.113.0/24` is the reserved documentation range, so this cannot lock out
+anyone real. The token needs **Zone → Firewall Services → Edit** on the zone; a
+token missing that scope is the usual cause of a bouncer that starts cleanly and
+then does nothing.
 
 Because traffic arrives through the tunnel, the firewall bouncer blocks at the
 LXC, after Cloudflare. To block at the edge instead — cheaper, and the visitor

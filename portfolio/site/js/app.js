@@ -238,6 +238,31 @@ async function loadPulse() {
 loadPulse();
 setInterval(loadPulse, 30000);
 
+/* ---------------- crowdsec: what the edge turned away ---------------- */
+const compact = (n) =>
+  n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
+
+async function loadCrowdsec() {
+  try {
+    const d = await (await fetch(`${API}/crowdsec`)).json();
+    if (d.error) throw 0;
+    const el = $('#crowdsec-stat');
+    el.textContent = `⛨ ${compact(d.blocked_now)} BLOCKED · ${compact(d.events_7d)}/7D`;
+    el.title =
+      `${d.blocked_now} IPs currently blocked by CrowdSec\n` +
+      `${d.alerts_24h} alerts in the last 24h, ${d.alerts_7d} in the last 7 days\n` +
+      `${d.events_7d} malicious requests turned away this week`;
+    el.hidden = false;
+    $('#crowdsec-sep').hidden = false;
+  } catch {
+    /* Stays hidden. A defense counter that shows a made-up number when the
+       API is down is worse than no counter — unlike VITALS, this one has no
+       honest demo fallback. */
+  }
+}
+loadCrowdsec();
+setInterval(loadCrowdsec, 120000);
+
 /* ---------------- steam: latest game ---------------- */
 async function loadSteam() {
   try {

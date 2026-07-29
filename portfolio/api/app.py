@@ -6,8 +6,10 @@ Public (Cloudflare Tunnel) traffic must arrive with X-Net: public.
 """
 
 import ipaddress
+import json
 import os
 import sqlite3
+import subprocess
 import time
 from functools import wraps
 from pathlib import Path
@@ -336,6 +338,71 @@ def pulse():
         )
     except Exception:
         return jsonify({"error": "pve offline"}), 502
+
+
+# --------------------------------------------------------------- crowdsec
+
+# Set CROWDSEC=0 to hide the counter entirely (e.g. before CrowdSec is
+# installed). The endpoint then 503s and the status bar simply stays empty.
+CROWDSEC = os.getenv("CROWDSEC", "1") != "0"
+CSCLI = os.getenv("CSCLI", "/usr/bin/cscli")
+CS_TTL = 120
+
+_cs_cache = {"t": 0, "data": None}
+
+
+def _cscli(*args):
+    """One read-only cscli call.
+
+    `sudo -n` with a fixed argument list and no shell. Nothing from a request
+    ever reaches this function, so there is no injection surface; the sudoers
+    rule in the README allows exactly these read-only subcommands. cscli needs
+    root to read the local API credentials, which is the only reason sudo is
+    here at all.
+    """
+    out = subprocess.run(
+        ["sudo", "-n", CSCLI, *args],
+        capture_output=True, text=True, timeout=8, check=True,
+    ).stdout.strip()
+    # cscli prints the JSON literal `null`, not `[]`, for an empty result.
+    return json.loads(out) if out and out != "null" else []
+
+
+def _crowdsec_data():
+    if time.time() - _cs_cache["t"] < CS_TTL and _cs_cache["data"]:
+        return _cs_cache["data"]
+
+    decisions = _cscli("decisions", "list", "-o", "json")
+    alerts_24h = _cscli("alerts", "list", "-o", "json", "--since", "24h", "--limit", "0")
+    alerts_7d = _cscli("alerts", "list", "-o", "json", "--since", "168h", "--limit", "0")
+
+    data = {
+        "blocked_now": len(decisions),
+        "alerts_24h": len(alerts_24h),
+        "alerts_7d": len(alerts_7d),
+        # An alert bundles the several requests that triggered it, so this is
+        # the "how many malicious requests" number rather than "how many
+        # incidents". It is the bigger and more honest of the two.
+        "events_7d": sum(int(a.get("events_count") or 0) for a in alerts_7d),
+    }
+    _cs_cache.update(t=time.time(), data=data)
+    return data
+
+
+@app.get("/api/crowdsec")
+def crowdsec():
+    """Public — counts only, never the addresses behind them.
+
+    Same rule as /api/pulse. Publishing the blocked-IP list would be both a
+    privacy problem and a free reputation feed for anyone who wanted one; the
+    count carries the whole point without either.
+    """
+    if not CROWDSEC:
+        return jsonify({"error": "disabled"}), 503
+    try:
+        return jsonify(_crowdsec_data())
+    except Exception:  # noqa: BLE001 — missing binary, sudo denied, LAPI down
+        return jsonify({"error": "crowdsec unavailable"}), 502
 
 
 _steam_cache = {"t": 0, "data": None, "sid": None}
