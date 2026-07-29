@@ -231,6 +231,34 @@ locales.
 data, not decoration, and it must stay distinguishable from `--accent` or a
 selected region reads as a painful one.
 
+## Testing the quiz
+
+```bash
+cd quiz/tools/devtest && npm i jsdom     # once; gitignored, never deployed
+node quiz/tools/quiz-walkthrough.test.js # from the repo root
+```
+
+It drives the real frontend in a real DOM against a stubbed API: ticks consent,
+answers every question, checks each graded verdict, submits, and asserts that
+**every question was shown, in order, and none was skipped**.
+
+That last assertion is the whole reason the file exists. The bug it guards
+against was client-side — `showVerdict()` assigned `btn.onclick` while an
+`addEventListener` for the same click was already attached, so once feedback
+existed both handlers ran `state.index++` in one dispatch and the following
+question was never rendered. Detaching a node mid-dispatch does not cancel the
+remaining listeners on it. Those skipped questions then had no answer, so
+`submit` ended in `missing_required` — one root cause presenting as two unrelated
+complaints.
+
+**An API-level test cannot catch this**, because the server was correct the whole
+time. If you are tempted to replace this with something that just curls the
+endpoints, that is what you would lose. Sanity-check the test itself by putting
+the `onclick` line back: it should report 4 of 6 questions shown.
+
+The site still has no build step and `deploy.sh` still has no npm stage — jsdom
+lives in a gitignored directory and only the test knows about it.
+
 ## Links to hand out
 
 ```

@@ -7,3 +7,7 @@ node_modules/
 *.log
 *.db
 instance/
+
+# jsdom for quiz/tools/*.test.js — dev only. The sites have no build step and
+# the deploy has no npm stage; this never ships.
+quiz/tools/devtest/
