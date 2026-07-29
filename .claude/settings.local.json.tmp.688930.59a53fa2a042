@@ -5,7 +5,8 @@
       "Bash(python3 -)",
       "Bash(git add *)",
       "Bash(git commit -q -m 'quiz: a site bar, a footer, and four palettes to choose from *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -q -m 'docs: themes, the DEFENCE endpoints, and where the public/trusted line sits *)"
     ]
   }
 }

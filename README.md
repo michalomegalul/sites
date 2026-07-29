@@ -145,6 +145,31 @@ surface, so from the internet it is simply false. Over LAN or Tailscale
 if you ever want the landing page itself to be findable, that meta tag is the
 one thing to change.
 
+## Themes and chrome
+
+The quiz has a site bar (brand, palette picker, language) and a footer on the
+chooser, consent and thanks screens. Question screens get neither — one question
+per screen is a SPEC rule, and a link out of the survey mid-survey is an
+accidental exit. The print view drops all of it.
+
+Four palettes: `rose` (default), `plum`, `sage`, `slate`. Each has a light and a
+dark form and follows the OS setting, so the picker chooses the hue and the
+system chooses the brightness. All eight variants measure WCAG AAA for body text
+and AA for secondary and accent text against their own background — if you add a
+palette, check it, don't eyeball it.
+
+`quiz/site/js/theme.js` is the single source of truth for which palettes exist.
+It is a file rather than an inline `<script>` because the CSP is
+`script-src 'self'` with no `'unsafe-inline'`; inline would be blocked and every
+reload would flash the default palette before the stored one applied. Adding a
+palette means a `QUIZ_THEMES` entry, a matching
+`:root[data-theme="…"]` pair in `style.css`, and a `themeNames` label in both
+locales.
+
+**`--pain-1/2/3` is not themed.** It encodes intensity on the body map, so it is
+data, not decoration, and it must stay distinguishable from `--accent` or a
+selected region reads as a painful one.
+
 ## Links to hand out
 
 ```
@@ -319,6 +344,22 @@ cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
 > `listen 192.168.4.30:80`, neither of which exists on the box. If you ever
 > hand-edit a live config again, fix the repo copy in the same sitting — the
 > next person to run that `cp` is trusting it.
+
+### The DEFENCE panel on the portfolio
+
+The A-section panel and the slim header chip both come from one pass over two
+endpoints, and each half fails on its own — CrowdSec being absent still leaves a
+working visit counter.
+
+| Endpoint | Public? | Returns |
+|---|---|---|
+| `GET /api/crowdsec` | yes | blocked now, alerts 24h/7d, requests 7d |
+| `GET /api/visits` | yes | visitor count, visit count, active in 7d |
+| `GET /api/visitors` | **trusted only** | vids, names, user-agents — the detail |
+
+`/api/visits` exists so the front page never needs the trusted one. If you find
+yourself wanting to put a name or a user-agent on the public panel, that is the
+line: aggregate is public, per-visitor is not.
 
 ### The counter on the portfolio
 
