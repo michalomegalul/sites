@@ -125,9 +125,30 @@ Because `heard_before` and `knows_someone` are ungraded context questions, you
 can segment awareness by them — for example, whether knowing someone with the
 diagnosis predicts a higher score.
 
+## The landing page
+
+`https://quiz.dobsinsky.xyz/` is a chooser listing every open survey, built from
+the public `GET /api/surveys`. It used to redirect straight into `endo-2026`.
+
+That endpoint is deliberately not `/api/admin/surveys`: the admin one carries
+submitted-response counts. The public one returns slug, title, mode, locales and
+the first paragraph of the intro, and **a closed survey is not listed publicly at
+all** — its existence is not something the internet needs to know.
+
+The response also carries `trusted`, and when it is true the page renders an
+admin block with per-survey links to the dashboard, the editor and the CSV
+export. That flag is decided server-side by the same gate as every other admin
+surface, so from the internet it is simply false. Over LAN or Tailscale
+(`http://quiz.internal/`) it is true and the block appears.
+
+`index.html` is still `noindex, nofollow`. That is right for the questionnaires;
+if you ever want the landing page itself to be findable, that meta tag is the
+one thing to change.
+
 ## Links to hand out
 
 ```
+https://quiz.dobsinsky.xyz/                                chooser (all surveys)
 https://quiz.dobsinsky.xyz/cs/s/endo-2026?src=insta        patient questionnaire
 https://quiz.dobsinsky.xyz/cs/s/endo-znalosti?src=insta    awareness quiz
 https://quiz.dobsinsky.xyz/en/s/endo-znalosti?src=insta

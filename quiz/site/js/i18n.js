@@ -21,6 +21,10 @@ window.I18N = {
     saveFailed: 'Nepodařilo se uložit — zkontrolujte připojení',
     required: 'Tato otázka je povinná.',
     requiredMissing: 'Ještě chybí odpověď na povinné otázky.',
+    requiredMissingCount: (n) => n === 1
+      ? 'Chybí odpověď na jednu povinnou otázku. Klepnutím ji doplníte:'
+      : `Chybí odpovědi na ${n} povinných otázek. Klepnutím kteroukoli doplníte:`,
+    backToSubmit: 'Zpět na odeslání',
     progress: (a, b) => `${a} / ${b}`,
     consentAgree: 'Rozumím a souhlasím s účastí',
     consentAgreeSub: 'Bez tohoto souhlasu nelze dotazník vyplnit.',
@@ -65,7 +69,21 @@ window.I18N = {
     copied: 'Odkaz zkopírován',
     regionState: (name, level) => `${name}: ${level}`,
     printTitle: 'Tiskový formulář',
-    printNote: 'Nevyplněná verze dotazníku pro přílohu odborné práce.'
+    printNote: 'Nevyplněná verze dotazníku pro přílohu odborné práce.',
+    homeTitle: 'Endometrióza — dotazníky',
+    homeIntro: 'Vyberte si, co chcete vyplnit. Odpovědi jsou anonymní a ukládají se průběžně, takže můžete kdykoli přestat a vrátit se později.',
+    homeEmpty: 'Právě teď zde není žádný otevřený dotazník. Zkuste to prosím později.',
+    homeStartSurvey: 'Vyplnit dotazník →',
+    homeStartQuiz: 'Spustit kvíz →',
+    homeClosedBadge: 'Uzavřeno',
+    kindSurvey: 'Dotazník',
+    kindQuiz: 'Kvíz',
+    adminEyebrow: 'Jste na důvěryhodné síti',
+    adminHead: 'Správa',
+    adminHelp: 'Tuto část vidíte jen z domácí sítě nebo přes Tailscale. Z internetu se nezobrazuje.',
+    adminDash: 'Výsledky',
+    adminEditor: 'Upravit otázky',
+    adminExport: 'Export CSV'
   },
 
   en: {
@@ -84,6 +102,10 @@ window.I18N = {
     saveFailed: 'Could not save — check your connection',
     required: 'This question is required.',
     requiredMissing: 'Some required questions still need an answer.',
+    requiredMissingCount: (n) => n === 1
+      ? 'One required question still needs an answer. Tap it to fill it in:'
+      : `${n} required questions still need an answer. Tap any of them to fill it in:`,
+    backToSubmit: 'Back to submit',
     progress: (a, b) => `${a} / ${b}`,
     consentAgree: 'I understand and agree to take part',
     consentAgreeSub: 'The questionnaire cannot be filled in without this.',
@@ -128,6 +150,20 @@ window.I18N = {
     copied: 'Link copied',
     regionState: (name, level) => `${name}: ${level}`,
     printTitle: 'Printable form',
-    printNote: 'Blank version of the questionnaire, for the thesis appendix.'
+    printNote: 'Blank version of the questionnaire, for the thesis appendix.',
+    homeTitle: 'Endometriosis — questionnaires',
+    homeIntro: 'Pick what you would like to fill in. Answers are anonymous and save as you go, so you can stop at any point and come back later.',
+    homeEmpty: 'Nothing is open for responses right now. Please try again later.',
+    homeStartSurvey: 'Fill in the questionnaire →',
+    homeStartQuiz: 'Start the quiz →',
+    homeClosedBadge: 'Closed',
+    kindSurvey: 'Questionnaire',
+    kindQuiz: 'Quiz',
+    adminEyebrow: 'You are on a trusted network',
+    adminHead: 'Admin',
+    adminHelp: 'This section is visible only from the home network or over Tailscale. It is never shown from the internet.',
+    adminDash: 'Results',
+    adminEditor: 'Edit questions',
+    adminExport: 'Export CSV'
   }
 };

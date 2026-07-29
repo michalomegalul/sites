@@ -11,6 +11,10 @@
   var state = {
     slug: null, locale: null, src: null, survey: null,
     responseId: null, answers: {}, index: 0, print: false,
+    // Set when the respondent jumped back from the review screen to fix a
+    // missing answer, so that screen can offer a direct way back to Submit
+    // instead of making them click Continue through everything after it.
+    returnToReview: false,
     // Quiz mode only: what the server said about each graded answer. Kept in
     // memory rather than localStorage, because the server is the authority and
     // re-sending the same answer returns the same verdict.
@@ -27,22 +31,49 @@
 
   // ------------------------------------------------------------------ routing
 
+  /* Sets state.view to 'survey' or 'home'. The bare domain used to redirect
+   * straight into the default questionnaire; it now lands on a chooser, which
+   * is the only route this changes. Every link handed out is a full
+   * /{locale}/s/{slug} path and still goes exactly where it did. */
   function parseRoute() {
-    var m = location.pathname.match(/^\/([a-z]{2})\/s\/([a-z0-9-]+)(\/print)?\/?$/);
     var params = new URLSearchParams(location.search);
     state.src = params.get('src');
+
+    var m = location.pathname.match(/^\/([a-z]{2})\/s\/([a-z0-9-]+)(\/print)?\/?$/);
     if (m) {
+      state.view = 'survey';
       state.locale = m[1];
       state.slug = m[2];
       state.print = !!m[3];
-      return true;
+      return;
     }
-    return false;
+
+    // `/`, `/cs`, `/cs/`. Anything else lands here too rather than erroring
+    // inside the app: nginx already 404s missing files, so whatever reaches
+    // this point is a mistyped route, and a chooser is a better answer than
+    // "the questionnaire could not be loaded".
+    var home = location.pathname.match(/^\/([a-z]{2})\/?$/);
+    state.view = 'home';
+    state.locale = home ? home[1] : CFG.defaultLocale;
+    if ((CFG.locales || []).indexOf(state.locale) === -1) {
+      state.locale = CFG.defaultLocale;
+    }
   }
 
   function surveyPath(locale) {
     var p = '/' + locale + '/s/' + state.slug + (state.print ? '/print' : '');
-    return p + (state.src ? '?src=' + encodeURIComponent(state.src) : '');
+    return p + qs_();
+  }
+
+  function homePath(locale) {
+    return '/' + locale + qs_();
+  }
+
+  // `?src=` is carried across every internal link so a campaign tag survives
+  // the chooser. Unknown values are stored as NULL server-side, so this cannot
+  // pollute the funnel.
+  function qs_() {
+    return state.src ? '?src=' + encodeURIComponent(state.src) : '';
   }
 
   // --------------------------------------------------------------- storage
@@ -236,6 +267,115 @@
     bar.querySelector('.progress').setAttribute('aria-valuenow', String(pct));
   }
 
+  // ------------------------------------------------------------- home screen
+  // The chooser at `/`. It also carries the admin shortcuts, but only when the
+  // API says this client is trusted — the same gate as every other admin
+  // surface here, decided server-side and never by the browser.
+
+  function renderHome() {
+    bar.hidden = true;
+    document.title = t.homeTitle;
+
+    api('GET', '/surveys?locale=' + encodeURIComponent(state.locale))
+      .then(function (res) {
+        var surveys = res.surveys || [];
+        var wrap = h('div', 'home');
+        wrap.appendChild(h('h1', null, t.homeTitle));
+        wrap.appendChild(h('p', 'help', t.homeIntro));
+
+        if (!surveys.length) {
+          wrap.appendChild(h('p', 'help', t.homeEmpty));
+        } else {
+          var cards = h('div', 'cards');
+          surveys.forEach(function (s) { cards.appendChild(surveyCard(s)); });
+          wrap.appendChild(cards);
+        }
+
+        if (res.trusted) wrap.appendChild(adminPanel(surveys));
+        wrap.appendChild(homeLangSwitcher());
+        show(wrap);
+      })
+      .catch(function () {
+        show(h('div', 'error', t.errorLoad));
+      });
+  }
+
+  function surveyCard(s) {
+    // Prefer the locale being browsed; fall back to the survey's own default so
+    // a card never links to a language it has no text for.
+    var locale = (s.locales || []).indexOf(state.locale) !== -1
+      ? state.locale : s.default_locale;
+
+    var card = h('a', 'card' + (s.is_open ? '' : ' card--closed'));
+    card.href = '/' + locale + '/s/' + s.slug + qs_();
+
+    var kind = h('span', 'card-kind', s.mode === 'quiz' ? t.kindQuiz : t.kindSurvey);
+    kind.classList.add(s.mode === 'quiz' ? 'card-kind--quiz' : 'card-kind--survey');
+    card.appendChild(kind);
+    card.appendChild(h('h2', 'card-title', s.title || s.slug));
+
+    var blurb = firstParagraph(s.intro_md);
+    if (blurb) card.appendChild(h('p', 'card-blurb', blurb));
+
+    card.appendChild(h('span', 'card-go',
+      s.is_open ? (s.mode === 'quiz' ? t.homeStartQuiz : t.homeStartSurvey)
+                : t.homeClosedBadge));
+    return card;
+  }
+
+  /* First block of the intro, stripped of markdown, as a teaser. Reusing
+   * renderMarkdown here would drop several paragraphs of consent-adjacent prose
+   * into a card. */
+  function firstParagraph(md) {
+    if (!md) return '';
+    var block = (md.split(/\n{2,}/)[0] || '')
+      .split('\n').map(function (l) { return l.trim(); }).join(' ')
+      .replace(/\*\*/g, '').trim();
+    return block.length > 165 ? block.slice(0, 165).replace(/\s+\S*$/, '') + '…' : block;
+  }
+
+  function adminPanel(surveys) {
+    var box = h('div', 'admin-panel');
+    box.appendChild(h('p', 'eyebrow', t.adminEyebrow));
+    box.appendChild(h('h2', null, t.adminHead));
+    box.appendChild(h('p', 'help', t.adminHelp));
+
+    var rows = h('div', 'admin-rows');
+    surveys.forEach(function (s) {
+      var row = h('div', 'admin-row');
+      var name = h('span', 'admin-name', s.title || s.slug);
+      if (!s.is_open) name.appendChild(h('em', 'admin-flag', ' · ' + t.homeClosedBadge));
+      row.appendChild(name);
+
+      var links = h('span', 'admin-links');
+      links.appendChild(adminLink('/admin.html?slug=' + encodeURIComponent(s.slug), t.adminDash));
+      links.appendChild(adminLink('/editor.html?slug=' + encodeURIComponent(s.slug), t.adminEditor));
+      links.appendChild(adminLink(
+        '/api/admin/' + encodeURIComponent(s.slug) + '/export.csv', t.adminExport));
+      row.appendChild(links);
+      rows.appendChild(row);
+    });
+    box.appendChild(rows);
+    return box;
+  }
+
+  function adminLink(href, text) {
+    var a = h('a', 'admin-link', text);
+    a.href = href;
+    return a;
+  }
+
+  function homeLangSwitcher() {
+    var nav = h('nav', 'lang');
+    (CFG.locales || []).forEach(function (loc) {
+      var a = h('a', null, (window.I18N[loc] || {}).langName || loc.toUpperCase());
+      a.href = homePath(loc);
+      if (loc === state.locale) a.setAttribute('aria-current', 'true');
+      nav.appendChild(a);
+    });
+    return nav;
+  }
+
   // ---------------------------------------------------------- consent screen
 
   function renderConsent() {
@@ -366,6 +506,8 @@
       });
       actions.appendChild(skip);
     }
+    var ret = returnToReviewButton(q, errorSlot);
+    if (ret) actions.appendChild(ret);
     wrap.appendChild(actions);
     show(wrap);
   }
@@ -386,6 +528,10 @@
     var btn = h('button', 'btn', t.checkAnswer);
     btn.type = 'button';
     actions.appendChild(btn);
+    var ret = returnToReviewButton(q, errorSlot, function () {
+      return !!state.feedback[q.code];
+    });
+    if (ret) actions.appendChild(ret);
     wrap.appendChild(actions);
 
     function update() {
@@ -397,17 +543,28 @@
       field.querySelectorAll('.opt').forEach(function (o) { o.style.cursor = 'default'; });
     }
 
-    function showVerdict(fb) {
+    /* Relabels the button; it must NOT attach its own click handler. The
+     * listener below already advances once `state.feedback` is set, and a
+     * second handler on the same button fires in the same dispatch — detaching
+     * the node mid-dispatch does not cancel it — so the index moved by two and
+     * the next question was skipped entirely. That skipped question then had no
+     * answer, which is what made `submit` report missing required questions at
+     * the very end.
+     *
+     * `fresh` is false when we are only re-showing a verdict the respondent has
+     * already seen (back-navigation), so the event is not counted twice. */
+    function showVerdict(fb, fresh) {
       state.feedback[q.code] = fb;
       lock();
       panel.textContent = '';
       panel.appendChild(verdictPanel(q, fb));
       btn.textContent = t.next;
       btn.disabled = false;
-      btn.onclick = function () { state.index++; renderQuestion(); };
-      track('question_answered', {
-        survey: state.slug, question: q.code, correct: fb.correct ? 1 : 0
-      });
+      if (fresh) {
+        track('question_answered', {
+          survey: state.slug, question: q.code, correct: fb.correct ? 1 : 0
+        });
+      }
     }
 
     btn.addEventListener('click', function () {
@@ -419,7 +576,7 @@
         .then(function (res) {
           var fb = (res.feedback || {})[q.code];
           if (!fb) { state.index++; return renderQuestion(); }
-          showVerdict(fb);
+          showVerdict(fb, true);
         })
         .catch(function () {
           btn.disabled = false;
@@ -431,12 +588,12 @@
     // Coming back to an already-answered question: re-send the same answer to
     // recover the verdict rather than storing the answer key client-side.
     if (state.feedback[q.code]) {
-      showVerdict(state.feedback[q.code]);
+      showVerdict(state.feedback[q.code], false);
     } else if (!isEmpty(chosen, q.kind)) {
       api('PATCH', '/r/' + state.responseId, kv(q.code, chosen))
         .then(function (res) {
           var fb = (res.feedback || {})[q.code];
-          if (fb) showVerdict(fb);
+          if (fb) showVerdict(fb, false);
         })
         .catch(function () {});
     }
@@ -444,6 +601,32 @@
   }
 
   function kv(k, v) { var o = {}; o[k] = v; return o; }
+
+  /* Only present when the respondent jumped here from the review screen to fix
+   * a missing answer. Without it the only way back to Submit is Continue
+   * through every question that follows, which is why a single missed answer
+   * felt like starting the whole tail of the questionnaire again.
+   *
+   * `answered` overrides the emptiness test for graded questions, where the
+   * answer is not in state.answers until it has been committed. */
+  function returnToReviewButton(q, errorSlot, answered) {
+    if (!state.returnToReview) return null;
+    var btn = h('button', 'btn btn-quiet', t.backToSubmit);
+    btn.type = 'button';
+    btn.addEventListener('click', function () {
+      var ok = answered ? answered() : !isEmpty(state.answers[q.code], q.kind);
+      if (q.required && !ok) {
+        errorSlot.textContent = '';
+        errorSlot.appendChild(h('div', 'error', t.required));
+        return;
+      }
+      clearTimeout(saveTimer);
+      flush().catch(function () {});
+      state.index = questions().length;
+      renderQuestion();
+    });
+    return btn;
+  }
 
   function verdictPanel(q, fb) {
     var box = h('div', 'verdict ' + (fb.correct ? 'verdict--ok' : 'verdict--no'));
@@ -603,6 +786,8 @@
 
   function renderReview() {
     var qs = questions();
+    // Arriving here is the end of any fix-a-missing-answer detour.
+    state.returnToReview = false;
     bar.hidden = false;
     backBtn.hidden = false;
     setProgress(qs.length + 1, qs.length + 1);
@@ -638,18 +823,31 @@
           send.textContent = t.submit;
           var data = (e && e.data) || {};
           if (data.error === 'missing_required') {
+            // Every missing question gets its own jump button. Offering only
+            // the first one meant fixing it, submitting again, and being told
+            // about the next — once per missing answer.
             var codes = data.questions || [];
-            errorSlot.appendChild(h('div', 'error', t.requiredMissing));
-            var firstIdx = qs.findIndex(function (q) { return codes.indexOf(q.code) !== -1; });
-            if (firstIdx >= 0) {
-              var jump = h('button', 'btn btn-quiet', qs[firstIdx].prompt || qs[firstIdx].code);
+            var missing = [];
+            qs.forEach(function (q, i) {
+              if (codes.indexOf(q.code) !== -1) missing.push({ q: q, index: i });
+            });
+            errorSlot.appendChild(h('div', 'error',
+              missing.length ? t.requiredMissingCount(missing.length) : t.requiredMissing));
+
+            var list = h('div', 'missing-list');
+            missing.forEach(function (item) {
+              var jump = h('button', 'btn btn-quiet missing-item');
               jump.type = 'button';
+              jump.appendChild(h('span', 'missing-num', String(item.index + 1)));
+              jump.appendChild(document.createTextNode(item.q.prompt || item.q.code));
               jump.addEventListener('click', function () {
-                state.index = firstIdx;
+                state.returnToReview = true;
+                state.index = item.index;
                 renderQuestion();
               });
-              errorSlot.appendChild(jump);
-            }
+              list.appendChild(jump);
+            });
+            errorSlot.appendChild(list);
           } else {
             errorSlot.appendChild(h('div', 'error', data.error === 'too_fast' ? t.errorTooFast : t.errorGeneric));
           }
@@ -878,13 +1076,12 @@
   });
 
   function boot() {
-    if (!parseRoute()) {
-      location.replace('/' + CFG.defaultLocale + '/s/' + CFG.defaultSlug + location.search);
-      return;
-    }
+    parseRoute();
     t = window.I18N[state.locale] || window.I18N[CFG.defaultLocale];
     document.documentElement.lang = state.locale;
     screen.appendChild(h('div', 'spinner'));
+
+    if (state.view === 'home') return renderHome();
 
     api('GET', '/s/' + state.slug + '?locale=' + encodeURIComponent(state.locale))
       .then(function (survey) {

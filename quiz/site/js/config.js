@@ -23,7 +23,9 @@ window.QUIZ_CONFIG = {
     send_page_view: false
   },
 
-  // Slug of the survey this deployment serves when the path has none.
-  defaultSlug: 'endo-2026',
+  // Locales the landing page offers. Survey pages use the survey's own
+  // `locales` column instead, so a survey that exists in one language only
+  // never shows a switcher to a language it has no text for.
+  locales: ['cs', 'en'],
   defaultLocale: 'cs'
 };

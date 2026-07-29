@@ -168,6 +168,43 @@ def load_survey(cur, slug, locale=None):
 
 # ------------------------------------------------------------------ public API
 
+@app.get("/api/surveys")
+def public_surveys():
+    """The chooser on the landing page.
+
+    Deliberately NOT the same shape as /api/admin/surveys: that one carries
+    submitted-response counts, which are nobody's business from the internet.
+    This returns only what a respondent needs in order to pick a questionnaire.
+
+    A closed survey is listed only to a trusted client. Publicly it is not
+    mentioned at all — its existence is not a fact the internet needs, and a
+    dead card is worse than no card.
+
+    `trusted` rides along so the page can render the admin shortcuts in the same
+    round trip. It is the same gate as every other admin surface here: nginx
+    forces X-Net: public through the tunnel, so this is false from outside.
+    """
+    locale = request.args.get("locale", "")
+    trusted = is_trusted()
+
+    with db().cursor() as cur:
+        cur.execute(
+            "SELECT s.slug, s.mode, s.is_open, s.default_locale, s.locales,"
+            "       COALESCE(i.title, d.title) AS title,"
+            "       COALESCE(i.intro_md, d.intro_md) AS intro_md"
+            " FROM surveys s"
+            " LEFT JOIN survey_i18n i ON i.survey_id = s.id AND i.locale = %s"
+            " LEFT JOIN survey_i18n d ON d.survey_id = s.id"
+            "                        AND d.locale = s.default_locale"
+            " WHERE %s OR s.is_open"
+            " ORDER BY s.is_open DESC, s.slug",
+            (locale, trusted),
+        )
+        surveys = cur.fetchall()
+
+    return jsonify(surveys=surveys, trusted=trusted)
+
+
 @app.get("/api/s/<slug>")
 def get_survey(slug):
     if not SLUG_RE.match(slug):
