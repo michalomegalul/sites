@@ -167,6 +167,10 @@ body {
 
 /* ------------------------------------------------------------------ footer */
 
+/* Same trap as .consent on the portfolio: an author `display` outranks the UA
+   [hidden] rule, so without this the footer appeared on question screens too —
+   exactly where renderFooter() is meant to suppress it. */
+.sitefoot[hidden] { display: none; }
 .sitefoot {
   max-width: 42rem; margin: 3.5rem auto 0;
   padding: 1.25rem 0 max(1.25rem, env(safe-area-inset-bottom));

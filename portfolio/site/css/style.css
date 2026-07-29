@@ -130,11 +130,22 @@ a:hover { background: var(--signal); color: var(--ink); }
 .grid--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
 
 .panel {
+  /* Same var-driven transform as .project — attachTilt writes these and no
+     longer touches style.transform, so the stylesheet has to compose it here or
+     the panels would not tilt at all. */
+  --rx: 0deg; --ry: 0deg; --lift: 0;
+
   border: 2px solid var(--fg);
   padding: 1.75rem;
   background: rgba(0, 0, 0, 0.25);
   transform-style: preserve-3d;
   will-change: transform;
+  transform: rotateX(var(--rx)) rotateY(var(--ry))
+             translateZ(calc(var(--lift) * 8px));
+  transition: transform .14s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel { transform: none; transition: none; }
 }
 .panel__label {
   font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em;
@@ -162,12 +173,77 @@ a:hover { background: var(--signal); color: var(--ink); }
 .projects { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); perspective: 1200px; }
 
 .project {
+  /* Defaults matter: attachTilt only sets these on pointer interaction, and on
+     a touch device it never runs at all. */
+  --rx: 0deg; --ry: 0deg;
+  --mx: 50%; --my: 50%;
+  --bx: 50%; --by: 50%;
+  --lift: 0;
+
+  position: relative;
   border: 2px solid var(--fg);
   padding: 1.5rem;
   background: rgba(0, 0, 0, 0.3);
   transform-style: preserve-3d;
   will-change: transform;
   display: flex; flex-direction: column; gap: 0.8rem;
+
+  /* CSS owns the transform so nothing races an inline style. .projects already
+     establishes the perspective, so these are plain rotations. */
+  transform: rotateX(var(--rx)) rotateY(var(--ry))
+             translateZ(calc(var(--lift) * 10px));
+  transition: transform .14s ease-out, border-color .25s ease;
+}
+.project:hover { border-color: var(--signal); }
+
+/* ---------- holographic foil (featured cards only) ---------- */
+/* Two stacked layers, the way a foil card actually reads: a rainbow diffraction
+   pattern that slides against the tilt, and a specular highlight that tracks
+   the cursor. isolation:isolate keeps the blend modes inside the card instead
+   of letting them punch through to the page background. */
+.project--holo { overflow: hidden; isolation: isolate; }
+
+.project__foil, .project__glare {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s ease;
+  border-radius: inherit;
+}
+.project--holo:hover .project__foil { opacity: .55; }
+.project--holo:hover .project__glare { opacity: 1; }
+
+.project__foil {
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 4%,
+    rgba(255, 0, 132, .5) 7%,
+    rgba(255, 175, 0, .5) 10%,
+    rgba(60, 255, 170, .5) 13%,
+    rgba(0, 150, 255, .5) 16%,
+    rgba(170, 0, 255, .5) 19%,
+    transparent 22% 28%
+  );
+  background-size: 220% 220%;
+  background-position: var(--bx) var(--by);
+  mix-blend-mode: color-dodge;
+  filter: blur(3px) saturate(1.5);
+}
+
+.project__glare {
+  background: radial-gradient(
+    circle at var(--mx) var(--my),
+    rgba(255, 255, 255, .30),
+    rgba(255, 255, 255, .07) 32%,
+    transparent 62%
+  );
+  mix-blend-mode: overlay;
+}
+
+/* The tilt and the foil are both motion. Leave the border cue, drop the rest. */
+@media (prefers-reduced-motion: reduce) {
+  .project { transition: border-color .25s ease; transform: none; }
+  .project__foil, .project__glare { display: none; }
 }
 .project__name { font-family: var(--display); font-size: 1.25rem; line-height: 1.15; }
 .project__stack { font-size: 0.7rem; color: var(--signal); letter-spacing: 0.08em; }
@@ -233,6 +309,11 @@ a:hover { background: var(--signal); color: var(--ink); }
 
 /* ---------- analytics consent ---------- */
 /* Opt-in bar. Sits above everything, below the terminal overlay's z-index. */
+/* An author `display` beats the UA stylesheet's [hidden] { display: none }
+   whatever the specificity, so without this rule the bar could never hide and
+   clicking allow looked like it did nothing. Any element that is both
+   display-styled here and toggled via .hidden in JS needs its own [hidden]. */
+.consent[hidden] { display: none; }
 .consent {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem;

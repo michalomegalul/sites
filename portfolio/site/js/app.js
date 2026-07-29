@@ -86,6 +86,10 @@ if (window.gsap && !reducedMotion) {
         scrollTrigger: { trigger: el, start: 'top 88%' },
         rotateX: -18, y: 60, opacity: 0, transformOrigin: 'top center',
         duration: 0.7, ease: 'power3.out',
+        // Hand the transform back to CSS when the reveal finishes. Without this
+        // GSAP leaves an inline transform on the element forever, which beats
+        // the stylesheet and kills the hover tilt on every card it touched.
+        clearProps: 'transform',
       });
     });
   reveal('.panel');
@@ -94,17 +98,62 @@ if (window.gsap && !reducedMotion) {
 }
 
 /* mouse tilt on cards (kept subtle) */
-function attachTilt(el) {
+/* Writes CSS custom properties instead of an inline `transform`.
+ *
+ * The old version assigned el.style.transform directly, which put it in a fight
+ * with GSAP's reveal tween on the same element — whichever wrote last won, and
+ * the snap-back on mouseleave had no easing at all. That is what made the hover
+ * feel broken. CSS owns the transform now and composes it from these vars, so
+ * nothing overwrites anything and the return is eased.
+ *
+ * Reads are batched into one rAF: pointermove fires far more often than the
+ * screen refreshes, and getBoundingClientRect forces layout.
+ */
+const clamp01 = (n) => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+function attachTilt(el, holo) {
   if (reducedMotion) return;
-  el.addEventListener('mousemove', (e) => {
+  if (holo) el.classList.add('project--holo');
+
+  let queued = false;
+  let last = null;
+
+  const apply = () => {
+    queued = false;
+    if (!last) return;
     const r = el.getBoundingClientRect();
-    const rx = ((e.clientY - r.top) / r.height - 0.5) * -7;
-    const ry = ((e.clientX - r.left) / r.width - 0.5) * 9;
-    el.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(8px)`;
+    if (!r.width || !r.height) return;
+    const x = clamp01((last.clientX - r.left) / r.width);
+    const y = clamp01((last.clientY - r.top) / r.height);
+    const s = el.style;
+    s.setProperty('--rx', ((0.5 - y) * 8).toFixed(2) + 'deg');
+    s.setProperty('--ry', ((x - 0.5) * 11).toFixed(2) + 'deg');
+    // Glare sits under the cursor; the foil slides the opposite way, which is
+    // what reads as light moving across a surface rather than a sticker.
+    s.setProperty('--mx', (x * 100).toFixed(1) + '%');
+    s.setProperty('--my', (y * 100).toFixed(1) + '%');
+    s.setProperty('--bx', (85 - x * 70).toFixed(1) + '%');
+    s.setProperty('--by', (85 - y * 70).toFixed(1) + '%');
+  };
+
+  el.addEventListener('pointerenter', () => el.style.setProperty('--lift', '1'));
+  el.addEventListener('pointermove', (e) => {
+    last = e;
+    if (!queued) {
+      queued = true;
+      requestAnimationFrame(apply);
+    }
   });
-  el.addEventListener('mouseleave', () => (el.style.transform = ''));
+  el.addEventListener('pointerleave', () => {
+    const s = el.style;
+    s.setProperty('--lift', '0');
+    s.setProperty('--rx', '0deg');
+    s.setProperty('--ry', '0deg');
+  });
 }
-document.querySelectorAll('[data-tilt]').forEach(attachTilt);
+// Not `.forEach(attachTilt)` — forEach passes the index as the second argument,
+// which would land in `holo` and foil every panel after the first.
+document.querySelectorAll('[data-tilt]').forEach((el) => attachTilt(el));
 
 /* ---------------- projects ---------------- */
 async function loadProjects() {
@@ -122,8 +171,12 @@ async function loadProjects() {
       <p class="project__stack">${p.stack}</p>
       <p class="project__desc">${p.desc}</p>
       ${p.url ? `<a class="project__link" href="${p.url}" target="_blank" rel="noopener">view source →</a>` : ''}
+      ${archive ? '' : '<span class="project__foil" aria-hidden="true"></span><span class="project__glare" aria-hidden="true"></span>'}
     `;
-    attachTilt(el);
+    // Foil only on featured. A page where every card shimmers says nothing about
+    // which ones matter — and the archive is dug live from GitHub, so it is a
+    // long list.
+    attachTilt(el, !archive);
     return el;
   };
   data.featured.forEach((p) => $('#projects-featured').appendChild(card(p, false)));
@@ -309,19 +362,28 @@ async function loadDefence() {
      showing an invented number is worse than no counter — unlike VITALS, this
      one gets no demo fallback. */
 
-  const lines = cs.error
-    ? ['crowdsec       offline']
-    : [
-        row('blocked now', cs.blocked_now),
-        row('alerts 24h', cs.alerts_24h),
-        row('alerts 7d', cs.alerts_7d),
-        row('requests 7d', cs.events_7d),
-      ];
-  lines.push('');
+  const lines = ['crowdsec  · community blocklist'];
+  lines.push(
+    ...(cs.error
+      ? ['  (not reporting)']
+      : [
+          row('  blocked now', cs.blocked_now),
+          row('  alerts 24h', cs.alerts_24h),
+          row('  alerts 7d', cs.alerts_7d),
+          row('  requests 7d', cs.events_7d),
+        ])
+  );
+  lines.push('', 'nginx     · 30 req/min per ip on /api/');
+  lines.push('cloudflare· bot fight mode + waf');
+  lines.push('', 'visitors  · first-party, no third party');
   lines.push(
     ...(vis.error
-      ? ['visitors       offline']
-      : [row('visitors', vis.people), row('visits', vis.visits), row('active 7d', vis.people_7d)])
+      ? ['  (not reporting)']
+      : [
+          row('  people', vis.people),
+          row('  visits', vis.visits),
+          row('  active 7d', vis.people_7d),
+        ])
   );
   $('#defence-output').textContent = lines.join('\n');
 }
@@ -378,10 +440,11 @@ function enterTrustedMode() {
   $('#conn-status').dataset.state = 'trusted';
   $('#rec-srv').hidden = false;
   $('#nav-srv').hidden = false;
-  // On the LAN the quiz link goes to the internal hostname, which serves the
-  // same chooser plus the admin block. Over the tunnel that host is
-  // unreachable, so the public link is the correct one there.
-  $('#nav-quiz').href = 'http://quiz.internal/';
+  // On the LAN the quiz link goes to the internal listener, which serves the
+  // same chooser plus the admin block. IP:port rather than quiz.internal, since
+  // that name needs a DNS record that does not exist. Over the tunnel this
+  // address is unreachable, which is why the public link is the default.
+  $('#nav-quiz').href = 'http://192.168.4.37:8081/';
   $('#nav-quiz').title = 'chooser + dashboard + editor (LAN only)';
   if (window.ScrollTrigger) ScrollTrigger.refresh();
   loadPve();
