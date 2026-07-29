@@ -37,11 +37,18 @@ let currentBgKey = 'ink';
  * This used to pick a random theme on every load, which also meant a theme
  * chosen from the terminal (`theme <name>`) was overwritten on the next
  * reload. Whatever setTheme() last wrote is what comes back. */
+/* `amber` is the palette baked into :root, so it is represented by the ABSENCE
+   of data-theme — that is separate from which theme is the default. Changing the
+   default to mocha only changes what a first-time visitor gets. terminal.js
+   reads this too (top-level const in a classic script is visible to later
+   scripts). */
+const DEFAULT_THEME = 'mocha';
+
 (function () {
   const THEMES = ['amber', 'magma', 'mocha', 'latte', 'dracula', 'gruvbox', 'nord'];
   let saved;
   try { saved = localStorage.getItem('theme'); } catch (e) { saved = null; }
-  const theme = THEMES.includes(saved) ? saved : 'amber';
+  const theme = THEMES.includes(saved) ? saved : DEFAULT_THEME;
   if (theme === 'amber') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
 })();
@@ -53,7 +60,14 @@ window.__repaintBg = () => {
   document.body.style.backgroundColor = c; // hard set - no tween race, no grey limbo
 };
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) window.__repaintBg();
+  if (document.hidden) return;
+  window.__repaintBg();
+  /* Alt-tabbing away froze the hero mid-tween: requestAnimationFrame stops in a
+     background tab, so ScrollTrigger's scrubbed progress was left wherever it
+     was and the name stayed shifted left and faded even though the page was
+     scrolled to the top. Recomputing on return puts every trigger back in sync
+     with the actual scroll position. */
+  if (window.ScrollTrigger) ScrollTrigger.refresh();
 });
 
 if (window.gsap && !reducedMotion) {
@@ -71,11 +85,17 @@ if (window.gsap && !reducedMotion) {
 
   /* hero name: rows drift apart in 3D as you scroll */
   gsap.to('[data-depth="1"]', {
-    scrollTrigger: { trigger: '.sec--hero', start: 'top top', end: 'bottom top', scrub: 0.5 },
+    // scrub: true, not a number. Smooth scrub eases toward the target on its own
+    // ticker, which is exactly the state that gets stranded when the tab is
+    // backgrounded; bound directly to scroll position it cannot drift.
+    scrollTrigger: { trigger: '.sec--hero', start: 'top top', end: 'bottom top', scrub: true },
     xPercent: -12, rotateY: 14, z: -120, opacity: 0.25, ease: 'none',
   });
   gsap.to('[data-depth="2"]', {
-    scrollTrigger: { trigger: '.sec--hero', start: 'top top', end: 'bottom top', scrub: 0.5 },
+    // scrub: true, not a number. Smooth scrub eases toward the target on its own
+    // ticker, which is exactly the state that gets stranded when the tab is
+    // backgrounded; bound directly to scroll position it cannot drift.
+    scrollTrigger: { trigger: '.sec--hero', start: 'top top', end: 'bottom top', scrub: true },
     xPercent: 10, rotateY: -10, z: -60, opacity: 0.35, ease: 'none',
   });
 

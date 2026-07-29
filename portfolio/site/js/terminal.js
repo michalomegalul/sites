@@ -147,7 +147,7 @@
         `Touch: ${navigator.maxTouchPoints ? navigator.maxTouchPoints + '-point' : 'no'} · OS prefers ${dark} mode`,
         quota !== 'n/a' ? `Storage: ${quota}` : null,
         `Locale: ${navigator.language} · ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
-        `Page uptime: ${pageUp}s · Theme: ${localStorage.getItem('theme') || 'amber'}`,
+        `Page uptime: ${pageUp}s · Theme: ${localStorage.getItem('theme') || DEFAULT_THEME}`,
       ].filter(Boolean);
       art.forEach((a, i) => print(a.padEnd(20) + (info[i] || ''), 'term__accent'));
       info.slice(art.length).forEach((l) => print(' '.repeat(20) + l, 'term__accent'));
@@ -159,14 +159,14 @@
       const t = (args[0] || '').toLowerCase();
       if (t === 'lucky') {
         // every theme has a chance. latte has exactly 0% chance. as requested.
-        const pool = THEMES.filter((x) => x !== 'latte' && x !== (localStorage.getItem('theme') || 'amber'));
+        const pool = THEMES.filter((x) => x !== 'latte' && x !== (localStorage.getItem('theme') || DEFAULT_THEME));
         const pick = pool[(Math.random() * pool.length) | 0];
         setTheme(pick);
         print(`🎲 lucky roll: ${pick}  (latte odds: 0.000%)`, 'term__accent');
         return;
       }
       if (!THEMES.includes(t)) {
-        print(`themes: ${THEMES.join(' · ')} · lucky   (current: ${localStorage.getItem('theme') || 'amber'})`);
+        print(`themes: ${THEMES.join(' · ')} · lucky   (current: ${localStorage.getItem('theme') || DEFAULT_THEME})`);
         return;
       }
       setTheme(t);
@@ -808,6 +808,60 @@
   document.getElementById('term-close').addEventListener('click', closeTerm);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeTerm(); });
 
+  /* Tab completion, the way a shell actually does it.
+   *
+   * The old version only rewrote the input when there was exactly one match, so
+   * typing `s` and pressing Tab printed "snake ssh sudo sl slots" and left the
+   * line untouched — which reads as broken. Now it always fills in as far as the
+   * candidates agree, and only lists them when it cannot get further. Pressing
+   * Tab again after that does nothing new, same as bash. */
+  function commonPrefix(list) {
+    if (!list.length) return '';
+    let p = list[0];
+    for (const s of list.slice(1)) {
+      let i = 0;
+      while (i < p.length && i < s.length && p[i] === s[i]) i++;
+      p = p.slice(0, i);
+      if (!p) break;
+    }
+    return p;
+  }
+
+  // Which words a given command completes to, beyond the command name itself.
+  function argCandidates(cmd) {
+    if (['cat', 'nano', 'vim'].includes(cmd)) return Object.keys(fsAll());
+    if (['theme', 'color'].includes(cmd)) return THEMES.concat('lucky');
+    if (cmd === 'tailscale' || cmd === 'ts') return ['status', 'ip', 'netcheck'];
+    return null;
+  }
+
+  function complete() {
+    const value = input.value;
+    // A trailing space means "start a new word", so it must not be collapsed.
+    const parts = value.split(/\s+/);
+    const atNewWord = /\s$/.test(value);
+    const frag = atNewWord ? '' : (parts.at(-1) || '');
+    const first = (parts[0] || '').toLowerCase();
+
+    const pool = (parts.length > 1 || atNewWord)
+      ? argCandidates(first)
+      : Object.keys(cmds);
+    if (!pool) return;
+
+    const hits = pool.filter((c) => c.startsWith(frag.toLowerCase())).sort();
+    if (!hits.length) return;
+
+    const head = atNewWord ? parts.filter(Boolean) : parts.slice(0, -1);
+    const prefix = commonPrefix(hits);
+
+    if (hits.length === 1) {
+      input.value = head.concat(hits[0]).join(' ') + ' ';
+    } else {
+      if (prefix.length > frag.length) input.value = head.concat(prefix).join(' ');
+      print(hits.join('   '), 'term__dim');
+    }
+  }
+
   addEventListener('keydown', (e) => {
     const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
     const openCombo = (e.key === '~' && !typing) || (e.ctrlKey && e.altKey && e.key.toLowerCase() === 't');
@@ -838,17 +892,7 @@
     else if (e.key === 'ArrowDown') { e.preventDefault(); if (state.hIdx < state.history.length) input.value = state.history[++state.hIdx] || ''; }
     else if (e.key === 'Tab') {
       e.preventDefault();
-      const parts = input.value.split(/\s+/);
-      if (parts.length <= 1) {
-        const hit = Object.keys(cmds).filter((c) => parts[0] && c.startsWith(parts[0].toLowerCase()));
-        if (hit.length === 1) input.value = hit[0] + ' ';
-        else if (hit.length > 1) print(hit.join('   '), 'term__dim');
-      } else if (['cat', 'nano', 'vim'].includes(parts[0].toLowerCase())) {
-        const frag = parts.at(-1);
-        const hit = Object.keys(fsAll()).filter((f) => f.startsWith(frag));
-        if (hit.length === 1) input.value = parts.slice(0, -1).join(' ') + ' ' + hit[0];
-        else if (hit.length > 1) print(hit.join('   '), 'term__dim');
-      }
+      complete();
     }
   });
 })();

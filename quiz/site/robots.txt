@@ -1,0 +1,17 @@
+# quiz.dobsinsky.xyz — do not index anything here.
+#
+# index.html already carries <meta name="robots" content="noindex, nofollow">,
+# and this says the same thing one layer earlier for crawlers that read the file
+# but never fetch the page.
+#
+# Why a questionnaire should not be indexed: a search result pointing at a live
+# health survey invites traffic that was never approached personally, which
+# breaks the sampling the thesis relies on — the funnel is supposed to be the
+# links that were handed out, attributed by ?src=. Search-engine visitors would
+# arrive with no source and no consent context.
+#
+# This is a request, not enforcement. Well-behaved crawlers honour it; the
+# blocking that actually holds is in nginx, the rate limits and CrowdSec.
+
+User-agent: *
+Disallow: /

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One page, one entry. The sections are anchors on it, not separate URLs, so
+     listing them would be claiming pages that do not exist. quiz.dobsinsky.xyz
+     is deliberately absent: it asks not to be indexed at all. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://dobsinsky.xyz/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
