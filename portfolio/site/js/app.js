@@ -33,11 +33,11 @@ addEventListener('load', () => {
 const cssVar = (name) =>
   getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim();
 let currentBgKey = 'ink';
-/* restore the saved theme; amber is the default.
- * This used to pick a random theme on every load, which also meant a theme
- * chosen from the terminal (`theme <name>`) was overwritten on the next
- * reload. Whatever setTheme() last wrote is what comes back. */
-/* `amber` is the palette baked into :root, so it is represented by the ABSENCE
+/* Restore the saved theme. This used to pick a random one on every load, which
+ * also meant a theme chosen from the terminal (`theme <name>`) was overwritten
+ * on the next reload. Whatever setTheme() last wrote is what comes back.
+ *
+ * `amber` is the palette baked into :root, so it is represented by the ABSENCE
    of data-theme — that is separate from which theme is the default. Changing the
    default to mocha only changes what a first-time visitor gets. terminal.js
    reads this too (top-level const in a classic script is visible to later
@@ -321,48 +321,6 @@ async function loadPulse() {
 }
 loadPulse();
 setInterval(loadPulse, 30000);
-
-/* ---------------- analytics: opt-in, same rule as the quiz ---------------- */
-/* One GA4 property covers both sites. Nothing is requested from Google until
-   the visitor clicks allow — that is why the tag is injected here rather than
-   sitting in a <script> in the head. The footer says as much, so it has to
-   stay true. */
-const GA_ID = 'G-M93DGR0VS8';
-
-function enableGA() {
-  if (window.__gaOn || !GA_ID) return;
-  window.__gaOn = true;
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function () { window.dataLayer.push(arguments); };
-  gtag('js', new Date());
-  gtag('config', GA_ID, {
-    anonymize_ip: true,
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false,
-  });
-  const s = document.createElement('script');
-  s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
-  document.head.appendChild(s);
-}
-
-(function consentGate() {
-  let choice = null;
-  try { choice = localStorage.getItem('ga'); } catch (e) { /* private mode */ }
-  if (choice === 'yes') return enableGA();
-  if (choice === 'no') return;
-
-  const bar = $('#consent');
-  if (!bar) return;
-  bar.hidden = false;
-  const decide = (v) => {
-    try { localStorage.setItem('ga', v); } catch (e) { /* ignore */ }
-    bar.hidden = true;
-    if (v === 'yes') enableGA();
-  };
-  $('#consent-yes').addEventListener('click', () => decide('yes'));
-  $('#consent-no').addEventListener('click', () => decide('no'));
-})();
 
 /* ---------------- crowdsec: what the edge turned away ---------------- */
 const compact = (n) =>

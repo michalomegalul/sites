@@ -1,28 +1,18 @@
 /* Site config. Edit this file, not the app.
  *
- * Google Analytics is OPT-IN. Nothing from Google is requested until the
- * visitor ticks the analytics box on the consent screen; if they do not, no
- * script is loaded and no request leaves the origin.
+ * There is no analytics here, and that is deliberate rather than unfinished.
+ * Google Analytics was wired in and then removed: `v_dropoff` and the funnel
+ * views on the dashboard already answer "where do people give up" more
+ * precisely than GA can, without a third-party script in a page where people
+ * disclose symptoms. Nothing on this site now makes a request off-origin — see
+ * the CSP in nginx.conf, which no longer allow-lists anything external.
  *
- * What we send: screen names and question codes (e.g. "pain_map"). What we
- * never send: answer values, free text, the response_id, or anything else that
- * could be joined back to a response. If you add events, keep that line.
+ * If you are ever tempted to add a tag back: the reason not to is in the README
+ * under Analytics. A GA client ID plus a timestamp, combined with knowing who
+ * was sent a link and when, is a re-identification path the survey data alone
+ * does not have.
  */
 window.QUIZ_CONFIG = {
-  // From Google Analytics → Admin → Data streams → Measurement ID.
-  // Leave empty to disable analytics entirely.
-  gaMeasurementId: 'G-M93DGR0VS8',
-
-  // Passed to gtag as config. anonymize_ip truncates the address before
-  // storage; ads signals are off because this is a health questionnaire and
-  // must not feed advertising audiences.
-  gaOptions: {
-    anonymize_ip: true,
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false,
-    send_page_view: false
-  },
-
   // Locales the landing page offers. Survey pages use the survey's own
   // `locales` column instead, so a survey that exists in one language only
   // never shows a switcher to a language it has no text for.

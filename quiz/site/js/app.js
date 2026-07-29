@@ -190,33 +190,6 @@
     foot.hidden = false;
   }
 
-  // ------------------------------------------------------------------ google
-  // Opt-in only. Nothing is requested from Google until consent is given, and
-  // no event ever carries an answer value or the response_id.
-
-  var gaReady = false;
-
-  function enableAnalytics() {
-    if (gaReady || !CFG.gaMeasurementId) return;
-    gaReady = true;
-    store('ga', '1');
-
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function () { window.dataLayer.push(arguments); };
-    window.gtag('js', new Date());
-    window.gtag('config', CFG.gaMeasurementId, CFG.gaOptions);
-
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(CFG.gaMeasurementId);
-    document.head.appendChild(s);
-  }
-
-  function track(event, params) {
-    if (!gaReady || !window.gtag) return;
-    window.gtag('event', event, params || {});
-  }
-
   // ---------------------------------------------------------------- markdown
   // Deliberately tiny and DOM-built rather than innerHTML: paragraphs, bullet
   // lists and **bold** are all the consent text needs.
@@ -489,12 +462,6 @@
     var agree = checkbox(t.consentAgree, t.consentAgreeSub);
     wrap.appendChild(agree.label);
 
-    var analytics = null;
-    if (CFG.gaMeasurementId) {
-      analytics = checkbox(t.consentAnalytics, t.consentAnalyticsSub);
-      wrap.appendChild(analytics.label);
-    }
-
     var hp = h('div', 'hp');
     var hpInput = document.createElement('input');
     hpInput.type = 'text';
@@ -515,7 +482,6 @@
 
     go.addEventListener('click', function () {
       go.disabled = true;
-      if (analytics && analytics.input.checked) enableAnalytics();
       api('POST', '/s/' + state.slug + '/start', {
         locale: state.locale,
         src: state.src,
@@ -523,7 +489,6 @@
       }).then(function (res) {
         state.responseId = res.response_id;
         store('rid', res.response_id);
-        track('survey_start', { survey: state.slug, locale: state.locale, source: state.src || 'direct' });
         state.index = 0;
         renderQuestion();
       }).catch(function (e) {
@@ -563,7 +528,6 @@
     bar.hidden = false;
     backBtn.hidden = state.index === 0;
     setProgress(state.index + 1, qs.length + 1);
-    track('question_view', { survey: state.slug, question: q.code, position: state.index + 1 });
 
     var wrap = h('div');
     wrap.appendChild(h('p', 'eyebrow', t.progress(state.index + 1, qs.length)));
@@ -659,9 +623,6 @@
       btn.textContent = t.next;
       btn.disabled = false;
       if (fresh) {
-        track('question_answered', {
-          survey: state.slug, question: q.code, correct: fb.correct ? 1 : 0
-        });
       }
     }
 
@@ -910,10 +871,6 @@
       flush()
         .then(function () { return api('POST', '/r/' + state.responseId + '/submit'); })
         .then(function (res) {
-          track('survey_submit', {
-            survey: state.slug, locale: state.locale, source: state.src || 'direct',
-            score: res && res.score
-          });
           clearStored();
           renderThanks(res || {});
         })
@@ -1212,7 +1169,6 @@
         if (!survey.is_open) {
           return show(h('p', 'error', t.closed));
         }
-        if (load('ga') === '1') enableAnalytics();
 
         return resume().then(function (ok) {
           if (!ok) return renderConsent();

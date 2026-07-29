@@ -147,24 +147,10 @@
   </div>
   <footer class="footer">
     <p>;; Query time: <span id="render-time">0</span> msec · WHEN: <span id="footer-date"></span></p>
-    <p>;; SERVER: self-hosted on proxmox · analytics only if you allowed it <span class="footer__vid" id="footer-vid"></span></p>
+    <p>;; SERVER: self-hosted on proxmox · nothing third-party, this id never leaves the box <span class="footer__vid" id="footer-vid"></span></p>
   </footer>
 </section>
 
-
-<!-- ============ ANALYTICS CONSENT ============ -->
-<!-- Opt-in, same rule as the quiz: nothing is requested from Google until the
-     visitor says yes. Hidden until app.js finds no stored choice. -->
-<div class="consent" id="consent" hidden>
-  <p class="consent__text">
-    ;; analytics?
-    <span class="consent__dim">Google Analytics, IP truncated. No ads.</span>
-  </p>
-  <div class="consent__btns">
-    <button class="consent__btn consent__btn--yes" id="consent-yes">allow</button>
-    <button class="consent__btn" id="consent-no">no thanks</button>
-  </div>
-</div>
 
 <!-- ============ TERMINAL OVERLAY ============ -->
 <div class="term" id="term" hidden>

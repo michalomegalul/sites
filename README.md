@@ -59,11 +59,20 @@ The fix is `chown -R ghrunner:ghrunner /opt/sites`, but it has a sting:
 > ```bash
 > chown -R ghrunner:ghrunner /opt/sites
 > for f in /opt/sites/*/api/.env; do chown root:www-data "$f"; chmod 640 "$f"; done
-> chown www-data:www-data /opt/sites/portfolio/api/visitors.db
 > ```
 >
-> `visitors.db` is created by the app beside `app.py`, so `www-data` must own it.
-> It is gitignored, so it survives the reset.
+> Runtime state is **not** in the checkout, so there is nothing else to repair:
+> `visitors.db` and `now.json` live in `/var/lib/portfolio-api`, created by
+> systemd's `StateDirectory=` and owned by `www-data`.
+>
+> That move fixed a bug worth remembering the shape of. SQLite writes its
+> rollback journal *beside* the database file, so a write needs a writable
+> **directory**, not just a writable file. With the database inside the
+> runner-owned checkout, `/api/whoami` raised on every `INSERT` and 500'd, the
+> front end's `catch` swallowed it, and the badge silently read PUBLIC on the
+> LAN — while `/api/visits` kept working the whole time because it is a plain
+> `SELECT`. It looked like a broken trust contract and was a filesystem
+> permission.
 
 Don't work in `/opt/sites` as root. Use `sudo -u ghrunner` for anything touching
 git.
@@ -274,37 +283,33 @@ consent screen or the first question rather than anything deeper in.
 
 ## Analytics
 
-Google Analytics is wired in and **opt-in**. Set `gaMeasurementId` in
-`quiz/site/js/config.js`; leaving it empty disables analytics entirely and the
-checkbox never appears.
+**There is none, and that is a decision rather than a gap.**
 
-Nothing is requested from Google until the respondent ticks the analytics box on
-the consent screen — the tag is injected at that moment, not before. Events
-carry screen names and question codes (`pain_map`), never answer values, free
-text, or the `response_id`. `anonymize_ip` is on, and Google Signals and ad
-personalization are off, because this must not feed advertising audiences.
+Google Analytics was wired in, consent-gated, deployed, and then removed on
+2026-07-30. Two reasons, in order of weight:
 
-The nginx `Content-Security-Policy` allow-lists `googletagmanager.com` and
-`google-analytics.com` and nothing else third-party. If you add another tag it
-is blocked until you add it there too — that is intentional. After you set a
-real measurement ID, open the survey once with the browser console visible and
-check for CSP violations; that combination cannot be tested with an empty ID.
+1. **The dashboard already answers the question better.** GA was there to show
+   where people give up. `v_dropoff` gives the last question answered by everyone
+   who started and never submitted — by question code, with no sampling and no
+   setup. To chart the same thing in GA you had to register a custom dimension
+   and wait for it to start collecting. The local view was always the better
+   source; the README said so even while GA was installed.
+2. **It was the only off-origin request left.** Fonts and GSAP are self-hosted
+   now, so removing the tag made `default-src 'self'` with no exceptions true of
+   the whole site. The CSP in `quiz/nginx.conf` no longer allow-lists anything
+   external, which means a script added by accident is *blocked*, not merely
+   discouraged.
 
-**Where to look in GA4.** `send_page_view` is off, so the *Pages and screens*
-reports stay empty — that is expected, not a broken install. The data is under
-**Reports → Engagement → Events**, as `survey_start`, `question_view` (with a
-`question` parameter) and `survey_submit`, plus **Realtime** while testing. To
-chart `question_view` by question you must register `question` as a custom
-dimension in **Admin → Custom definitions** first, and GA only collects it from
-that point on. The dashboard's drop-off view gives you the same answer with no
-setup and no third party, so treat GA as the secondary source here.
+What replaced it: nothing on the quiz, because nothing was needed. On the
+portfolio, `GET /api/visits` counts people and visits from the existing
+`visitors` table — first-party, aggregate, and the id never leaves the box.
 
-> Worth knowing, since it is a thesis on the line: the respondents are a small
-> group approached personally. A GA client ID plus a timestamp, combined with
-> knowing who was sent a link and when, is a re-identification path that the
-> survey data alone does not have. The drop-off and funnel views answer "how do
-> I make this better?" without that exposure, so prefer them for anything that
-> goes near the methodology write-up.
+> Worth keeping in mind if you are ever tempted to add a tag back, since it is a
+> thesis on the line: the respondents are a small group approached personally. A
+> GA client ID plus a timestamp, combined with knowing who was sent a link and
+> when, is a re-identification path that the survey data alone does not have. The
+> drop-off and funnel views answer "how do I make this better?" without that
+> exposure.
 
 ## Blocking bots
 

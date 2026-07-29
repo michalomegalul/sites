@@ -397,34 +397,6 @@ a:hover { background: var(--signal); color: var(--ink); }
 }
 .visitor button:hover { background: var(--signal); color: var(--ink); }
 
-/* ---------- analytics consent ---------- */
-/* Opt-in bar. Sits above everything, below the terminal overlay's z-index. */
-/* An author `display` beats the UA stylesheet's [hidden] { display: none }
-   whatever the specificity, so without this rule the bar could never hide and
-   clicking allow looked like it did nothing. Any element that is both
-   display-styled here and toggled via .hidden in JS needs its own [hidden]. */
-.consent[hidden] { display: none; }
-.consent {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem;
-  padding: 0.85rem 1.25rem;
-  background: rgba(12, 12, 14, 0.94);
-  backdrop-filter: blur(6px);
-  border-top: 2px solid var(--signal);
-  font-size: 0.8rem;
-}
-.consent__text { margin: 0; flex: 1 1 20rem; }
-.consent__dim { color: var(--fg-dim); }
-.consent__btns { display: flex; gap: 0.5rem; }
-.consent__btn {
-  font-family: var(--mono); font-size: 0.78rem; font-weight: 700;
-  background: none; border: 2px solid var(--fg-dim); color: var(--fg);
-  padding: 0.45rem 1rem; cursor: pointer; min-height: 40px;
-}
-.consent__btn:hover { border-color: var(--fg); }
-.consent__btn--yes { border-color: var(--signal); color: var(--signal); }
-.consent__btn--yes:hover { background: var(--signal); color: var(--ink); }
-
 /* ---------- MX / contact ---------- */
 .sec--mx { display: flex; flex-direction: column; justify-content: center; }
 .mx__addr {
