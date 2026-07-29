@@ -1,6 +1,12 @@
 {
   "featured": [
     {
+      "name": "Endometriosis Survey Engine",
+      "stack": "FLASK · POSTGRESQL · VANILLA JS · NGINX",
+      "desc": "Self-hosted replacement for Google Forms, built for a nursing-school thesis. Surveys are database rows, not code: two locales, an SVG body-pain map, autosave and resume, a graded awareness quiz whose answer key never reaches the browser, and CSV export keyed on stable question codes. Anonymous by construction - no IP or user-agent is ever stored next to a health answer.",
+      "url": "https://quiz.dobsinsky.xyz/"
+    },
+    {
       "name": "Home Camera AI Detection",
       "stack": "PYTHON · OPENCV · YOLOV8 · OAK-D",
       "desc": "Real-time monitoring with a Luxonis OAK-D LR depth camera. Detects people and vehicles, draws dynamic heatmaps, counts line crossings, watches zones like the property gate.",

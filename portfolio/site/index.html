@@ -53,7 +53,7 @@
 </section>
 
 <!-- ============ A RECORD - WHO / NOW ============ -->
-<section class="sec" data-bg="cobalt" id="rec-a">
+<section class="sec" data-bg="ink" id="rec-a">
   <h2 class="rec__header"><span class="rec__type">;; A</span> who answers at this address</h2>
 
   <div class="grid grid--2">
@@ -79,6 +79,11 @@
       <p class="panel__label">VITALS - the box, live</p>
       <pre class="now__output" id="pulse-output">querying…</pre>
     </div>
+
+    <div class="panel panel--terminal" data-tilt>
+      <p class="panel__label">DEFENCE - who got turned away</p>
+      <pre class="now__output" id="defence-output">querying…</pre>
+    </div>
   </div>
 
   <div class="stack__marquee" aria-hidden="true">
@@ -90,7 +95,7 @@
 </section>
 
 <!-- ============ TXT RECORDS - PROJECTS ============ -->
-<section class="sec" data-bg="oxide" id="rec-txt">
+<section class="sec" data-bg="ink" id="rec-txt">
   <h2 class="rec__header"><span class="rec__type">;; TXT</span> things I made</h2>
   <div class="projects" id="projects-featured"></div>
 
@@ -101,7 +106,7 @@
 </section>
 
 <!-- ============ SRV RECORDS - HOMELAB (TRUSTED ONLY) ============ -->
-<section class="sec sec--srv" data-bg="bone" id="rec-srv" hidden>
+<section class="sec sec--srv" data-bg="ink" id="rec-srv" hidden>
   <h2 class="rec__header"><span class="rec__type">;; SRV</span> internal services <span class="rec__badge">TRUSTED NET</span></h2>
 
   <div class="grid grid--stats" id="pve-stats">
@@ -127,10 +132,24 @@
   </div>
   <footer class="footer">
     <p>;; Query time: <span id="render-time">0</span> msec · WHEN: <span id="footer-date"></span></p>
-    <p>;; SERVER: self-hosted on proxmox · no trackers except mine <span class="footer__vid" id="footer-vid"></span></p>
+    <p>;; SERVER: self-hosted on proxmox · analytics only if you allowed it <span class="footer__vid" id="footer-vid"></span></p>
   </footer>
 </section>
 
+
+<!-- ============ ANALYTICS CONSENT ============ -->
+<!-- Opt-in, same rule as the quiz: nothing is requested from Google until the
+     visitor says yes. Hidden until app.js finds no stored choice. -->
+<div class="consent" id="consent" hidden>
+  <p class="consent__text">
+    ;; count this visit?
+    <span class="consent__dim">Google Analytics · IP truncated · no ads, no profiling</span>
+  </p>
+  <div class="consent__btns">
+    <button class="consent__btn consent__btn--yes" id="consent-yes">allow</button>
+    <button class="consent__btn" id="consent-no">no thanks</button>
+  </div>
+</div>
 
 <!-- ============ TERMINAL OVERLAY ============ -->
 <div class="term" id="term" hidden>

@@ -307,16 +307,18 @@ cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
 > grep -c real_ip_header /etc/nginx/sites-enabled/portfolio /etc/nginx/sites-enabled/quiz
 > ```
 >
-> Two `1`s means you are good. A `0` means that file predates the fix. **Add the
-> two lines by hand** rather than copying the repo file over it — the live
-> portfolio config has diverged (its `root` is `/opt/portfolio/site`, not the
-> monorepo path), so a blind `cp` can replace a working config with a broken
-> one:
+> Two `1`s means you are good. A `0` means that file predates the fix:
 >
 > ```bash
-> nano /etc/nginx/sites-enabled/portfolio    # add both lines to the :8480 block
+> cp /opt/sites/portfolio/nginx.conf /etc/nginx/sites-available/portfolio
 > nginx -t && systemctl reload nginx
 > ```
+>
+> That `cp` is safe as of 2026-07-29, when the repo copy was reconciled against
+> the live file: it had drifted to `root /opt/portfolio/site` and
+> `listen 192.168.4.30:80`, neither of which exists on the box. If you ever
+> hand-edit a live config again, fix the repo copy in the same sitting — the
+> next person to run that `cp` is trusting it.
 
 ### The counter on the portfolio
 

@@ -238,30 +238,95 @@ async function loadPulse() {
 loadPulse();
 setInterval(loadPulse, 30000);
 
+/* ---------------- analytics: opt-in, same rule as the quiz ---------------- */
+/* One GA4 property covers both sites. Nothing is requested from Google until
+   the visitor clicks allow — that is why the tag is injected here rather than
+   sitting in a <script> in the head. The footer says as much, so it has to
+   stay true. */
+const GA_ID = 'G-M93DGR0VS8';
+
+function enableGA() {
+  if (window.__gaOn || !GA_ID) return;
+  window.__gaOn = true;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { window.dataLayer.push(arguments); };
+  gtag('js', new Date());
+  gtag('config', GA_ID, {
+    anonymize_ip: true,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+  });
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_ID);
+  document.head.appendChild(s);
+}
+
+(function consentGate() {
+  let choice = null;
+  try { choice = localStorage.getItem('ga'); } catch (e) { /* private mode */ }
+  if (choice === 'yes') return enableGA();
+  if (choice === 'no') return;
+
+  const bar = $('#consent');
+  if (!bar) return;
+  bar.hidden = false;
+  const decide = (v) => {
+    try { localStorage.setItem('ga', v); } catch (e) { /* ignore */ }
+    bar.hidden = true;
+    if (v === 'yes') enableGA();
+  };
+  $('#consent-yes').addEventListener('click', () => decide('yes'));
+  $('#consent-no').addEventListener('click', () => decide('no'));
+})();
+
 /* ---------------- crowdsec: what the edge turned away ---------------- */
 const compact = (n) =>
   n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
 
-async function loadCrowdsec() {
-  try {
-    const d = await (await fetch(`${API}/crowdsec`)).json();
-    if (d.error) throw 0;
+const row = (label, n) => `${label.padEnd(14)}${String(n).padStart(7)}`;
+
+/* Fills both the slim header chip and the DEFENCE panel from one pass. The two
+   halves fail independently: CrowdSec can be absent while the visit counter
+   works, and vice versa, so each is reported on its own. */
+async function loadDefence() {
+  const [cs, vis] = await Promise.all([
+    fetch(`${API}/crowdsec`).then((r) => r.json()).catch(() => ({ error: 1 })),
+    fetch(`${API}/visits`).then((r) => r.json()).catch(() => ({ error: 1 })),
+  ]);
+
+  if (!cs.error) {
     const el = $('#crowdsec-stat');
-    el.textContent = `⛨ ${compact(d.blocked_now)} BLOCKED · ${compact(d.events_7d)}/7D`;
+    el.textContent = `⛨ ${compact(cs.blocked_now)} BLOCKED · ${compact(cs.events_7d)}/7D`;
     el.title =
-      `${d.blocked_now} IPs currently blocked by CrowdSec\n` +
-      `${d.alerts_24h} alerts in the last 24h, ${d.alerts_7d} in the last 7 days\n` +
-      `${d.events_7d} malicious requests turned away this week`;
+      `${cs.blocked_now} IPs currently blocked by CrowdSec\n` +
+      `${cs.alerts_24h} alerts in the last 24h, ${cs.alerts_7d} in the last 7 days\n` +
+      `${cs.events_7d} malicious requests turned away this week`;
     el.hidden = false;
     $('#crowdsec-sep').hidden = false;
-  } catch {
-    /* Stays hidden. A defense counter that shows a made-up number when the
-       API is down is worse than no counter — unlike VITALS, this one has no
-       honest demo fallback. */
   }
+  /* Header chip stays hidden when CrowdSec is unreachable. A defence counter
+     showing an invented number is worse than no counter — unlike VITALS, this
+     one gets no demo fallback. */
+
+  const lines = cs.error
+    ? ['crowdsec       offline']
+    : [
+        row('blocked now', cs.blocked_now),
+        row('alerts 24h', cs.alerts_24h),
+        row('alerts 7d', cs.alerts_7d),
+        row('requests 7d', cs.events_7d),
+      ];
+  lines.push('');
+  lines.push(
+    ...(vis.error
+      ? ['visitors       offline']
+      : [row('visitors', vis.people), row('visits', vis.visits), row('active 7d', vis.people_7d)])
+  );
+  $('#defence-output').textContent = lines.join('\n');
 }
-loadCrowdsec();
-setInterval(loadCrowdsec, 120000);
+loadDefence();
+setInterval(loadDefence, 120000);
 
 /* ---------------- steam: latest game ---------------- */
 async function loadSteam() {

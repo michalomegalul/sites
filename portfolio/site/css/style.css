@@ -91,14 +91,21 @@ a:hover { background: var(--signal); color: var(--ink); }
 
 .hero__name {
   font-family: var(--display);
-  font-size: clamp(3rem, 13vw, 11rem);
-  line-height: 0.92;
+  /* Tuned to the LONGER row: "DOBŠÍNSKÝ" is 9 glyphs of Archivo Black, which
+     averages ~0.78em of advance each — about 7em — and the offset row gives up
+     another 4vw to its indent. At the old 13vw it ran off the right edge on any
+     normal laptop. Keep this in step with the indent below if the name changes. */
+  font-size: clamp(2.25rem, 10.5vw, 9.5rem);
+  /* 0.92 cropped the háček on Š and the acutes on Í and Ý: those glyphs reach
+     above cap height, so the line box has to be taller than 1em, not shorter.
+     Czech diacritics are the reason this cannot be tightened back up. */
+  line-height: 1.04;
   letter-spacing: -0.02em;
   margin: 2rem 0;
   perspective: 800px;
 }
-.hero__row { display: block; will-change: transform; }
-.hero__row--offset { margin-left: clamp(1rem, 8vw, 7rem); color: var(--signal); }
+.hero__row { display: block; white-space: nowrap; will-change: transform; }
+.hero__row--offset { margin-left: clamp(0.5rem, 4vw, 3.5rem); color: var(--signal); }
 
 .hero__soa { max-width: 46rem; border-left: 3px solid var(--signal); padding-left: 1.25rem; }
 .soa__line { display: flex; gap: 1.5rem; padding: 0.3rem 0; font-size: 0.95rem; }
@@ -172,50 +179,78 @@ a:hover { background: var(--signal); color: var(--ink); }
   background: none; border: 2px dashed var(--fg); color: var(--fg);
   padding: 0.8rem 1.4rem; cursor: pointer;
 }
-.archive-toggle:hover { background: var(--fg); color: var(--oxide); }
+.archive-toggle:hover { background: var(--fg); color: var(--ink); }
 .projects--archive { margin-top: 2rem; }
 
 /* ---------- SRV / homelab ---------- */
-.sec--srv { color: var(--ink); }
-.sec--srv .rec__header { border-color: rgba(12,12,14,0.3); }
-.sec--srv .dig-line { color: var(--oxide); }
-.sec--srv .panel, .sec--srv .stat { border-color: var(--ink); background: rgba(255,255,255,0.35); }
+/* Every section is now `ink`, so this block reads on dark. It used to sit on
+   `bone` and hard-coded ink text and rgba(12,12,14,…) borders — on a dark
+   background that was ink-on-ink, i.e. invisible. Everything here goes through
+   --fg / --signal instead, so it survives a theme change too. */
+.sec--srv .rec__header { border-color: rgba(255,255,255,0.22); }
+.sec--srv .dig-line { color: var(--signal); }
+.sec--srv .panel, .sec--srv .stat {
+  border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.04);
+}
 
 .grid--stats { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); margin-bottom: 3rem; }
-.stat { border: 2px solid var(--ink); padding: 1.25rem; }
-.stat__label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; }
+.stat { border: 2px solid rgba(255,255,255,0.22); padding: 1.25rem; }
+.stat__label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; color: var(--fg-dim); }
 .stat__value { font-family: var(--display); font-size: 2.2rem; margin: 0.4rem 0; }
-.stat__bar { height: 8px; background: rgba(12,12,14,0.15); }
-.stat__bar i { display: block; height: 100%; background: var(--oxide); }
-.stat__bar i.warn { background: #b04a00; }
-.stat__sub { font-size: 0.72rem; margin-top: 0.4rem; color: rgba(12,12,14,0.7); }
+.stat__bar { height: 8px; background: rgba(255,255,255,0.12); }
+.stat__bar i { display: block; height: 100%; background: var(--signal); }
+.stat__bar i.warn { background: #ff6b3d; }
+.stat__sub { font-size: 0.72rem; margin-top: 0.4rem; color: var(--fg-dim); }
 
 .grid--services { grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr)); gap: 0.75rem; }
 .svc {
-  border: 2px solid var(--ink); color: var(--ink);
+  border: 2px solid rgba(255,255,255,0.22); color: var(--fg);
   padding: 0.9rem 1rem; font-size: 0.85rem; font-weight: 700;
   display: flex; justify-content: space-between;
 }
-.svc:hover { background: var(--ink); color: var(--bone); }
+.svc:hover { background: var(--signal); color: var(--ink); }
 .svc small { font-weight: 400; opacity: 0.65; }
 
 .visitors { margin-top: 3rem; font-size: 0.85rem; }
 .visitors summary { cursor: pointer; font-weight: 700; }
 .visitor {
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
-  border-bottom: 1px solid rgba(12,12,14,0.25); padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.18); padding: 0.6rem 0;
 }
 .visitor__vid { font-size: 0.72rem; opacity: 0.6; }
 .visitor input {
   font-family: var(--mono); font-size: 0.8rem;
-  border: 1px solid var(--ink); background: transparent; color: var(--ink);
+  border: 1px solid rgba(255,255,255,0.3); background: transparent; color: var(--fg);
   padding: 0.25rem 0.5rem;
 }
 .visitor button {
-  font-family: var(--mono); border: 2px solid var(--ink); background: none;
-  color: var(--ink); padding: 0.25rem 0.7rem; cursor: pointer;
+  font-family: var(--mono); border: 2px solid rgba(255,255,255,0.3); background: none;
+  color: var(--fg); padding: 0.25rem 0.7rem; cursor: pointer;
 }
-.visitor button:hover { background: var(--ink); color: var(--bone); }
+.visitor button:hover { background: var(--signal); color: var(--ink); }
+
+/* ---------- analytics consent ---------- */
+/* Opt-in bar. Sits above everything, below the terminal overlay's z-index. */
+.consent {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem;
+  padding: 0.85rem 1.25rem;
+  background: rgba(12, 12, 14, 0.94);
+  backdrop-filter: blur(6px);
+  border-top: 2px solid var(--signal);
+  font-size: 0.8rem;
+}
+.consent__text { margin: 0; flex: 1 1 20rem; }
+.consent__dim { color: var(--fg-dim); }
+.consent__btns { display: flex; gap: 0.5rem; }
+.consent__btn {
+  font-family: var(--mono); font-size: 0.78rem; font-weight: 700;
+  background: none; border: 2px solid var(--fg-dim); color: var(--fg);
+  padding: 0.45rem 1rem; cursor: pointer; min-height: 40px;
+}
+.consent__btn:hover { border-color: var(--fg); }
+.consent__btn--yes { border-color: var(--signal); color: var(--signal); }
+.consent__btn--yes:hover { background: var(--signal); color: var(--ink); }
 
 /* ---------- MX / contact ---------- */
 .sec--mx { display: flex; flex-direction: column; justify-content: center; }

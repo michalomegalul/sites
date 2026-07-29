@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 User=www-data
-WorkingDirectory=/opt/portfolio/api
-EnvironmentFile=/opt/portfolio/api/.env
-ExecStart=/opt/portfolio/api/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 app:app
+WorkingDirectory=/opt/sites/portfolio/api
+EnvironmentFile=/opt/sites/portfolio/api/.env
+ExecStart=/opt/sites/portfolio/api/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 app:app
 Restart=always
 
 [Install]

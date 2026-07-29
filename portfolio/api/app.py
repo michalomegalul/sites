@@ -188,6 +188,32 @@ def visitors():
     )
 
 
+@app.get("/api/visits")
+def visits():
+    """Public — aggregate counts only.
+
+    /api/visitors above is trusted_only and hands back vids, names and
+    user-agent strings. This is the same table reduced to three numbers, and
+    nothing in the response identifies anybody. Keep it that way: the panel on
+    the front page only ever needs the count.
+    """
+    d = db()
+    totals = d.execute(
+        "SELECT count(*) AS people, COALESCE(sum(visits), 0) AS visits FROM visitors"
+    ).fetchone()
+    recent = d.execute(
+        "SELECT count(*) AS n FROM visitors WHERE last_seen >= ?",
+        (int(time.time()) - 7 * 86400,),
+    ).fetchone()
+    return jsonify(
+        {
+            "people": totals["people"],
+            "visits": totals["visits"],
+            "people_7d": recent["n"],
+        }
+    )
+
+
 @app.post("/api/tag")
 @trusted_only
 def tag():
