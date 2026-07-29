@@ -32,6 +32,42 @@ working site on first deploy.** See the first-time setup below.
 > `git reset --hard` runs every time. Nothing that must survive a deploy may
 > live inside the checkout.
 
+### When a deploy is green but the box is unchanged
+
+`deploy.sh` aborts **before** `git reset --hard` if anything under
+`/opt/sites/.git` is owned by someone other than the runner. Run one git command
+in `/opt/sites` as root and it rewrites `.git/index` as root; every later deploy
+stops there, so the checkout silently stays at an old commit while pushes keep
+going green. Symptom: a file you know you fixed still has the old contents on the
+box.
+
+```bash
+git -C /opt/sites log --oneline -1        # is the checkout where you think?
+find /opt/sites/.git ! -user ghrunner -print | head
+```
+
+**Check that before copying anything out of the checkout.** Copying an
+`nginx.conf` out of a stale one is how the portfolio ended up with a `root`
+pointing at a directory that no longer existed, and a 404 on the live site.
+
+The fix is `chown -R ghrunner:ghrunner /opt/sites`, but it has a sting:
+
+> That also strips `root:www-data` off **every** `.env`, and python-dotenv raises
+> on a file it cannot read rather than skipping it — so the next restart of
+> either API dies before it serves a request. Re-apply in the same breath:
+>
+> ```bash
+> chown -R ghrunner:ghrunner /opt/sites
+> for f in /opt/sites/*/api/.env; do chown root:www-data "$f"; chmod 640 "$f"; done
+> chown www-data:www-data /opt/sites/portfolio/api/visitors.db
+> ```
+>
+> `visitors.db` is created by the app beside `app.py`, so `www-data` must own it.
+> It is gitignored, so it survives the reset.
+
+Don't work in `/opt/sites` as root. Use `sudo -u ghrunner` for anything touching
+git.
+
 ## quiz — first-time setup
 
 Everything here is done once, as root on the `cloudflared` LXC.

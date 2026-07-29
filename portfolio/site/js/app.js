@@ -378,6 +378,11 @@ function enterTrustedMode() {
   $('#conn-status').dataset.state = 'trusted';
   $('#rec-srv').hidden = false;
   $('#nav-srv').hidden = false;
+  // On the LAN the quiz link goes to the internal hostname, which serves the
+  // same chooser plus the admin block. Over the tunnel that host is
+  // unreachable, so the public link is the correct one there.
+  $('#nav-quiz').href = 'http://quiz.internal/';
+  $('#nav-quiz').title = 'chooser + dashboard + editor (LAN only)';
   if (window.ScrollTrigger) ScrollTrigger.refresh();
   loadPve();
   loadServices();

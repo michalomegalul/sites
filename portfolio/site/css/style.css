@@ -58,6 +58,8 @@ a:hover { background: var(--signal); color: var(--ink); }
 .statusbar__nav { margin-left: auto; display: flex; gap: 1rem; }
 .statusbar__nav a { border-bottom: none; color: var(--fg); }
 .statusbar__nav a:hover { color: var(--ink); }
+/* Off-site link, so it reads differently from the in-page anchors beside it. */
+.statusbar__nav-out { color: var(--signal) !important; font-weight: 700; }
 
 /* ---------- sections ---------- */
 .sec {
