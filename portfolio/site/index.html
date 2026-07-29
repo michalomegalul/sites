@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>dobsinsky.xyz - zone file</title>
 <meta name="description" content="Michal Dobšínský - junior developer @ NIC.cz, data analytics @ VŠE, homelab operator.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<!-- Fonts are self-hosted. No preconnect, no third-party stylesheet, and no
+     round trip to Google before the first glyph can render. Preloaded because
+     the CSS that references them is discovered one file later. -->
+<link rel="preload" href="/fonts/ArchivoBlack-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/IBMPlexMono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-bg="ink">
@@ -178,9 +181,15 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="js/app.js"></script>
-<script src="js/terminal.js"></script>
+<!-- GSAP vendored at 3.12.5 rather than pulled from cdnjs: one less origin to
+     trust, and the animation no longer depends on someone else's uptime.
+     ALL FOUR are deferred, and that is load-bearing. Deferred scripts run in
+     document order after parsing, so app.js still sees window.gsap; deferring
+     only the GSAP pair would have app.js run first, find no gsap, and silently
+     drop every animation on the page. -->
+<script defer src="vendor/gsap.min.js"></script>
+<script defer src="vendor/ScrollTrigger.min.js"></script>
+<script defer src="js/app.js"></script>
+<script defer src="js/terminal.js"></script>
 </body>
 </html>
