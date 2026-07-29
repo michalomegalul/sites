@@ -134,6 +134,11 @@ function attachTilt(el, holo) {
     s.setProperty('--my', (y * 100).toFixed(1) + '%');
     s.setProperty('--bx', (85 - x * 70).toFixed(1) + '%');
     s.setProperty('--by', (85 - y * 70).toFixed(1) + '%');
+    // Unitless, for hue-rotate and conic angles. The colour shifting with
+    // viewing angle is the whole point of a hologram — without it you have a
+    // sticker.
+    s.setProperty('--hx', (x * 100).toFixed(1));
+    s.setProperty('--hy', (y * 100).toFixed(1));
   };
 
   el.addEventListener('pointerenter', () => el.style.setProperty('--lift', '1'));
@@ -163,9 +168,15 @@ async function loadProjects() {
   } catch {
     data = { featured: [], archive: [] };
   }
-  const card = (p, archive) => {
+  /* One effect per featured card so they can be compared side by side. Index 0
+     is the quiz and gets the Balatro-style holographic; the rest are
+     alternatives. Collapse this to a single class once one wins. */
+  const FX = ['fx-holo', 'fx-foil', 'fx-poly', 'fx-crt', 'fx-glass'];
+
+  const card = (p, archive, i) => {
     const el = document.createElement('article');
-    el.className = 'project' + (archive ? ' project--archive' : '');
+    el.className = 'project'
+      + (archive ? ' project--archive' : ' project--' + FX[i % FX.length]);
     el.innerHTML = `
       <h3 class="project__name">${p.name}</h3>
       <p class="project__stack">${p.stack}</p>
@@ -179,7 +190,7 @@ async function loadProjects() {
     attachTilt(el, !archive);
     return el;
   };
-  data.featured.forEach((p) => $('#projects-featured').appendChild(card(p, false)));
+  data.featured.forEach((p, i) => $('#projects-featured').appendChild(card(p, false, i)));
 
   /* archive: dug live from GitHub, newest first; falls back to projects.json */
   try {

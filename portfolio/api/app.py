@@ -23,7 +23,22 @@ load_dotenv()
 
 app = Flask(__name__)
 BASE = Path(__file__).parent
-DB = BASE / "visitors.db"
+
+# Runtime state lives OUTSIDE the checkout. Two reasons, and both have bitten:
+#
+#   * deploy.sh runs `git reset --hard` on /opt/sites every deploy, so anything
+#     tracked here is reverted and anything untracked is one `git clean` away.
+#   * api/ is owned by the runner, not www-data. SQLite writes its rollback
+#     journal next to the database file, so an INSERT needs a writable
+#     *directory*, not just a writable file — which is why /api/visits (a plain
+#     SELECT) worked while /api/whoami quietly 500'd, and the front end fell back
+#     to PUBLIC because whoami()'s catch swallows the error.
+#
+# The unit sets STATE_DIR and systemd creates it owned by User=. Falling back to
+# BASE keeps `python app.py` working for local poking.
+STATE = Path(os.getenv("STATE_DIR") or BASE)
+DB = STATE / "visitors.db"
+NOW_FILE = STATE / "now.json"
 
 TRUSTED_NETS = [
     ipaddress.ip_network(n)
@@ -154,9 +169,13 @@ def ip():
 
 @app.get("/api/now")
 def now():
-    f = BASE / "now.json"
-    if f.exists():
-        return app.response_class(f.read_text(), mimetype="application/json")
+    # Runtime copy first, then the one committed in the repo, which is what a
+    # fresh box serves before anyone has set one. The old code only read the
+    # repo copy, so every `git reset --hard` silently threw away whatever had
+    # been posted to /api/now.
+    for f in (NOW_FILE, BASE / "now.json"):
+        if f.exists():
+            return app.response_class(f.read_text(), mimetype="application/json")
     return jsonify({"working_on": "nothing logged", "updated": "never"})
 
 
@@ -287,7 +306,7 @@ def messages():
 @trusted_only
 def set_now():
     b = request.get_json(force=True)  # validates JSON
-    (BASE / "now.json").write_text(__import__("json").dumps(b, ensure_ascii=False, indent=2))
+    NOW_FILE.write_text(json.dumps(b, ensure_ascii=False, indent=2))
     return jsonify({"ok": True})
 
 

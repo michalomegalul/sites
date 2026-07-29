@@ -178,6 +178,10 @@ a:hover { background: var(--signal); color: var(--ink); }
   --rx: 0deg; --ry: 0deg;
   --mx: 50%; --my: 50%;
   --bx: 50%; --by: 50%;
+  /* Unitless, and they must have a value here: the variants feed them to calc()
+     inside hue-rotate() and conic-gradient(), and an unresolved var makes the
+     whole declaration invalid rather than just falling back. */
+  --hx: 50; --hy: 50;
   --lift: 0;
 
   position: relative;
@@ -213,23 +217,8 @@ a:hover { background: var(--signal); color: var(--ink); }
 .project--holo:hover .project__foil { opacity: .55; }
 .project--holo:hover .project__glare { opacity: 1; }
 
-.project__foil {
-  background: repeating-linear-gradient(
-    115deg,
-    transparent 0 4%,
-    rgba(255, 0, 132, .5) 7%,
-    rgba(255, 175, 0, .5) 10%,
-    rgba(60, 255, 170, .5) 13%,
-    rgba(0, 150, 255, .5) 16%,
-    rgba(170, 0, 255, .5) 19%,
-    transparent 22% 28%
-  );
-  background-size: 220% 220%;
-  background-position: var(--bx) var(--by);
-  mix-blend-mode: color-dodge;
-  filter: blur(3px) saturate(1.5);
-}
-
+/* Shared specular highlight. Variants override it where the look needs
+   something other than a round hotspot. */
 .project__glare {
   background: radial-gradient(
     circle at var(--mx) var(--my),
@@ -239,6 +228,107 @@ a:hover { background: var(--signal); color: var(--ink); }
   );
   mix-blend-mode: overlay;
 }
+
+/* ---- 1. HOLOGRAPHIC (Balatro) ------------------------------------------- */
+/* Magenta-dominant with cyan and gold streaks, not a full rainbow — that is
+   what separates Balatro's Holographic from its Polychrome. The hue rotates
+   with pointer x, because a hologram changes colour with viewing angle; a fixed
+   gradient just looks like a sticker. Faintly present at rest and drifting,
+   since these cards are always holographic in-game, not only on hover. */
+.project--fx-holo .project__foil {
+  background: repeating-linear-gradient(
+    102deg,
+    rgba(255, 92, 190, .70) 0%,
+    rgba(255, 170, 235, .40) 4%,
+    rgba(130, 225, 255, .55) 9%,
+    rgba(255, 232, 150, .45) 14%,
+    rgba(196, 120, 255, .60) 19%,
+    rgba(255, 92, 190, .70) 25%
+  );
+  background-size: 190% 190%;
+  background-position: var(--bx) var(--by);
+  mix-blend-mode: color-dodge;
+  filter: saturate(1.9) contrast(1.15) hue-rotate(calc((var(--hx) - 50) * 1.4deg)) blur(1.5px);
+  opacity: .22;
+  animation: holo-drift 7s ease-in-out infinite;
+}
+.project--fx-holo:hover .project__foil {
+  opacity: .62;
+  animation: none;                 /* pointer takes over from the idle drift */
+}
+@keyframes holo-drift {
+  0%, 100% { background-position: 22% 32%; }
+  50%      { background-position: 78% 68%; }
+}
+
+/* ---- 2. FOIL ------------------------------------------------------------ */
+/* Cool, narrow, mirror-like. Screen rather than color-dodge keeps it metallic
+   instead of neon. */
+.project--fx-foil .project__foil {
+  background: repeating-linear-gradient(
+    74deg,
+    rgba(120, 190, 255, 0) 0 3%,
+    rgba(205, 235, 255, .80) 5%,
+    rgba(70, 130, 225, .35) 8%,
+    rgba(120, 190, 255, 0) 11% 17%
+  );
+  background-size: 165% 165%;
+  background-position: var(--bx) var(--by);
+  mix-blend-mode: screen;
+  filter: contrast(1.35) blur(.5px);
+}
+.project--fx-foil:hover .project__foil { opacity: .8; }
+
+/* ---- 3. POLYCHROME ----------------------------------------------------- */
+/* Oil slick: a wide conic sweep, heavily blurred so there are no visible bands,
+   rotating with the pointer. */
+.project--fx-poly .project__foil {
+  background: conic-gradient(
+    from calc(var(--hx) * 3.6deg) at var(--mx) var(--my),
+    #ff5ea8, #ffd166, #4ade80, #38bdf8, #a855f7, #ff5ea8
+  );
+  mix-blend-mode: color-dodge;
+  filter: blur(18px) saturate(1.35);
+}
+.project--fx-poly:hover .project__foil { opacity: .45; }
+
+/* ---- 4. CRT ------------------------------------------------------------- */
+/* Scanlines plus a phosphor band that follows the cursor. The one variant that
+   belongs to this site's own terminal idiom rather than to a card game. */
+.project--fx-crt .project__foil {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(120, 255, 200, .16) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: screen;
+}
+.project--fx-crt:hover .project__foil { opacity: .9; }
+.project--fx-crt .project__glare {
+  background: radial-gradient(
+    130% 16% at 50% var(--my),
+    rgba(170, 255, 220, .38),
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+}
+
+/* ---- 5. GLASS ---------------------------------------------------------- */
+/* Restrained: one diagonal light sweep and a lit top edge. The option that does
+   not announce itself, for comparison against the loud four. */
+.project--fx-glass .project__foil {
+  background:
+    linear-gradient(
+      calc((var(--hx) - 50) * 0.9deg + 115deg),
+      transparent 35%,
+      rgba(255, 255, 255, .16) 48%,
+      rgba(255, 255, 255, .04) 55%,
+      transparent 68%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22);
+  mix-blend-mode: screen;
+}
+.project--fx-glass:hover .project__foil { opacity: 1; }
 
 /* The tilt and the foil are both motion. Leave the border cue, drop the rest. */
 @media (prefers-reduced-motion: reduce) {

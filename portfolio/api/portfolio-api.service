@@ -16,8 +16,12 @@ Restart=always
 RuntimeDirectory=portfolio-api
 Environment=HOME=/run/portfolio-api
 
-# No ProtectSystem=strict here, unlike quiz-api: this app writes visitors.db
-# and now.json inside the checkout, so it needs the tree writable.
+# visitors.db and now.json live here, not in the checkout. systemd creates
+# /var/lib/portfolio-api owned by User= on first start, which is what makes the
+# directory writable — SQLite needs to create its journal beside the database,
+# so a writable file in a read-only directory is not enough.
+StateDirectory=portfolio-api
+Environment=STATE_DIR=/var/lib/portfolio-api
 
 [Install]
 WantedBy=multi-user.target
