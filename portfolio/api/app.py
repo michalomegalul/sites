@@ -463,6 +463,75 @@ def crowdsec():
         return jsonify({"error": "crowdsec unavailable"}), 502
 
 
+# --------------------------------------------------------------- rdap / whois
+
+RDAP_DOMAIN = os.getenv("RDAP_DOMAIN", "dobsinsky.xyz")
+RDAP_TTL = 6 * 3600          # registry data changes about twice a year
+_rdap_cache = {"t": 0, "data": None}
+
+
+def _vcard_name(entity):
+    """Pull the display name out of an RDAP jCard, which is a nested array."""
+    for prop in (entity.get("vcardArray") or [None, []])[1]:
+        if len(prop) >= 4 and prop[0] == "fn":
+            return prop[3]
+    return None
+
+
+def _rdap():
+    if time.time() - _rdap_cache["t"] < RDAP_TTL and _rdap_cache["data"]:
+        return _rdap_cache["data"]
+
+    r = requests.get(
+        f"https://rdap.org/domain/{RDAP_DOMAIN}",
+        headers={"Accept": "application/rdap+json"},
+        timeout=6,
+    )
+    r.raise_for_status()
+    d = r.json()
+
+    events = {e.get("eventAction"): e.get("eventDate") for e in d.get("events") or []}
+
+    # Registrar only. Every other entity role — registrant, administrative,
+    # technical, abuse — can carry a person's name, address, phone and email, and
+    # this endpoint is public. Nothing from those is read, not even to log it:
+    # the panel needs a registrar and some dates, so that is all that is parsed.
+    registrar = next(
+        (_vcard_name(e) for e in d.get("entities") or [] if "registrar" in (e.get("roles") or [])),
+        None,
+    )
+
+    data = {
+        "domain": d.get("ldhName") or RDAP_DOMAIN,
+        "registrar": registrar,
+        "created": (events.get("registration") or "")[:10] or None,
+        "expires": (events.get("expiration") or "")[:10] or None,
+        "changed": (events.get("last changed") or "")[:10] or None,
+        "status": d.get("status") or [],
+        "nameservers": [n.get("ldhName") for n in d.get("nameservers") or [] if n.get("ldhName")],
+        "dnssec": bool((d.get("secureDNS") or {}).get("delegationSigned")),
+    }
+    _rdap_cache.update(t=time.time(), data=data)
+    return data
+
+
+@app.get("/api/whois")
+def whois():
+    """Public. The domain's own registry record, over RDAP rather than port 43.
+
+    RDAP is the structured replacement for whois: JSON over HTTPS, so there is
+    nothing to scrape. rdap.org is a thin redirector to whichever registry is
+    authoritative, which keeps this working if the TLD ever changes.
+
+    Cached for six hours — registry data changes about twice a year, and hammering
+    someone else's redirector on every page load would be rude.
+    """
+    try:
+        return jsonify(_rdap())
+    except Exception:  # noqa: BLE001
+        return jsonify({"error": "rdap unreachable"}), 502
+
+
 _steam_cache = {"t": 0, "data": None, "sid": None}
 
 

@@ -441,10 +441,22 @@ working visit counter.
 | `GET /api/crowdsec` | yes | blocked now, alerts 24h/7d, requests 7d |
 | `GET /api/visits` | yes | visitor count, visit count, active in 7d |
 | `GET /api/visitors` | **trusted only** | vids, names, user-agents — the detail |
+| `GET /api/whois` | yes | the domain's own registry record, over RDAP |
 
 `/api/visits` exists so the front page never needs the trusted one. If you find
 yourself wanting to put a name or a user-agent on the public panel, that is the
 line: aggregate is public, per-visitor is not.
+
+`/api/whois` uses RDAP — JSON over HTTPS, the structured replacement for port 43
+whois — via `rdap.org`, a thin redirector to whichever registry is authoritative,
+so it keeps working if the TLD changes. Cached six hours, because registry data
+changes about twice a year and hammering someone else's redirector per page load
+would be rude.
+
+**It parses the registrar entity and nothing else.** Every other RDAP role —
+registrant, administrative, technical, abuse — can carry a real name, postal
+address, phone and email, and this endpoint is public. The panel needs a registrar
+and some dates, so that is all the code looks at.
 
 ### The counter on the portfolio
 

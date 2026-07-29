@@ -379,6 +379,32 @@ async function loadDefence() {
 loadDefence();
 setInterval(loadDefence, 120000);
 
+/* ---------------- whois: the domain resolving itself ---------------- */
+/* Over RDAP, not port 43 — JSON over HTTPS, nothing to scrape. The API returns
+   registrar and dates only; registrant contact details are never parsed out of
+   the response, so there is nothing personal to render here. */
+async function loadWhois() {
+  const el = $('#whois-output');
+  try {
+    const d = await (await fetch(`${API}/whois`)).json();
+    if (d.error) throw 0;
+    const lines = [
+      `domain      ${d.domain}`,
+      `registrar   ${d.registrar || '-'}`,
+      `created     ${d.created || '-'}`,
+      `expires     ${d.expires || '-'}`,
+      `dnssec      ${d.dnssec ? 'signed' : 'unsigned'}`,
+      '',
+      ...(d.nameservers || []).map((n, i) => `${i ? '            ' : 'ns          '}${n}`),
+    ];
+    if (d.status && d.status.length) lines.push('', `status      ${d.status.join(', ')}`);
+    el.textContent = lines.join('\n');
+  } catch {
+    el.textContent = 'rdap unreachable — the registry is someone else’s box.';
+  }
+}
+loadWhois();
+
 /* ---------------- steam: latest game ---------------- */
 async function loadSteam() {
   try {
