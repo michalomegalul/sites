@@ -112,6 +112,22 @@ collected responses. Run it by hand any time with:
 The `ALTER DEFAULT PRIVILEGES` line matters: without it, every migration that
 adds a table or view needs a fresh `GRANT` before the app can read it.
 
+**`migrate.py` now re-asserts those grants itself**, on every run rather than
+only when it applies something — so a database that is already current but
+missing a grant repairs itself. It grants to `APP_DB_ROLE` (default `quiz`); if
+the connecting role isn't allowed to grant, it warns loudly and carries on
+rather than failing the deploy.
+
+That exists because of a real outage worth understanding, since the shape
+recurs. Nine views have been created by migrations and **not one carried a
+`GRANT`** — whether the API could read them depended entirely on whether
+`ALTER DEFAULT PRIVILEGES` happened to be set for whichever role ran the
+migration. When it wasn't, nothing failed at migration time. It surfaced weeks
+later as `permission denied for view v_quiz_stats` — a 500 on the results
+dashboard, introduced by `004` but only noticed once the quiz had responses
+worth looking at. A migration that succeeds is not the same claim as a schema
+the app can read.
+
 **2. Config.** `.env` must be `640 root:www-data` — python-dotenv raises on an
 unreadable file rather than skipping it, and the app loads it as `www-data`.
 

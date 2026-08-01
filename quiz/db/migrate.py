@@ -20,6 +20,7 @@ Rules:
 """
 import glob
 import os
+import re
 import sys
 
 import psycopg
@@ -41,6 +42,58 @@ DRY = "--dry-run" in sys.argv
 BASELINE = ["001_init.sql", "002_analytics.sql", "003_seed_endo_2026.sql"]
 
 LOCK_KEY = 8412  # arbitrary, just has to be stable
+
+# The role the API connects as. Migrations may run as someone else (a superuser
+# via MIGRATE_DATABASE_URL), and objects they create are owned by that someone.
+APP_ROLE = os.getenv("APP_DB_ROLE", "quiz")
+ROLE_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
+
+
+def grant_app_privileges(conn):
+    """Re-assert the app role's privileges over the whole schema.
+
+    Nine views have been added by migrations and not one of them carried a
+    GRANT. Whether the app could read them depended entirely on
+    ALTER DEFAULT PRIVILEGES having been configured for whichever role happened
+    to run the migration — and when it had not been, the failure surfaced a long
+    way from the cause: `permission denied for view v_quiz_stats`, as a 500 on
+    the dashboard, discovered weeks after the migration that introduced it.
+
+    Runs on EVERY migrate, not only when something was applied, so a database
+    that is already up to date but missing a grant repairs itself rather than
+    waiting for the next schema change.
+
+    A failure here warns instead of exiting non-zero: the migration itself
+    succeeded, and a deploy should not be blocked because the connecting role
+    lacks permission to grant. It prints loudly, because a silent skip is
+    exactly what produced the original bug.
+    """
+    if not APP_ROLE:
+        return
+    if not ROLE_RE.match(APP_ROLE):
+        # Identifiers cannot be parameterised, so this is validated rather than
+        # escaped. APP_DB_ROLE comes from .env, but a typo should not become SQL.
+        print("migrate: WARNING ignoring APP_DB_ROLE=%r — not a plain identifier" % APP_ROLE)
+        return
+
+    role = '"%s"' % APP_ROLE
+    try:
+        conn.execute(
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO " + role)
+        conn.execute(
+            "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO " + role)
+        # Covers objects created later by this same role, so a future migration
+        # is grant-clean the moment it runs rather than after this function.
+        conn.execute(
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public"
+            " GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO " + role)
+        print("migrate: privileges re-asserted for %s" % APP_ROLE)
+    except psycopg.Error as e:
+        print("migrate: WARNING could not grant to %s: %s" % (APP_ROLE, e))
+        print("         the schema is current but the API may get")
+        print("         'permission denied for view ...'. Fix as a superuser:")
+        print('           psql -d quiz -c \'GRANT SELECT ON ALL TABLES'
+              ' IN SCHEMA public TO "%s";\'' % APP_ROLE)
 
 
 def main():
@@ -80,6 +133,10 @@ def main():
             todo = [f for f in files if f not in done]
             if not todo:
                 print("migrate: up to date (%d applied)" % len(done))
+                # Still re-assert: "up to date" and "readable by the app" are
+                # different claims, and this is the path a broken grant sits on.
+                if not DRY:
+                    grant_app_privileges(conn)
                 return 0
 
             print("migrate: %d to apply" % len(todo))
@@ -99,6 +156,9 @@ def main():
                 conn.execute(
                     "INSERT INTO schema_migrations (filename) VALUES (%s)", (name,))
                 print("   applied      " + name)
+
+            if not DRY:
+                grant_app_privileges(conn)
         finally:
             conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
     return 0
