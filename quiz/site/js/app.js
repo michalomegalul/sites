@@ -100,37 +100,6 @@
   }
 
   // ------------------------------------------------------------- site chrome
-  // The palette choice is global, not per-survey, so it deliberately bypasses
-  // the survey-scoped key() helper above — switching questionnaire should not
-  // change your colours. theme.js owns the list and the pre-paint application;
-  // this only draws the control and writes the choice.
-
-  function currentTheme() {
-    try { return localStorage.getItem(window.QUIZ_THEME_KEY) || 'rose'; }
-    catch (e) { return 'rose'; }
-  }
-
-  function renderThemePicker() {
-    var host = document.getElementById('themes');
-    if (!host) return;
-    host.textContent = '';
-    var active = currentTheme();
-    (window.QUIZ_THEMES || []).forEach(function (th) {
-      var name = (t.themeNames || {})[th.id] || th.id;
-      var b = h('button', 'theme-dot');
-      b.type = 'button';
-      b.style.setProperty('--swatch', th.swatch);
-      b.setAttribute('aria-pressed', String(th.id === active));
-      b.setAttribute('aria-label', name);
-      b.title = name;
-      b.addEventListener('click', function () {
-        window.quizApplyTheme(th.id);
-        try { localStorage.setItem(window.QUIZ_THEME_KEY, th.id); } catch (e) { /* ignore */ }
-        renderThemePicker();
-      });
-      host.appendChild(b);
-    });
-  }
 
   function renderBrand() {
     var a = document.getElementById('brand');
@@ -1142,7 +1111,6 @@
     document.documentElement.lang = state.locale;
     screen.appendChild(h('div', 'spinner'));
 
-    renderThemePicker();
     renderBrand();
     renderSiteBarLang();
 
@@ -1160,6 +1128,11 @@
           history.replaceState(null, '', surveyPath(state.locale));
         }
         document.title = survey.title;
+        // The API is the only authority on the accent. theme.js has already
+        // painted whatever was cached from last time; this corrects it and
+        // updates the cache, so a colour the researcher changed this morning is
+        // wrong for exactly one paint and then right forever.
+        window.quizSetAccent(state.slug, survey.accent || null);
         // The survey's own locale list is only known now, so the header switcher
         // is rebuilt from it rather than from the deployment-wide config.
         renderBrand();

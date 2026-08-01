@@ -152,7 +152,7 @@ def ua_family():
 
 def load_survey(cur, slug, locale=None):
     cur.execute(
-        "SELECT id, slug, default_locale, locales, consent_ver, is_open, mode"
+        "SELECT id, slug, default_locale, locales, consent_ver, is_open, mode, accent"
         " FROM surveys WHERE slug = %s",
         (slug,),
     )
@@ -251,6 +251,9 @@ def get_survey(slug):
         is_open=survey["is_open"],
         consent_ver=survey["consent_ver"],
         mode=survey["mode"],
+        # NULL means the built-in palette. The browser derives the rest of the
+        # colours from this one value — see site/js/palette.js.
+        accent=survey["accent"],
         **text,
         questions=questions,
     )
@@ -779,6 +782,7 @@ def flatten(kind, value):
 # ones already start with digits ("25_34") or contain hyphens ("shoulder-l"),
 # so they get the looser rule — a validator stricter than the existing data
 # would make those questions uneditable.
+ACCENT_RE = re.compile(r"^#[0-9a-f]{6}$")
 CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 OPT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 KINDS = ("text", "textarea", "single", "multi", "scale", "number", "date", "bodymap")
@@ -859,7 +863,8 @@ def admin_edit_get(slug):
     return jsonify(
         slug=survey["slug"], mode=survey["mode"], is_open=survey["is_open"],
         default_locale=survey["default_locale"], locales=survey["locales"],
-        consent_ver=survey["consent_ver"], i18n=i18n, questions=questions,
+        consent_ver=survey["consent_ver"], accent=survey["accent"],
+        i18n=i18n, questions=questions,
     )
 
 
@@ -878,6 +883,22 @@ def admin_edit_survey(slug):
         if "is_open" in body:
             cur.execute("UPDATE surveys SET is_open = %s WHERE id = %s",
                         (bool(body["is_open"]), survey["id"]))
+
+        # The colour wheel sends one seed; everything else is derived in the
+        # browser. Validated here as well as by the column's CHECK, so a bad
+        # value is a 422 naming the field rather than a 500 from Postgres.
+        if "accent" in body:
+            accent = body["accent"]
+            if accent in (None, ""):
+                accent = None
+            elif not (isinstance(accent, str) and ACCENT_RE.match(accent.strip().lower())):
+                return jsonify(error="invalid", detail=(
+                    "accent must be a hex colour like #8d3f66, or null for the "
+                    "default palette")), 422
+            else:
+                accent = accent.strip().lower()
+            cur.execute("UPDATE surveys SET accent = %s WHERE id = %s",
+                        (accent, survey["id"]))
 
         for locale, text in (body.get("i18n") or {}).items():
             if locale not in survey["locales"]:

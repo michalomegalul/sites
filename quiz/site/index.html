@@ -32,9 +32,11 @@
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<!-- Before the stylesheet, and not deferred: this sets data-theme so the correct
-     palette is the first thing painted. See js/theme.js for why it is a file
-     and not an inline block. -->
+<!-- Before the stylesheet, and not deferred, so the survey's colours are the
+     first thing painted rather than a flash of the default. palette.js derives
+     the palette and clamps contrast; theme.js replays the cached accent. Both
+     are files, not inline blocks, because the CSP is script-src 'self'. -->
+<script src="/js/palette.js"></script>
 <script src="/js/theme.js"></script>
 <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -45,7 +47,6 @@
 <header id="sitebar">
   <div class="sitebar-row">
     <a class="sitebar__brand" id="brand" href="/">Endometrióza</a>
-    <div class="themes" id="themes" role="group" aria-label="Barevné téma"></div>
     <nav class="lang lang--bar" id="sitebar-lang"></nav>
   </div>
 </header>

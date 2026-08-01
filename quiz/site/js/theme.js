@@ -1,39 +1,60 @@
-/* Applies the stored palette before first paint.
+/* Applies the survey's accent colour before first paint.
  *
- * A separate file rather than an inline <script> in the head: the nginx CSP is
- * `script-src 'self'` with no 'unsafe-inline', so an inline block would be
- * blocked outright and every reload would flash the default palette. Loaded
- * synchronously in <head>, before the stylesheet, so there is no flash of the
- * wrong colour on navigation.
+ * The accent is a property of the SURVEY, set by the researcher in the editor —
+ * respondents no longer choose it. That is the point: a questionnaire should
+ * look the same to everyone filling it in, and a palette picker in the header
+ * was decoration competing with the question on a screen the SPEC reserves for
+ * one question at a time.
  *
- * THEMES is the single source of truth for which palettes exist — app.js reads
- * it to build the picker, and style.css must carry a matching
- * :root[data-theme="…"] block for each. The allow-list check also means a
- * tampered localStorage value cannot write an arbitrary attribute.
+ * The authoritative value arrives with GET /api/s/{slug}, which is one round
+ * trip too late to paint with. So the last-seen accent is cached per survey and
+ * replayed here, before the stylesheet: a returning respondent sees the right
+ * colours immediately, and app.js corrects the cache if the researcher changed
+ * it since. A first-time visitor briefly gets the default palette, which is the
+ * honest trade — the alternative is blocking first paint on a network call.
+ *
+ * A separate file rather than an inline <script> because the CSP is
+ * script-src 'self' with no 'unsafe-inline'. Loads after palette.js, which
+ * does the derivation and the contrast clamping.
  */
 (function () {
   'use strict';
 
-  // `rose` is the base :root palette, so it is represented by no attribute at
-  // all. Keep the swatch colours in step with --accent in each palette.
-  window.QUIZ_THEMES = [
-    { id: 'rose',  swatch: '#8d3f66' },
-    { id: 'plum',  swatch: '#5b3f8d' },
-    { id: 'sage',  swatch: '#3d6b4f' },
-    { id: 'slate', swatch: '#37546f' }
-  ];
-  window.QUIZ_THEME_KEY = 'quiz:theme';
+  var PREFIX = 'quiz:accent:';
 
-  window.quizApplyTheme = function (id) {
-    if (id && id !== 'rose' && /^[a-z]+$/.test(id)) {
-      document.documentElement.dataset.theme = id;
-    } else {
-      delete document.documentElement.dataset.theme;
-    }
+  function slugFromPath() {
+    var m = location.pathname.match(/^\/[a-z]{2}\/s\/([a-z0-9-]+)/);
+    return m ? m[1] : null;
+  }
+
+  window.QUIZ_ACCENT_KEY = function (slug) { return PREFIX + slug; };
+
+  /* Called by app.js once the survey has loaded. Writing the cache here rather
+     than in theme.js is deliberate — only the API's answer is authoritative,
+     and caching a guess would make the next load wrong for longer. */
+  window.quizSetAccent = function (slug, accent) {
+    try {
+      if (accent) localStorage.setItem(PREFIX + slug, accent);
+      else localStorage.removeItem(PREFIX + slug);
+    } catch (e) { /* private mode */ }
+    apply(accent);
   };
 
-  var stored = null;
-  try { stored = localStorage.getItem(window.QUIZ_THEME_KEY); } catch (e) { /* private mode */ }
-  var known = window.QUIZ_THEMES.some(function (t) { return t.id === stored; });
-  window.quizApplyTheme(known ? stored : 'rose');
+  function apply(accent) {
+    var el = document.getElementById('quiz-palette');
+    if (!accent) {
+      // Back to the stylesheet's built-in palette. Removing the element is not
+      // the same as writing an empty one — an empty <style> still wins nothing,
+      // but leaving a stale one would keep the old colours.
+      if (el) el.remove();
+      return;
+    }
+    if (window.QuizPalette) window.QuizPalette.apply(accent);
+  }
+
+  var slug = slugFromPath();
+  if (!slug) return;                       // the chooser keeps the default palette
+  var cached = null;
+  try { cached = localStorage.getItem(PREFIX + slug); } catch (e) { /* ignore */ }
+  if (cached) apply(cached);
 })();

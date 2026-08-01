@@ -83,10 +83,6 @@ window.I18N = {
     adminEditor: 'Upravit otázky',
     adminExport: 'Export CSV',
     brand: 'Endometrióza',
-    themeNames: {
-      rose: 'Růžové téma', plum: 'Fialové téma',
-      sage: 'Zelené téma', slate: 'Šedé téma'
-    },
     footNote: 'Anonymní dotazník pro odbornou práci.',
     footAllSurveys: 'Všechny dotazníky',
     footPrint: 'Tisková verze'
@@ -170,10 +166,6 @@ window.I18N = {
     adminEditor: 'Edit questions',
     adminExport: 'Export CSV',
     brand: 'Endometriosis',
-    themeNames: {
-      rose: 'Rose theme', plum: 'Plum theme',
-      sage: 'Sage theme', slate: 'Slate theme'
-    },
     footNote: 'Anonymous questionnaire for a school thesis.',
     footAllSurveys: 'All questionnaires',
     footPrint: 'Printable version'

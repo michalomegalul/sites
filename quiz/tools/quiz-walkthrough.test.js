@@ -124,7 +124,10 @@ window.fetch = (url, opts = {}) => {
 window.requestAnimationFrame = (fn) => setTimeout(fn, 0);
 window.scrollTo = () => {};
 
-for (const f of ['js/theme.js', 'js/config.js', 'js/i18n.js', 'js/bodymap.js', 'js/app.js']) {
+// Same order as index.html — palette.js before theme.js, because theme.js
+// applies a cached accent through it.
+for (const f of ['js/palette.js', 'js/theme.js', 'js/config.js', 'js/i18n.js',
+                 'js/bodymap.js', 'js/app.js']) {
   window.eval(fs.readFileSync(path.join(ROOT, f), 'utf8'));
 }
 

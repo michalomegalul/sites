@@ -134,3 +134,49 @@
 }
 .surveycard a { color: var(--series); text-decoration: none; font-weight: 600; }
 .surveycard .meta { font-size: .8rem; color: var(--ink-3); margin-top: .15rem; }
+
+/* ---------- accent picker ---------- */
+/* The preview renders the derived light and dark palettes with their measured
+   contrast ratios. Showing the numbers is deliberate: the derived accent is
+   often not the colour that was picked — lightness is clamped until it clears
+   4.5:1 — and that is confusing unless you can see it happening. */
+
+.ed-accent { margin-top: 1.25rem; }
+.ed-accent-row {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  margin: .5rem 0 .85rem;
+}
+.ed-accent input[type="color"] {
+  width: 52px; height: 40px; padding: 2px; cursor: pointer;
+  background: var(--raised); border: 1px solid var(--rule); border-radius: 8px;
+}
+.ed-accent input[type="color"]:disabled { opacity: .4; cursor: default; }
+.ed-accent-hex {
+  width: 10ch; font-family: ui-monospace, monospace; font-size: .85rem;
+  padding: .45rem .6rem; border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--raised); color: var(--ink);
+}
+.ed-accent-hex:disabled { opacity: .4; }
+
+.ed-swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .75rem; }
+.ed-swatch {
+  border: 1px solid; border-radius: 12px; padding: .9rem 1rem;
+  font-size: .85rem; line-height: 1.5;
+}
+.ed-swatch-name {
+  font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; opacity: .5; margin-bottom: .5rem;
+}
+.ed-swatch-eyebrow {
+  font-size: .66rem; font-weight: 700; letter-spacing: .11em;
+  text-transform: uppercase; margin-bottom: .25rem;
+}
+.ed-swatch-body { font-weight: 600; margin-bottom: .15rem; }
+.ed-swatch-soft { font-size: .78rem; margin-bottom: .7rem; }
+.ed-swatch-chip {
+  display: inline-block; padding: .4rem .9rem; border-radius: 99px;
+  font-size: .78rem; font-weight: 650;
+}
+
+.ed-hint { font-size: .78rem; color: var(--ink-3); margin: .5rem 0 0; }
+.ed-warn { font-size: .82rem; color: #c4453f; margin: .5rem 0 0; }

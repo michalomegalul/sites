@@ -224,56 +224,56 @@ one thing to change.
 
 ## Themes and chrome
 
-The quiz has a site bar (brand, palette picker, language) and a footer on the
-chooser, consent and thanks screens. Question screens get neither — one question
-per screen is a SPEC rule, and a link out of the survey mid-survey is an
-accidental exit. The print view drops all of it.
+The quiz has a site bar (brand, language) and a footer on the chooser, consent
+and thanks screens. Question screens get neither — one question per screen is a
+SPEC rule, and a link out of the survey mid-survey is an accidental exit. The
+print view drops all of it.
 
-Four palettes: `rose` (default), `plum`, `sage`, `slate`. Each has a light and a
-dark form and follows the OS setting, so the picker chooses the hue and the
-system chooses the brightness. All eight variants measure WCAG AAA for body text
-and AA for secondary and accent text against their own background — if you add a
-palette, check it, don't eyeball it.
+### The accent colour is the researcher's, not the respondent's
 
-`quiz/site/js/theme.js` is the single source of truth for which palettes exist.
-It is a file rather than an inline `<script>` because the CSP is
-`script-src 'self'` with no `'unsafe-inline'`; inline would be blocked and every
-reload would flash the default palette before the stored one applied. Adding a
-palette means a `QUIZ_THEMES` entry, a matching
-`:root[data-theme="…"]` pair in `style.css`, and a `themeNames` label in both
-locales.
+There used to be a four-palette picker in the public header. It is gone. Colour
+is now a property of the **survey**, chosen with a colour wheel in the editor and
+stored in `surveys.accent`. A questionnaire should look the same to everyone
+filling it in, and a palette picker on a question screen is decoration competing
+with the question.
 
-**`--pain-1/2/3` is not themed.** It encodes intensity on the body map, so it is
-data, not decoration, and it must stay distinguishable from `--accent` or a
-selected region reads as a painful one.
+**You pick one colour; everything else is derived.** `site/js/palette.js` builds
+the background, ink, borders and accent ramp from that seed and *clamps
+lightness until the contrast floors hold*:
 
-## Testing the quiz
+| Pair | Floor |
+|---|---|
+| body text on background | 7.0:1 (AAA) |
+| secondary text on background | 4.5:1 (AA) |
+| accent on background | 4.5:1 (AA) |
+
+`quiz/tools/palette.test.js` proves this over every hue — 11,584 assertions
+across 1,448 seeds, including pure yellow, neon cyan, white, black and mid grey,
+which are the ones that break naive derivation. Run it after touching the
+derivation:
 
 ```bash
-cd quiz/tools/devtest && npm i jsdom     # once; gitignored, never deployed
-node quiz/tools/quiz-walkthrough.test.js # from the repo root
+node quiz/tools/palette.test.js
 ```
 
-It drives the real frontend in a real DOM against a stubbed API: ticks consent,
-answers every question, checks each graded verdict, submits, and asserts that
-**every question was shown, in order, and none was skipped**.
+Storing the individual variables instead of a seed would hand back exactly the
+way to break this, which is why the wheel gives you one choice. The editor shows
+the derived light and dark palettes side by side with their measured ratios, so
+a colour that only works in one mode is visible before you save. Expect the
+rendered accent to differ from the swatch you picked — that is the clamping
+doing its job.
 
-That last assertion is the whole reason the file exists. The bug it guards
-against was client-side — `showVerdict()` assigned `btn.onclick` while an
-`addEventListener` for the same click was already attached, so once feedback
-existed both handlers ran `state.index++` in one dispatch and the following
-question was never rendered. Detaching a node mid-dispatch does not cancel the
-remaining listeners on it. Those skipped questions then had no answer, so
-`submit` ended in `missing_required` — one root cause presenting as two unrelated
-complaints.
+`NULL` accent means the built-in rose, so a survey that has never been themed
+looks exactly as it always did.
 
-**An API-level test cannot catch this**, because the server was correct the whole
-time. If you are tempted to replace this with something that just curls the
-endpoints, that is what you would lose. Sanity-check the test itself by putting
-the `onclick` line back: it should report 4 of 6 questions shown.
+**`--pain-1/2/3` is not derived and never changes with the accent.** It encodes
+intensity on the body map, so it is data rather than decoration, and it has to
+stay distinguishable from the accent or a selected region reads as a painful one.
 
-The site still has no build step and `deploy.sh` still has no npm stage — jsdom
-lives in a gitignored directory and only the test knows about it.
+The accent is applied before first paint from a per-survey cache in
+`localStorage`, then corrected from `GET /api/s/{slug}`. A first-time visitor
+sees the default palette for one paint; the alternative is blocking first paint
+on a network round trip.
 
 ## Links to hand out
 

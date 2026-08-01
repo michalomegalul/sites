@@ -172,6 +172,9 @@
     openBox.append(openIn, document.createTextNode('Accepting responses'));
     sec.appendChild(openBox);
 
+    var accent = accentPicker(data.accent);
+    sec.appendChild(accent.el);
+
     var row = h('div', 'saverow');
     var save = h('button', 'primary', 'Save survey text');
     save.type = 'button';
@@ -186,11 +189,12 @@
         consent_md: consent.value, thanks_md: thanks.value
       };
       api('PUT', '/' + encodeURIComponent(SLUG) + '/survey',
-          { is_open: openIn.checked, i18n: i18n })
+          { is_open: openIn.checked, accent: accent.value(), i18n: i18n })
         .then(function () {
           toast(row, 'Saved', true);
           save.disabled = false;
           data.is_open = openIn.checked;
+          data.accent = accent.value();
           data.i18n[activeLocale] = i18n[activeLocale];
           sub.textContent = data.slug + ' · ' + data.mode +
             ' · ' + (data.is_open ? 'open' : 'closed');
@@ -198,6 +202,118 @@
         .catch(function (e) { toast(row, e.message, false); save.disabled = false; });
     });
     return sec;
+  }
+
+  /* Colour wheel for the survey's accent.
+   *
+   * One colour, not a palette: palette.js derives background, ink, borders and
+   * the accent ramp from this seed and clamps lightness until the WCAG floors
+   * hold. Exposing each variable separately would hand back exactly the way to
+   * break that.
+   *
+   * The preview renders the derived light and dark palettes side by side with
+   * their measured contrast ratios, so a colour that only works in one mode is
+   * visible here rather than on a respondent's phone at 2am. */
+  function accentPicker(current) {
+    var DEFAULT = '#8d3f66';                 // the built-in rose
+    var el = h('div', 'ed-accent');
+    el.appendChild(h('div', 'ed-label', 'Accent colour'));
+    el.appendChild(h('p', 'ed-hint',
+      'The rest of the palette is derived from this and checked for contrast. '
+      + 'Respondents cannot change it.'));
+
+    var row = h('div', 'ed-accent-row');
+    var wheel = document.createElement('input');
+    wheel.type = 'color';
+    wheel.value = current || DEFAULT;
+    wheel.setAttribute('aria-label', 'Accent colour');
+
+    var hexIn = document.createElement('input');
+    hexIn.type = 'text';
+    hexIn.className = 'ed-accent-hex';
+    hexIn.value = current || DEFAULT;
+    hexIn.spellcheck = false;
+    hexIn.setAttribute('aria-label', 'Accent colour as hex');
+
+    var useDefault = h('label', 'ed-check');
+    var defIn = document.createElement('input');
+    defIn.type = 'checkbox';
+    defIn.checked = !current;
+    useDefault.append(defIn, document.createTextNode('Use the default palette'));
+
+    row.append(wheel, hexIn, useDefault);
+    el.appendChild(row);
+
+    var preview = h('div', 'ed-accent-preview');
+    el.appendChild(preview);
+
+    function seed() { return defIn.checked ? null : hexIn.value.trim().toLowerCase(); }
+
+    function swatch(pal, label) {
+      var box = h('div', 'ed-swatch');
+      box.style.background = pal.bg;
+      box.style.color = pal.ink;
+      box.style.borderColor = pal.line;
+      box.appendChild(h('div', 'ed-swatch-name', label));
+      var eyebrow = h('div', 'ed-swatch-eyebrow', 'OTÁZKA 3 / 16');
+      eyebrow.style.color = pal.accent;
+      box.appendChild(eyebrow);
+      box.appendChild(h('div', 'ed-swatch-body', 'Jak často máte bolesti?'));
+      var soft = h('div', 'ed-swatch-soft', 'Vyberte jednu možnost.');
+      soft.style.color = pal['ink-soft'];
+      box.appendChild(soft);
+      var chip = h('span', 'ed-swatch-chip', 'Pokračovat');
+      chip.style.background = pal.accent;
+      chip.style.color = pal.bg;
+      box.appendChild(chip);
+      return box;
+    }
+
+    function ratio(a, b) {
+      var A = window.QuizPalette.hexToHsl(a), B = window.QuizPalette.hexToHsl(b);
+      return window.QuizPalette.contrast(A.h, A.s, A.l, B.h, B.s, B.l);
+    }
+
+    function repaint() {
+      var s = seed();
+      wheel.disabled = hexIn.disabled = defIn.checked;
+      preview.textContent = '';
+      if (!s) {
+        preview.appendChild(h('p', 'ed-hint',
+          'Using the built-in palette. Untick the box to choose a colour.'));
+        return;
+      }
+      var p = window.QuizPalette.build(s);
+      if (!p) {
+        preview.appendChild(h('p', 'ed-warn', 'Not a hex colour — expected #rrggbb.'));
+        return;
+      }
+      var grid = h('div', 'ed-swatches');
+      grid.append(swatch(p.light, 'Light'), swatch(p.dark, 'Dark'));
+      preview.appendChild(grid);
+
+      // Reported, not just enforced: seeing the number makes it obvious the
+      // derived accent is not always the colour that was picked.
+      var lines = [];
+      [['Light', p.light], ['Dark', p.dark]].forEach(function (pair) {
+        lines.push(pair[0] + ': text ' + ratio(pair[1].ink, pair[1].bg).toFixed(1)
+          + ':1 · accent ' + ratio(pair[1].accent, pair[1].bg).toFixed(1) + ':1');
+      });
+      preview.appendChild(h('p', 'ed-hint', lines.join('   ')));
+    }
+
+    wheel.addEventListener('input', function () {
+      hexIn.value = wheel.value.toLowerCase();
+      repaint();
+    });
+    hexIn.addEventListener('input', function () {
+      if (/^#[0-9a-fA-F]{6}$/.test(hexIn.value.trim())) wheel.value = hexIn.value.trim();
+      repaint();
+    });
+    defIn.addEventListener('change', repaint);
+    repaint();
+
+    return { el: el, value: seed };
   }
 
   // --------------------------------------------------------------- questions
