@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>dobsinsky.xyz - zone file</title>
+<title>Michal Dobšínský — dobsinsky.xyz</title>
 <meta name="description" content="Michal Dobšínský - junior developer @ NIC.cz, data analytics @ VŠE, homelab operator.">
+<meta name="author" content="Michal Dobšínský">
+<link rel="canonical" href="https://dobsinsky.xyz/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
 <!-- Link preview, for when this gets pasted into a chat or a job application. -->
@@ -16,6 +18,29 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+
+<!-- Structured data: tells search engines this page IS the person, not just a
+     page about them — the thing that makes a name search resolve here instead
+     of to a LinkedIn or GitHub listing. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Michal Dobšínský",
+  "alternateName": ["Dobšínský", "Michal Dobsinsky"],
+  "url": "https://dobsinsky.xyz/",
+  "email": "mailto:michal@dobsinsky.xyz",
+  "jobTitle": "Junior Developer",
+  "worksFor": { "@type": "Organization", "name": "NIC.cz", "url": "https://www.nic.cz" },
+  "alumniOf": { "@type": "CollegeOrUniversity", "name": "Vysoká škola ekonomická v Praze" },
+  "address": { "@type": "PostalAddress", "addressLocality": "Prague", "addressCountry": "CZ" },
+  "image": "https://dobsinsky.xyz/img/og.png",
+  "sameAs": [
+    "https://github.com/michalomegalul",
+    "https://www.linkedin.com/in/michal-dobsinsky-496617268"
+  ]
+}
+</script>
 <!-- Fonts are self-hosted. No preconnect, no third-party stylesheet, and no
      round trip to Google before the first glyph can render. Preloaded because
      the CSS that references them is discovered one file later. -->
@@ -110,11 +135,6 @@
       <p class="panel__label">DEFENCE - crowdsec + nginx, live</p>
       <pre class="now__output" id="defence-output">querying…</pre>
     </div>
-
-    <div class="panel panel--terminal" data-tilt>
-      <p class="panel__label">WHOIS - this domain, from the registry</p>
-      <pre class="now__output" id="whois-output">querying…</pre>
-    </div>
   </div>
 
   <div class="stack__marquee" aria-hidden="true">
@@ -155,7 +175,7 @@
 <!-- ============ MX RECORD - CONTACT ============ -->
 <section class="sec sec--mx" data-bg="ink" id="rec-mx">
   <h2 class="rec__header"><span class="rec__type">;; MX</span> mail exchange</h2>
-  <a class="mx__addr" href="mailto:dog560154@gmail.com" id="mx-addr">dog560154<span class="mx__at">@</span>gmail.com</a>
+  <a class="mx__addr" href="mailto:michal@dobsinsky.xyz" id="mx-addr">michal<span class="mx__at">@</span>dobsinsky.xyz</a>
   <button class="mx__copy" id="mx-copy">copy address</button>
   <div class="mx__links">
     <a href="https://github.com/michalomegalul" target="_blank" rel="noopener">github/michalomegalul</a>
