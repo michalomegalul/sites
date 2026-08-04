@@ -169,7 +169,13 @@
     root.appendChild(s3);
 
     // ---- body map
-    var bodyQ = (survey.questions || []).filter(function (q) { return q.kind === 'bodymap'; })[0];
+    // A graded "select the affected regions" question (spec.levels === 1,
+    // added for the quiz — see 007_quiz_pain_location.sql) has no intensity
+    // to average, so it is excluded here: this panel's "mean intensity 0–3"
+    // framing is specific to the survey's tap-to-cycle pain map.
+    var bodyQ = (survey.questions || []).filter(function (q) {
+      return q.kind === 'bodymap' && ((q.spec || {}).levels || 3) !== 1;
+    })[0];
     if (bodyQ) {
       var s4 = section('Pain map',
         'Shade shows how many respondents marked the region. Mean intensity (0–3) is written out ' +

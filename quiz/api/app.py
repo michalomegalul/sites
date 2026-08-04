@@ -371,6 +371,8 @@ def grade(kind, spec, value):
         return None
     if kind == "multi":
         return sorted(value or []) == sorted(correct)
+    if kind == "bodymap":
+        return sorted((value or {}).keys()) == sorted(correct)
     return value in correct
 
 

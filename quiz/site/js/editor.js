@@ -215,7 +215,7 @@
    * their measured contrast ratios, so a colour that only works in one mode is
    * visible here rather than on a respondent's phone at 2am. */
   function accentPicker(current) {
-    var DEFAULT = '#8d3f66';                 // the built-in rose
+    var DEFAULT = '#c67139';                 // the built-in terracotta
     var el = h('div', 'ed-accent');
     el.appendChild(h('div', 'ed-label', 'Accent colour'));
     el.appendChild(h('p', 'ed-hint',
@@ -253,7 +253,9 @@
       var box = h('div', 'ed-swatch');
       box.style.background = pal.bg;
       box.style.color = pal.ink;
-      box.style.borderColor = pal.line;
+      // --line isn't in the built object any more — style.css defines it once,
+      // globally, as this same mix. See palette.js's top comment.
+      box.style.borderColor = 'color-mix(in srgb, ' + pal.ink + ' 14%, transparent)';
       box.appendChild(h('div', 'ed-swatch-name', label));
       var eyebrow = h('div', 'ed-swatch-eyebrow', 'OTÁZKA 3 / 16');
       eyebrow.style.color = pal.accent;

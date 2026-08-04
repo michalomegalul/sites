@@ -420,6 +420,7 @@
     bar.hidden = true;
     state.screen = 'consent';
     var wrap = h('div');
+    wrap.appendChild(h('p', 'eyebrow', (isQuiz() ? t.kindQuiz : t.kindSurvey) + ' · ' + t.consentKicker));
     wrap.appendChild(h('h1', null, state.survey.title));
     renderMarkdown(state.survey.intro_md, wrap.appendChild(h('div', 'prose')));
 

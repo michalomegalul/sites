@@ -1,44 +1,103 @@
 /* quiz.dobsinsky.xyz
  *
  * Design brief, from SPEC: this is filled in on a phone, often lying down, by
- * someone who feels awful. So: system fonts (also because no font may come from
- * outside the origin), one question per screen, nothing below 56px that has to
- * be tapped, no animation that moves the thing you are aiming at, and a palette
- * that is warm rather than clinical.
+ * someone who feels awful. So: one question per screen, nothing below 56px
+ * that has to be tapped, no animation that moves the thing you are aiming at,
+ * and a palette that is warm rather than clinical.
+ *
+ * "Organic" system (see quiz/Quiz UI redesign/design_handoff_quiz_ui/): warm
+ * cream ground, terracotta accent, rounded cards, a display headline face over
+ * a plain body face. Colours below are DERIVED, not literal — the researcher
+ * picks one accent per survey via the editor's colour wheel and
+ * js/palette.js produces the rest, clamping lightness until the contrast
+ * floors hold (tools/palette.test.js proves this over 1,448 seed hues). The
+ * values in :root are what that derivation returns for the system's own
+ * terracotta seed (#c67139) — the NULL-accent default — so "no survey has
+ * picked a colour yet" and "a survey picked terracotta" are the same code
+ * path, not two palettes to keep in sync by hand.
  */
 
+@font-face {
+  font-family: "Caprasimo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/caprasimo-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+@font-face {
+  font-family: "Caprasimo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  /* Czech diacritics (č š ě ř ž ý á í é ů ú ň ť ď) live in this subset —
+     SPEC requires full CZ/EN parity, so this file is not optional. */
+  src: url("/fonts/caprasimo-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-024F, U+0300-036F, U+1E00-1EFF;
+}
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("/fonts/figtree-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("/fonts/figtree-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-024F, U+0300-036F, U+1E00-1EFF;
+}
+
 :root {
-  --bg:        #fbf7f6;
-  --bg-raised: #ffffff;
-  --ink:       #241c26;
-  --ink-soft:  #6a5f6d;
-  --line:      #e6dcdf;
-  --accent:    #8d3f66;
-  --accent-2:  #c2557f;
-  --accent-bg: #fbeef4;
-  --focus:     #8d3f66;
-  --radius:    18px;
-  --shadow:    0 1px 2px rgba(36, 28, 38, .05), 0 8px 24px -12px rgba(36, 28, 38, .18);
-  --pain-1:    #f6c9a8;
-  --pain-2:    #e8845e;
-  --pain-3:    #b83b3b;
+  --bg:        #f4e6dc;
+  --bg-raised: #e9d4c6;
+  --ink:       #2b2827;
+  --ink-soft:  #645a54;
+  --accent:    #8b4f28;
+  --accent-2:  #be6c37;
+  --accent-bg: #f4efeb;
+  --line:      color-mix(in srgb, var(--ink) 14%, transparent);
+  --focus:     var(--accent);
+
+  --font-heading: "Caprasimo", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
+  --shadow-md: 0 3px 12px color-mix(in srgb, var(--ink) 16%, transparent);
+  --shadow-lg: 0 14px 34px color-mix(in srgb, var(--ink) 22%, transparent);
+
+  /* A fixed crimson ramp, deliberately NOT derived from --accent: it encodes
+     pain intensity on the body map, so it is data rather than decoration, and
+     has to stay a different hue family from whatever accent a researcher
+     picks or a selected region starts reading as "the accent", not "painful".
+     Terracotta (~H24) and the old formula's orange-leaning pain-2 (~H16) sat
+     only ~8° apart — this ramp sits at ~H350, a safe ~35°+ from any warm
+     accent a colour wheel is likely to produce. */
+  --pain-1:    #f4c3cb;
+  --pain-2:    #d65c70;
+  --pain-3:    #8e293a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:        #16121a;
-    --bg-raised: #211b26;
-    --ink:       #f2ebf0;
-    --ink-soft:  #a99bab;
-    --line:      #362d3c;
-    --accent:    #e8a6c4;
-    --accent-2:  #d17ba3;
-    --accent-bg: #2c2030;
-    --focus:     #e8a6c4;
-    --shadow:    0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
-    --pain-1:    #7a5a3f;
-    --pain-2:    #b8613f;
-    --pain-3:    #d24a4a;
+    --bg:        #1b1613;
+    --bg-raised: #2b241f;
+    --ink:       #efedec;
+    --ink-soft:  #afa7a2;
+    --accent:    #ddaa88;
+    --accent-2:  #ce8555;
+    --accent-bg: #342a23;
+    --pain-1:    #793440;
+    --pain-2:    #be374e;
+    --pain-3:    #d65168;
   }
 }
 
@@ -50,7 +109,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font: 400 17px/1.6 var(--font-body);
   font-feature-settings: "kern", "liga";
   text-rendering: optimizeLegibility;
   min-height: 100dvh;
@@ -59,7 +118,7 @@ body {
 
 .skip {
   position: absolute; left: -9999px;
-  background: var(--accent); color: #fff; padding: .8rem 1.2rem; border-radius: 0 0 12px 0;
+  background: var(--accent); color: var(--bg); padding: .8rem 1.2rem; border-radius: 0 0 var(--radius-sm) 0;
 }
 .skip:focus { left: 0; top: 0; z-index: 50; }
 
@@ -88,7 +147,7 @@ body {
   display: flex; align-items: center; gap: .75rem;
 }
 .sitebar__brand {
-  font-weight: 650; font-size: .9rem; letter-spacing: -.01em;
+  font-family: var(--font-heading); font-weight: 400; font-size: 1rem; letter-spacing: -.01em;
   color: var(--ink); text-decoration: none; margin-right: auto;
 }
 .sitebar__brand:hover { color: var(--accent); }
@@ -126,7 +185,7 @@ body {
   flex: 0 0 auto;
   width: 44px; height: 44px;
   display: grid; place-items: center;
-  border: 0; border-radius: 12px;
+  border: 0; border-radius: 999px;
   background: transparent; color: var(--ink-soft);
   cursor: pointer;
 }
@@ -135,12 +194,12 @@ body {
 .icon-btn[hidden] { display: none; }
 
 .progress {
-  flex: 1 1 auto; height: 8px;
+  flex: 1 1 auto; height: 6px;
   background: var(--line); border-radius: 99px; overflow: hidden;
 }
 #progress-fill {
   height: 100%; width: 0%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  background: var(--accent);
   border-radius: 99px;
   transition: width .35s cubic-bezier(.4, 0, .2, 1);
 }
@@ -171,13 +230,19 @@ main {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 
-h1 { font-size: clamp(1.6rem, 5vw, 2.1rem); line-height: 1.25; letter-spacing: -.02em; margin: 0 0 1rem; }
-h2 { font-size: clamp(1.3rem, 4.5vw, 1.6rem); line-height: 1.3; letter-spacing: -.015em; margin: 0 0 .5rem; font-weight: 600; }
+/* Headings use the display face at its one weight — Caprasimo has no bold
+   cut, and letting the browser synthesize one looks worse than plain 400. */
+h1, h2 {
+  font-family: var(--font-heading); font-weight: 400;
+}
+h1 { font-size: clamp(1.7rem, 5vw, 2.2rem); line-height: 1.2; letter-spacing: -.01em; margin: 0 0 1rem; }
+h2 { font-size: clamp(1.35rem, 4.5vw, 1.65rem); line-height: 1.25; letter-spacing: -.01em; margin: 0 0 .5rem; }
 p  { margin: 0 0 1rem; }
 strong { font-weight: 650; }
 
 .eyebrow {
-  font-size: .75rem; font-weight: 650; letter-spacing: .12em; text-transform: uppercase;
+  font-family: var(--font-heading); font-weight: 400;
+  font-size: .78rem; letter-spacing: .1em; text-transform: uppercase;
   color: var(--accent); margin: 0 0 .6rem;
 }
 .help { color: var(--ink-soft); font-size: .93rem; margin: -.1rem 0 1.4rem; }
@@ -195,53 +260,48 @@ strong { font-weight: 650; }
   display: flex; align-items: center; gap: .85rem;
   min-height: 60px; padding: .85rem 1.05rem;
   background: var(--bg-raised);
-  border: 1.5px solid var(--line); border-radius: var(--radius);
+  border: 1.5px solid var(--line); border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color .15s, background .15s, transform .08s;
 }
 .opt:active { transform: scale(.988); }
-.opt:hover { border-color: var(--accent-2); }
+.opt:hover { border-color: var(--accent); }
 .opt input { position: absolute; opacity: 0; width: 0; height: 0; }
 .opt:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 .opt .mark {
   flex: 0 0 auto; width: 24px; height: 24px;
-  border: 2px solid var(--line); background: transparent;
+  border: 1.5px solid var(--line); background: var(--bg);
   display: grid; place-items: center;
   transition: border-color .15s, background .15s;
 }
 .opt[data-kind="single"] .mark { border-radius: 50%; }
-.opt[data-kind="multi"]  .mark { border-radius: 7px; }
+.opt[data-kind="multi"]  .mark { border-radius: var(--radius-sm); }
 .opt .mark::after {
   content: ""; opacity: 0; transition: opacity .15s, transform .15s;
   transform: scale(.5);
 }
-.opt[data-kind="single"] .mark::after { width: 11px; height: 11px; border-radius: 50%; background: #fff; }
+.opt[data-kind="single"] .mark::after { width: 11px; height: 11px; border-radius: 50%; background: var(--bg); }
 .opt[data-kind="multi"] .mark::after {
   width: 12px; height: 7px; margin-top: -3px;
-  border-left: 2.5px solid #fff; border-bottom: 2.5px solid #fff;
+  border-left: 2.5px solid var(--bg); border-bottom: 2.5px solid var(--bg);
   transform: rotate(-45deg) scale(.5);
 }
 
-.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+.opt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-raised)); }
 .opt:has(input:checked) .mark { border-color: var(--accent); background: var(--accent); }
 .opt:has(input:checked) .mark::after { opacity: 1; transform: scale(1); }
 .opt[data-kind="multi"]:has(input:checked) .mark::after { transform: rotate(-45deg) scale(1); }
 
-@media (prefers-color-scheme: dark) {
-  .opt[data-kind="single"] .mark::after,
-  .opt[data-kind="multi"] .mark::after { border-color: #16121a; background-color: #16121a; }
-  .opt[data-kind="multi"] .mark::after { background: none; }
-}
-
 textarea, input[type="text"], input[type="email"], input[type="number"], input[type="date"] {
-  width: 100%; padding: .9rem 1rem;
+  width: 100%; padding: .9rem 1.1rem;
   font: inherit; font-size: 16px;         /* < 16px makes iOS zoom on focus */
   color: var(--ink); background: var(--bg-raised);
-  border: 1.5px solid var(--line); border-radius: 14px;
+  border: 1.5px solid var(--line);
   margin-bottom: .5rem;
 }
-textarea { min-height: 8.5rem; resize: vertical; line-height: 1.6; }
+input[type="text"], input[type="email"], input[type="number"], input[type="date"] { border-radius: 999px; }
+textarea { border-radius: var(--radius-md); min-height: 8.5rem; resize: vertical; line-height: 1.6; }
 .counter { font-size: .78rem; color: var(--ink-soft); text-align: right; margin-bottom: 1.2rem; }
 .counter.over { color: var(--pain-3); }
 
@@ -252,34 +312,34 @@ textarea { min-height: 8.5rem; resize: vertical; line-height: 1.6; }
 /* ------------------------------------------------------------------- scale */
 
 .scale-value {
-  font-size: 3.6rem; font-weight: 300; line-height: 1;
+  font-family: var(--font-heading); font-weight: 400;
+  font-size: 3rem; line-height: 1;
   text-align: center; font-variant-numeric: tabular-nums;
   color: var(--accent); margin: .5rem 0 1rem;
 }
-.scale-value.unset { color: var(--ink-soft); opacity: .35; }
+.scale-value.unset { color: var(--ink-soft); opacity: .45; }
 
 input[type="range"] {
   -webkit-appearance: none; appearance: none;
   width: 100%; height: 44px; background: transparent; margin: 0;
+  accent-color: var(--accent);
 }
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 10px; border-radius: 99px;
-  background: linear-gradient(90deg, var(--pain-1), var(--pain-2), var(--pain-3));
+  height: 8px; border-radius: 99px; background: var(--line);
 }
 input[type="range"]::-moz-range-track {
-  height: 10px; border-radius: 99px;
-  background: linear-gradient(90deg, var(--pain-1), var(--pain-2), var(--pain-3));
+  height: 8px; border-radius: 99px; background: var(--line);
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 34px; height: 34px; margin-top: -12px;
+  width: 32px; height: 32px; margin-top: -12px;
   border-radius: 50%; background: var(--bg-raised);
-  border: 3px solid var(--accent); box-shadow: var(--shadow); cursor: grab;
+  border: 3px solid var(--accent); box-shadow: var(--shadow-sm); cursor: grab;
 }
 input[type="range"]::-moz-range-thumb {
-  width: 34px; height: 34px;
+  width: 32px; height: 32px; border: none;
   border-radius: 50%; background: var(--bg-raised);
-  border: 3px solid var(--accent); box-shadow: var(--shadow); cursor: grab;
+  outline: 3px solid var(--accent); outline-offset: -3px; box-shadow: var(--shadow-sm); cursor: grab;
 }
 .scale-ends { display: flex; justify-content: space-between; gap: 1rem; font-size: .82rem; color: var(--ink-soft); margin-bottom: 1.5rem; }
 .scale-ends span:last-child { text-align: right; }
@@ -290,14 +350,14 @@ input[type="range"]::-moz-range-thumb {
 
 .view-toggle {
   display: flex; gap: .25rem; padding: .25rem; margin: 0 auto 1rem;
-  width: fit-content; background: var(--line); border-radius: 99px;
+  width: fit-content; background: var(--bg-raised); border-radius: 99px;
 }
 .view-toggle button {
   border: 0; border-radius: 99px; padding: .55rem 1.4rem; min-height: 44px;
-  font: inherit; font-size: .9rem; font-weight: 600;
+  font: inherit; font-weight: 600; font-size: .9rem;
   background: transparent; color: var(--ink-soft); cursor: pointer;
 }
-.view-toggle button[aria-pressed="true"] { background: var(--bg-raised); color: var(--accent); box-shadow: var(--shadow); }
+.view-toggle button[aria-pressed="true"] { background: var(--bg); color: var(--accent); box-shadow: var(--shadow-sm); }
 
 .bodymap svg { display: block; width: 100%; max-width: 340px; margin: 0 auto; height: auto; touch-action: manipulation; }
 .body-silhouette { fill: var(--bg-raised); stroke: var(--line); stroke-width: 2; }
@@ -305,15 +365,23 @@ input[type="range"]::-moz-range-thumb {
   fill: var(--bg-raised); stroke: var(--line); stroke-width: 1.5;
   cursor: pointer; transition: fill .18s, stroke .18s;
 }
-.region:hover { stroke: var(--accent-2); stroke-width: 2.5; }
+.region:hover { stroke: var(--accent); stroke-width: 2.5; }
 .region:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .region[data-level="1"] { fill: var(--pain-1); stroke: var(--pain-1); }
 .region[data-level="2"] { fill: var(--pain-2); stroke: var(--pain-2); }
 .region[data-level="3"] { fill: var(--pain-3); stroke: var(--pain-3); }
 
+/* Graded "select the areas" question (spec levels:1 — see bodymap.js and
+   007_quiz_pain_location.sql): a tap is right-or-wrong, not an intensity, so
+   a selected region takes the accent rather than a point on the pain ramp. */
+.bodymap--select .region[data-level="1"] {
+  fill: var(--accent);
+  stroke: color-mix(in srgb, var(--accent) 70%, black);
+}
+
 .legend { display: flex; flex-wrap: wrap; gap: .5rem .9rem; justify-content: center; font-size: .8rem; color: var(--ink-soft); margin-bottom: 1rem; }
 .legend span { display: inline-flex; align-items: center; gap: .4rem; }
-.swatch { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--line); }
+.swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--line); }
 .swatch.l1 { background: var(--pain-1); border-color: var(--pain-1); }
 .swatch.l2 { background: var(--pain-2); border-color: var(--pain-2); }
 .swatch.l3 { background: var(--pain-3); border-color: var(--pain-3); }
@@ -329,20 +397,18 @@ input[type="range"]::-moz-range-thumb {
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   width: 100%; min-height: 58px; padding: 1rem 1.5rem;
-  font: inherit; font-size: 1.02rem; font-weight: 650;
-  border: 0; border-radius: 99px; cursor: pointer;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff; box-shadow: var(--shadow);
+  font-family: var(--font-heading); font-weight: 400; font-size: 1.05rem;
+  border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--accent); color: var(--bg); box-shadow: var(--shadow-md);
   transition: transform .08s, filter .15s;
 }
-@media (prefers-color-scheme: dark) { .btn { color: #16121a; } }
-.btn:hover { filter: brightness(1.06); }
+.btn:hover { filter: brightness(1.08); }
 .btn:active { transform: scale(.985); }
 .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
 
 .btn-quiet {
   background: transparent; color: var(--ink-soft); box-shadow: none;
-  font-weight: 500; min-height: 48px; font-size: .9rem;
+  font-family: var(--font-body); font-weight: 600; min-height: 48px; font-size: .9rem;
 }
 .btn-quiet:hover { color: var(--accent); filter: none; }
 
@@ -352,21 +418,21 @@ input[type="range"]::-moz-range-thumb {
 
 .consent-box {
   background: var(--bg-raised); border: 1.5px solid var(--line);
-  border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.25rem;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-md);
 }
 .check {
   display: flex; gap: .85rem; align-items: flex-start;
   padding: 1rem; min-height: 60px; cursor: pointer;
-  border: 1.5px solid var(--line); border-radius: var(--radius);
+  border: 1.5px solid var(--line); border-radius: var(--radius-md);
   background: var(--bg-raised); margin-bottom: .6rem;
 }
-.check:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+.check:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-raised)); }
 .check:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
 .check input { position: absolute; opacity: 0; width: 0; height: 0; }
-.check .mark { flex: 0 0 auto; width: 24px; height: 24px; margin-top: 2px; border: 2px solid var(--line); border-radius: 7px; display: grid; place-items: center; }
+.check .mark { flex: 0 0 auto; width: 24px; height: 24px; margin-top: 2px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); display: grid; place-items: center; }
 .check:has(input:checked) .mark { border-color: var(--accent); background: var(--accent); }
-.check .mark::after { content: ""; width: 12px; height: 7px; margin-top: -3px; border-left: 2.5px solid #fff; border-bottom: 2.5px solid #fff; transform: rotate(-45deg); opacity: 0; }
+.check .mark::after { content: ""; width: 12px; height: 7px; margin-top: -3px; border-left: 2.5px solid var(--bg); border-bottom: 2.5px solid var(--bg); transform: rotate(-45deg); opacity: 0; }
 .check:has(input:checked) .mark::after { opacity: 1; }
 .check-text { font-size: .94rem; }
 .check-text small { display: block; color: var(--ink-soft); font-size: .85rem; margin-top: .2rem; }
@@ -377,7 +443,7 @@ input[type="range"]::-moz-range-thumb {
 .lang a {
   font-size: .85rem; padding: .5rem 1rem; min-height: 44px;
   display: inline-flex; align-items: center;
-  border-radius: 99px; border: 1px solid var(--line);
+  border-radius: 999px; border: 1px solid var(--line);
   color: var(--ink-soft); text-decoration: none;
 }
 .lang a[aria-current="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
@@ -392,7 +458,7 @@ input[type="range"]::-moz-range-thumb {
 
 .error {
   background: var(--accent-bg); border: 1.5px solid var(--accent);
-  border-radius: 14px; padding: .9rem 1.1rem; margin-bottom: 1.2rem;
+  border-radius: var(--radius-md); padding: .9rem 1.1rem; margin-bottom: 1.2rem;
   font-size: .92rem; color: var(--accent);
 }
 
@@ -404,14 +470,14 @@ input[type="range"]::-moz-range-thumb {
   display: flex; align-items: center; gap: .7rem;
   text-align: left; justify-content: flex-start;
   background: var(--bg-raised); border: 1.5px solid var(--line);
-  border-radius: 14px; padding: .75rem 1rem; min-height: 48px;
+  border-radius: var(--radius-md); padding: .75rem 1rem; min-height: 48px;
   color: var(--ink); font-size: .92rem;
 }
 .missing-item:hover { border-color: var(--accent); color: var(--accent); }
 
 .missing-num {
   flex: none; display: grid; place-items: center;
-  width: 1.6rem; height: 1.6rem; border-radius: 99px;
+  width: 1.6rem; height: 1.6rem; border-radius: 999px;
   background: var(--accent-bg); color: var(--accent);
   font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums;
 }
@@ -430,12 +496,15 @@ input[type="range"]::-moz-range-thumb {
 
 /* --------------------------------------------------------------- quiz mode */
 /* Feedback shown after a graded answer is committed. Right and wrong are
- * distinguished by mark and wording as well as colour — never colour alone. */
+ * distinguished by mark and wording as well as colour — never colour alone.
+ * The mock uses one accent-coloured badge for both outcomes; this keeps a
+ * second, deliberately different hue for "correct" as an extra channel on
+ * top of the glyph and label, not instead of them. */
 
 .verdict {
   border: 1.5px solid var(--line);
-  border-left-width: 4px;
-  border-radius: 14px;
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
   padding: 1rem 1.15rem;
   margin: 1.25rem 0 0;
   background: var(--bg-raised);
@@ -454,14 +523,14 @@ input[type="range"]::-moz-range-thumb {
 
 .verdict-mark {
   flex: 0 0 auto;
-  width: 24px; height: 24px; border-radius: 50%;
+  width: 22px; height: 22px; border-radius: var(--radius-sm);
   display: inline-grid; place-items: center;
-  font-size: .82rem; color: #fff;
+  font-size: .78rem; color: var(--bg);
   background: currentColor;
 }
-.verdict-mark::first-letter { color: #fff; }
-.verdict--ok .verdict-mark { background: #2f8f5b; color: #fff; }
-.verdict--no .verdict-mark { background: var(--accent); color: #fff; }
+.verdict-mark::first-letter { color: var(--bg); }
+.verdict--ok .verdict-mark { background: #2f8f5b; color: var(--bg); }
+.verdict--no .verdict-mark { background: var(--accent); color: var(--bg); }
 
 .verdict-answer { font-size: .93rem; margin-bottom: .6rem; }
 .verdict .prose { font-size: .93rem; }
@@ -470,30 +539,31 @@ input[type="range"]::-moz-range-thumb {
 /* score card */
 .scorecard {
   background: var(--bg-raised);
-  border: 1.5px solid var(--line); border-radius: var(--radius);
+  border: 1.5px solid var(--line); border-radius: var(--radius-lg);
   padding: 1.5rem 1.25rem; margin-bottom: 1.5rem;
-  box-shadow: var(--shadow); text-align: center;
+  box-shadow: var(--shadow-md); text-align: center;
 }
 .score-big {
-  font-size: 3rem; line-height: 1; font-weight: 300;
+  font-family: var(--font-heading); font-weight: 400;
+  font-size: 2.75rem; line-height: 1;
   font-variant-numeric: tabular-nums; color: var(--ink-soft);
   margin: .25rem 0 1rem;
 }
-.score-big strong { font-weight: 600; color: var(--accent); }
+.score-big strong { font-weight: 400; color: var(--accent); }
 .score-track {
-  height: 10px; background: var(--line); border-radius: 99px;
+  height: 8px; background: var(--line); border-radius: 99px;
   overflow: hidden; margin-bottom: 1rem;
 }
 .score-fill {
   height: 100%; border-radius: 99px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  background: var(--accent);
   transition: width .6s cubic-bezier(.4, 0, .2, 1);
 }
 
 /* recap — collapsed by default so the screen is not a wall of text */
 .recap {
-  border: 1.5px solid var(--line); border-left-width: 4px;
-  border-radius: 14px; padding: .85rem 1rem; margin-bottom: .5rem;
+  border: 1.5px solid var(--line); border-left-width: 3px;
+  border-radius: var(--radius-md); padding: .85rem 1rem; margin-bottom: .5rem;
   background: var(--bg-raised);
 }
 .recap--ok { border-left-color: #2f8f5b; }
@@ -517,8 +587,8 @@ input[type="range"]::-moz-range-thumb {
 .card {
   display: block; text-decoration: none; color: inherit;
   background: var(--bg-raised); border: 1.5px solid var(--line);
-  border-radius: var(--radius); padding: 1.25rem 1.35rem;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg); padding: 1.25rem 1.35rem;
+  box-shadow: var(--shadow-md);
   transition: border-color .15s ease, transform .15s ease;
 }
 .card:hover { border-color: var(--accent); transform: translateY(-2px); }
@@ -527,15 +597,15 @@ input[type="range"]::-moz-range-thumb {
 .card-kind {
   display: inline-block; font-size: .7rem; font-weight: 700;
   letter-spacing: .09em; text-transform: uppercase;
-  padding: .22rem .6rem; border-radius: 99px; margin-bottom: .7rem;
+  padding: .22rem .65rem; border-radius: 999px; margin-bottom: .7rem;
 }
 .card-kind--survey { background: var(--accent-bg); color: var(--accent); }
 .card-kind--quiz {
-  background: color-mix(in srgb, var(--accent-2) 16%, transparent);
+  background: color-mix(in srgb, var(--accent-2) 18%, var(--bg-raised));
   color: var(--accent-2);
 }
 
-.card-title { font-size: 1.15rem; margin: 0 0 .45rem; line-height: 1.3; }
+.card-title { font-family: var(--font-heading); font-weight: 400; font-size: 1.2rem; margin: 0 0 .45rem; line-height: 1.3; }
 .card-blurb { color: var(--ink-soft); font-size: .92rem; margin: 0 0 .9rem; }
 .card-go { color: var(--accent); font-weight: 650; font-size: .92rem; }
 
@@ -549,7 +619,7 @@ input[type="range"]::-moz-range-thumb {
    the cards so it never reads as part of the respondent's path. */
 
 .admin-panel {
-  border: 1.5px dashed var(--line); border-radius: var(--radius);
+  border: 1.5px dashed var(--line); border-radius: var(--radius-lg);
   padding: 1.25rem 1.35rem; margin-top: 2.5rem;
 }
 .admin-panel h2 { font-size: 1.05rem; margin: 0 0 .35rem; }
@@ -567,13 +637,16 @@ input[type="range"]::-moz-range-thumb {
 
 .admin-link {
   font-size: .84rem; text-decoration: none; color: var(--ink-soft);
-  border: 1px solid var(--line); border-radius: 99px;
+  border: 1px solid var(--line); border-radius: 999px;
   padding: .35rem .8rem; min-height: 32px; display: inline-flex; align-items: center;
 }
 .admin-link:hover { border-color: var(--accent); color: var(--accent); }
 
 /* -------------------------------------------------------------- print view */
-/* SPEC: the blank questionnaire is a required thesis appendix. */
+/* SPEC: the blank questionnaire is a required thesis appendix. Plain system
+   fonts and a flat black-on-white palette regardless of the survey's accent —
+   a display face and a warm cream ground are for the screen, not for a form
+   someone photocopies. */
 
 .print-q { break-inside: avoid; margin-bottom: 1.75rem; }
 .print-q .num { color: var(--accent); font-weight: 650; }
@@ -588,13 +661,15 @@ input[type="range"]::-moz-range-thumb {
 @media print {
   :root {
     --bg: #fff; --bg-raised: #fff; --ink: #000; --ink-soft: #444;
-    --line: #999; --accent: #000; --accent-bg: #fff; --shadow: none;
+    --line: #999; --accent: #000; --accent-bg: #fff;
+    --shadow-sm: none; --shadow-md: none; --shadow-lg: none;
+    --font-heading: system-ui, sans-serif; --font-body: system-ui, sans-serif;
   }
   #bar, #sitebar, .sitefoot, .lang, .actions, .skip, .btn { display: none !important; }
   body { font-size: 11pt; }
   main { max-width: none; padding: 0; }
-  h1 { font-size: 18pt; }
-  h2 { font-size: 12pt; }
+  h1 { font-size: 18pt; font-weight: 700; }
+  h2 { font-size: 12pt; font-weight: 700; }
   .bodymap svg { max-width: 300px; }
   .region { fill: #fff !important; stroke: #000 !important; stroke-width: 1 !important; }
   .print-q { page-break-inside: avoid; }

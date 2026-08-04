@@ -7,10 +7,16 @@
  * a hue and this file derives the rest, clamping lightness until the contrast
  * floors below are met.
  *
- * Contrast floors, verified over all 360 hues by tools/palette.test.js:
- *   ink       on bg   >= 7.0  (WCAG AAA body text)
- *   ink-soft  on bg   >= 4.5  (AA — help text, counters)
- *   accent    on bg   >= 4.5  (AA — links, the eyebrow, the progress fill)
+ * Contrast floors, verified over all 360 hues by tools/palette.test.js, against
+ * BOTH bg and bg-raised (surface sits darker than bg in light mode, lighter in
+ * dark mode — whichever direction, it's the tighter of the two backgrounds):
+ *   ink       >= 7.0  (WCAG AAA body text)
+ *   ink-soft  >= 4.5  (AA — help text, counters)
+ *   accent    >= 4.5  (AA — links, the eyebrow, the progress fill)
+ *
+ * --line and --focus are NOT in the object this returns — style.css defines
+ * them once as `color-mix(in srgb, var(--ink) N%, transparent)` / `var(--accent)`,
+ * which tracks whatever ink/accent apply() writes without needing its own entry.
  *
  * --pain-1/2/3 is NOT derived and never changes with the accent. It encodes
  * intensity on the body map, so it is data rather than decoration, and it has
@@ -97,39 +103,46 @@
     var s = clamp(c.s, 22, 72);
 
     // ---- light ----
-    var lbg = { h: h, s: Math.min(s * 0.30, 26), l: 97.5 };
-    var lAccent = fit(h, s, 46, -1, 4.5, lbg);
-    var lInk = fit(h, Math.min(s * 0.28, 18), 18, -1, 7.0, lbg);
-    var lSoft = fit(h, Math.min(s * 0.20, 15), 46, -1, 4.5, lbg);
+    // "Organic": a warm, visibly-tinted cream ground rather than a near-white
+    // one, with card/surface areas a shade DARKER than the page (a filled
+    // ground, not a lighter "elevated" panel). `lraised` is therefore always
+    // the tighter contrast constraint of the two — closer to ink's lightness
+    // than bg is — so every fit() below targets it: clearing it clears bg too.
+    // palette.test.js checks both explicitly rather than assuming that.
+    var lbg = { h: h, s: clamp(s * 0.95, 30, 60), l: 91 };
+    var lraised = { h: h, s: clamp(s * 0.80, 26, 50), l: lbg.l - 6.5 };
+    var lAccent = fit(h, s, 46, -1, 4.5, lraised);
+    var lInk = fit(h, Math.min(s * 0.10, 9), 16, -1, 7.0, lraised);
+    var lSoft = fit(h, Math.min(s * 0.16, 13), 46, -1, 4.5, lraised);
 
     var light = {
       bg: hex(lbg.h, lbg.s, lbg.l),
-      'bg-raised': hex(h, Math.min(s * 0.18, 14), 100),
-      ink: hex(h, Math.min(s * 0.28, 18), lInk),
-      'ink-soft': hex(h, Math.min(s * 0.20, 15), lSoft),
-      line: hex(h, Math.min(s * 0.30, 22), 89),
+      'bg-raised': hex(lraised.h, lraised.s, lraised.l),
+      ink: hex(h, Math.min(s * 0.10, 9), lInk),
+      'ink-soft': hex(h, Math.min(s * 0.16, 13), lSoft),
       accent: hex(h, s, lAccent),
       'accent-2': hex(h, s, clamp(lAccent + 13, 0, 100)),
-      'accent-bg': hex(h, Math.min(s * 0.55, 45), 95),
-      focus: hex(h, s, lAccent)
+      'accent-bg': hex(h, Math.min(s * 0.55, 45), 94)
     };
 
     // ---- dark ----
+    // Elevation keeps the conventional direction here (raised = lighter than
+    // the page) — the mock has no dark half to invert against, and inverting
+    // it would leave cards nearly invisible against an already-dark ground.
     var dbg = { h: h, s: Math.min(s * 0.28, 22), l: 9 };
-    var dAccent = fit(h, s, 70, 1, 4.5, dbg);
-    var dInk = fit(h, Math.min(s * 0.14, 12), 93, 1, 7.0, dbg);
-    var dSoft = fit(h, Math.min(s * 0.14, 12), 66, 1, 4.5, dbg);
+    var draised = { h: h, s: Math.min(s * 0.30, 24), l: 14.5 };
+    var dAccent = fit(h, s, 70, 1, 4.5, draised);
+    var dInk = fit(h, Math.min(s * 0.14, 12), 93, 1, 7.0, draised);
+    var dSoft = fit(h, Math.min(s * 0.14, 12), 66, 1, 4.5, draised);
 
     var dark = {
       bg: hex(dbg.h, dbg.s, dbg.l),
-      'bg-raised': hex(h, Math.min(s * 0.26, 20), 13.5),
+      'bg-raised': hex(draised.h, draised.s, draised.l),
       ink: hex(h, Math.min(s * 0.14, 12), dInk),
       'ink-soft': hex(h, Math.min(s * 0.14, 12), dSoft),
-      line: hex(h, Math.min(s * 0.24, 20), 23),
       accent: hex(h, s, dAccent),
       'accent-2': hex(h, s, clamp(dAccent - 13, 0, 100)),
-      'accent-bg': hex(h, Math.min(s * 0.36, 30), 17),
-      focus: hex(h, s, dAccent)
+      'accent-bg': hex(h, Math.min(s * 0.36, 30), 17)
     };
 
     return { light: light, dark: dark };

@@ -11,3 +11,9 @@ instance/
 # jsdom for quiz/tools/*.test.js — dev only. The sites have no build step and
 # the deploy has no npm stage; this never ships.
 quiz/tools/devtest/
+
+# Design handoff bundle (reference only, restyled into site/css + site/js by
+# hand) — it sits inside quiz/**, which is the deploy workflow's path filter,
+# so committing it would ship a design tool's export in the deploy checkout.
+"quiz/Quiz UI redesign/"
+"quiz/Quiz UI redesign.zip"

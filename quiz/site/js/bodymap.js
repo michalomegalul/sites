@@ -98,31 +98,52 @@
     var labels = opts.labels || {};
     var levels = opts.levels || 3;
     var value = Object.assign({}, opts.value || {});
-    var levelNames = [t.painNone, t.painMild, t.painMod, t.painSevere];
+    // A graded quiz question (spec `levels: 1`) is tap-to-select, not
+    // tap-to-cycle-intensity: a region is either the answer or it is not.
+    // Distinct from the survey's pain map, which is data ("how bad, where")
+    // rather than a right/wrong answer — see 007_quiz_pain_location.sql.
+    var selectMode = levels === 1;
+    var levelNames = selectMode
+      ? [t.bodyNotSelected, t.bodySelected]
+      : [t.painNone, t.painMild, t.painMod, t.painSevere];
 
     var wrap = document.createElement('div');
-    wrap.className = 'bodymap';
-
-    var toggle = document.createElement('div');
-    toggle.className = 'view-toggle';
-    var frontBtn = document.createElement('button');
-    var backBtn = document.createElement('button');
-    frontBtn.type = backBtn.type = 'button';
-    frontBtn.textContent = t.bodyFront;
-    backBtn.textContent = t.bodyBack;
-    toggle.append(frontBtn, backBtn);
+    wrap.className = selectMode ? 'bodymap bodymap--select' : 'bodymap';
 
     var stage = document.createElement('div');
     var frontSvg = buildView(FRONT, opts.regions);
-    var backSvg = buildView(BACK, opts.regions);
-    stage.append(frontSvg, backSvg);
+    stage.appendChild(frontSvg);
 
-    var legend = document.createElement('div');
-    legend.className = 'legend';
-    legend.innerHTML =
-      '<span><i class="swatch l1"></i>' + t.painMild + '</span>' +
-      '<span><i class="swatch l2"></i>' + t.painMod + '</span>' +
-      '<span><i class="swatch l3"></i>' + t.painSevere + '</span>';
+    // A question restricted to front-only regions (every graded quiz map so
+    // far) has nothing to show on the back view, so the toggle — and the
+    // view it would switch to — is simply not built rather than built empty.
+    var backCodes = BACK.map(function (r) { return r[0]; });
+    var hasBack = !opts.regions || opts.regions.some(function (code) {
+      return backCodes.indexOf(code) !== -1;
+    });
+    var toggle = null, backSvg = null, frontBtn = null, backBtn = null;
+    if (hasBack) {
+      toggle = document.createElement('div');
+      toggle.className = 'view-toggle';
+      frontBtn = document.createElement('button');
+      backBtn = document.createElement('button');
+      frontBtn.type = backBtn.type = 'button';
+      frontBtn.textContent = t.bodyFront;
+      backBtn.textContent = t.bodyBack;
+      toggle.append(frontBtn, backBtn);
+      backSvg = buildView(BACK, opts.regions);
+      stage.appendChild(backSvg);
+    }
+
+    var legend = null;
+    if (!selectMode) {
+      legend = document.createElement('div');
+      legend.className = 'legend';
+      legend.innerHTML =
+        '<span><i class="swatch l1"></i>' + t.painMild + '</span>' +
+        '<span><i class="swatch l2"></i>' + t.painMod + '</span>' +
+        '<span><i class="swatch l3"></i>' + t.painSevere + '</span>';
+    }
 
     var picked = document.createElement('ul');
     picked.className = 'picked';
@@ -133,27 +154,34 @@
 
     // "No pain in any of these areas" — without this a required body map is a
     // dead end for anyone with nothing to mark, and an empty map is otherwise
-    // indistinguishable from an unanswered one.
-    var noneLabel = document.createElement('label');
-    noneLabel.className = 'check';
-    var noneInput = document.createElement('input');
-    noneInput.type = 'checkbox';
-    var noneMark = document.createElement('span');
-    noneMark.className = 'mark';
-    var noneText = document.createElement('span');
-    noneText.className = 'check-text';
-    noneText.textContent = t.bodyNone;
-    noneLabel.append(noneInput, noneMark, noneText);
-    noneInput.checked = !!opts.answered && !Object.keys(value).length;
+    // indistinguishable from an unanswered one. Only meaningful for the
+    // intensity map: a graded select question has a right answer, not a "no
+    // pain" state, so it is not offered here.
+    var noneLabel = null, noneInput = null;
+    if (!selectMode) {
+      noneLabel = document.createElement('label');
+      noneLabel.className = 'check';
+      noneInput = document.createElement('input');
+      noneInput.type = 'checkbox';
+      var noneMark = document.createElement('span');
+      noneMark.className = 'mark';
+      var noneText = document.createElement('span');
+      noneText.className = 'check-text';
+      noneText.textContent = t.bodyNone;
+      noneLabel.append(noneInput, noneMark, noneText);
+      noneInput.checked = !!opts.answered && !Object.keys(value).length;
 
-    noneInput.addEventListener('change', function () {
-      if (!noneInput.checked) return;
-      value = {};
-      paint();
-      if (opts.onChange) opts.onChange({});
+      noneInput.addEventListener('change', function () {
+        if (!noneInput.checked) return;
+        value = {};
+        paint();
+        if (opts.onChange) opts.onChange({});
+      });
+    }
+
+    [toggle, stage, legend, picked, noneLabel, live].forEach(function (node) {
+      if (node) wrap.appendChild(node);
     });
-
-    wrap.append(toggle, stage, legend, picked, noneLabel, live);
 
     function label(code) { return labels[code] || code; }
 
@@ -182,7 +210,9 @@
       } else {
         codes.forEach(function (code) {
           var li = document.createElement('li');
-          li.textContent = label(code) + ' · ' + levelNames[value[code]];
+          // In select mode every listed code is selected by definition, so
+          // the level suffix would just repeat "Selected" down the list.
+          li.textContent = selectMode ? label(code) : (label(code) + ' · ' + levelNames[value[code]]);
           picked.appendChild(li);
         });
       }
@@ -193,7 +223,7 @@
       var next = ((value[code] || 0) + 1) % (levels + 1);
       if (next === 0) delete value[code];
       else value[code] = next;
-      noneInput.checked = false;
+      if (noneInput) noneInput.checked = false;
       paint();
       live.textContent = t.regionState(label(code), levelNames[next]);
       if (opts.onChange) opts.onChange(Object.assign({}, value));
@@ -211,29 +241,38 @@
       cycle(node.getAttribute('data-region'));
     });
 
-    function show(front) {
-      frontSvg.hidden = !front;
-      backSvg.hidden = front;
-      frontBtn.setAttribute('aria-pressed', String(front));
-      backBtn.setAttribute('aria-pressed', String(!front));
+    if (hasBack) {
+      var show = function (front) {
+        frontSvg.hidden = !front;
+        backSvg.hidden = front;
+        frontBtn.setAttribute('aria-pressed', String(front));
+        backBtn.setAttribute('aria-pressed', String(!front));
+      };
+      frontBtn.addEventListener('click', function () { show(true); });
+      backBtn.addEventListener('click', function () { show(false); });
+      show(true);
     }
-    frontBtn.addEventListener('click', function () { show(true); });
-    backBtn.addEventListener('click', function () { show(false); });
 
-    show(true);
     paint();
     return wrap;
   }
 
-  /* Static, unfilled, both views side by side — the printable appendix. */
+  /* Static, unfilled, both views side by side — the printable appendix.
+   * Skips the back view entirely when the question's regions are all
+   * front-facing, same as create() — an empty second silhouette in a print
+   * appendix is confusing, not neutral. */
   function createPrint(opts) {
     var wrap = document.createElement('div');
     wrap.className = 'bodymap';
     wrap.style.display = 'flex';
     wrap.style.gap = '1rem';
+    var backCodes = BACK.map(function (r) { return r[0]; });
+    var hasBack = !opts.regions || opts.regions.some(function (code) {
+      return backCodes.indexOf(code) !== -1;
+    });
     var front = buildView(FRONT, opts.regions);
-    var back = buildView(BACK, opts.regions);
-    [front, back].forEach(function (svg) {
+    var views = hasBack ? [front, buildView(BACK, opts.regions)] : [front];
+    views.forEach(function (svg) {
       svg.querySelectorAll('.region').forEach(function (n) {
         n.removeAttribute('tabindex');
         n.removeAttribute('role');

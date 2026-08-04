@@ -35,12 +35,17 @@ function check(seed) {
   if (!p) { failures.push(`${seed}: build returned null`); return; }
   for (const mode of ['light', 'dark']) {
     const pal = p[mode];
-    for (const key of Object.keys(FLOORS)) {
-      const r = ratio(pal[key], pal.bg);
-      checked++;
-      if (r < worst[key][0]) worst[key] = [r, `${seed} ${mode}`];
-      if (r < FLOORS[key]) {
-        failures.push(`${seed} ${mode}: ${key} on bg = ${r.toFixed(2)} (need ${FLOORS[key]})`);
+    // Text and the accent sit on cards (`bg-raised`) as often as on the page
+    // itself — the verdict panel, the scorecard, every option row — so both
+    // backgrounds are checked, not just `bg`.
+    for (const bgKey of ['bg', 'bg-raised']) {
+      for (const key of Object.keys(FLOORS)) {
+        const r = ratio(pal[key], pal[bgKey]);
+        checked++;
+        if (r < worst[key][0]) worst[key] = [r, `${seed} ${mode} on ${bgKey}`];
+        if (r < FLOORS[key]) {
+          failures.push(`${seed} ${mode}: ${key} on ${bgKey} = ${r.toFixed(2)} (need ${FLOORS[key]})`);
+        }
       }
     }
     // The accent must also stay distinguishable from its own tinted chip,
