@@ -6,8 +6,11 @@
  * and a palette that is warm rather than clinical.
  *
  * "Organic" system (see quiz/Quiz UI redesign/design_handoff_quiz_ui/): warm
- * cream ground, terracotta accent, rounded cards, a display headline face over
- * a plain body face. Colours below are DERIVED, not literal — the researcher
+ * cream ground, terracotta accent, rounded cards. The mock pairs a display
+ * face (Caprasimo) over a plain body face (Figtree); Caprasimo turned out to
+ * be missing most Czech diacritic glyphs (see the @font-face comment below),
+ * so Figtree carries both roles — body at 400, headings at 700. Colours below
+ * are DERIVED, not literal — the researcher
  * picks one accent per survey via the editor's colour wheel and
  * js/palette.js produces the rest, clamping lightness until the contrast
  * floors hold (tools/palette.test.js proves this over 1,448 seed hues). The
@@ -17,24 +20,14 @@
  * path, not two palettes to keep in sync by hand.
  */
 
-@font-face {
-  font-family: "Caprasimo";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("/fonts/caprasimo-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
-}
-@font-face {
-  font-family: "Caprasimo";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  /* Czech diacritics (č š ě ř ž ý á í é ů ú ň ť ď) live in this subset —
-     SPEC requires full CZ/EN parity, so this file is not optional. */
-  src: url("/fonts/caprasimo-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-024F, U+0300-036F, U+1E00-1EFF;
-}
+/* Caprasimo (the mock's display face) was tried and dropped: its latin-ext
+   file is missing the glyphs for ě ů ž č ř ď ť ň — only š is actually drawn,
+   despite Google's declared unicode-range claiming the whole block. Since
+   headings render database-authored Czech prompt text (SPEC: full CZ/EN
+   parity is a hard constraint), that is not a style call, it is broken text —
+   a fallback font silently substituted per-glyph mid-word, which is worse
+   than not trying at all. Figtree, which does have full Czech coverage,
+   carries both roles now: body at 400, headings at 700. */
 @font-face {
   font-family: "Figtree";
   font-style: normal;
@@ -63,7 +56,7 @@
   --line:      color-mix(in srgb, var(--ink) 14%, transparent);
   --focus:     var(--accent);
 
-  --font-heading: "Caprasimo", system-ui, sans-serif;
+  --font-heading: "Figtree", system-ui, sans-serif;
   --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --radius-sm: 8px;
@@ -86,19 +79,23 @@
   --pain-3:    #8e293a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:        #1b1613;
-    --bg-raised: #2b241f;
-    --ink:       #efedec;
-    --ink-soft:  #afa7a2;
-    --accent:    #ddaa88;
-    --accent-2:  #ce8555;
-    --accent-bg: #342a23;
-    --pain-1:    #793440;
-    --pain-2:    #be374e;
-    --pain-3:    #d65168;
-  }
+/* Explicit toggle, not prefers-color-scheme: the default is light regardless
+   of OS setting, and dark is opt-in via the switch in the site bar. theme.js
+   sets data-theme on <html> before first paint (same file that already
+   replays the cached survey accent), reading a stored choice or "light" if
+   none exists yet — so a first-time visitor never sees an unrequested dark
+   flash even on a dark-mode OS. */
+:root[data-theme="dark"] {
+  --bg:        #1b1613;
+  --bg-raised: #2b241f;
+  --ink:       #efedec;
+  --ink-soft:  #afa7a2;
+  --accent:    #ddaa88;
+  --accent-2:  #ce8555;
+  --accent-bg: #342a23;
+  --pain-1:    #793440;
+  --pain-2:    #be374e;
+  --pain-3:    #d65168;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -147,7 +144,7 @@ body {
   display: flex; align-items: center; gap: .75rem;
 }
 .sitebar__brand {
-  font-family: var(--font-heading); font-weight: 400; font-size: 1rem; letter-spacing: -.01em;
+  font-family: var(--font-heading); font-weight: 700; font-size: 1rem; letter-spacing: -.01em;
   color: var(--ink); text-decoration: none; margin-right: auto;
 }
 .sitebar__brand:hover { color: var(--accent); }
@@ -193,6 +190,13 @@ body {
 .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn[hidden] { display: none; }
 
+/* Light/dark switch, in the site bar next to the language nav. The icon shows
+   the mode a click switches TO, not the current one. */
+#theme-toggle { margin-left: -.25rem; }
+.theme-icon--sun { display: none; }
+:root[data-theme="dark"] .theme-icon--sun { display: block; }
+:root[data-theme="dark"] .theme-icon--moon { display: none; }
+
 .progress {
   flex: 1 1 auto; height: 6px;
   background: var(--line); border-radius: 99px; overflow: hidden;
@@ -230,10 +234,8 @@ main {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 
-/* Headings use the display face at its one weight — Caprasimo has no bold
-   cut, and letting the browser synthesize one looks worse than plain 400. */
 h1, h2 {
-  font-family: var(--font-heading); font-weight: 400;
+  font-family: var(--font-heading); font-weight: 700;
 }
 h1 { font-size: clamp(1.7rem, 5vw, 2.2rem); line-height: 1.2; letter-spacing: -.01em; margin: 0 0 1rem; }
 h2 { font-size: clamp(1.35rem, 4.5vw, 1.65rem); line-height: 1.25; letter-spacing: -.01em; margin: 0 0 .5rem; }
@@ -241,7 +243,7 @@ p  { margin: 0 0 1rem; }
 strong { font-weight: 650; }
 
 .eyebrow {
-  font-family: var(--font-heading); font-weight: 400;
+  font-family: var(--font-heading); font-weight: 700;
   font-size: .78rem; letter-spacing: .1em; text-transform: uppercase;
   color: var(--accent); margin: 0 0 .6rem;
 }
@@ -312,7 +314,7 @@ textarea { border-radius: var(--radius-md); min-height: 8.5rem; resize: vertical
 /* ------------------------------------------------------------------- scale */
 
 .scale-value {
-  font-family: var(--font-heading); font-weight: 400;
+  font-family: var(--font-heading); font-weight: 700;
   font-size: 3rem; line-height: 1;
   text-align: center; font-variant-numeric: tabular-nums;
   color: var(--accent); margin: .5rem 0 1rem;
@@ -360,6 +362,12 @@ input[type="range"]::-moz-range-thumb {
 .view-toggle button[aria-pressed="true"] { background: var(--bg); color: var(--accent); box-shadow: var(--shadow-sm); }
 
 .bodymap svg { display: block; width: 100%; max-width: 340px; margin: 0 auto; height: auto; touch-action: manipulation; }
+/* Same trap as .sitefoot[hidden] above: an author `display` always outranks
+   the UA [hidden] rule regardless of specificity, so without this override
+   the front/back toggle set the attribute correctly and nothing happened —
+   both views stayed visible, stacked. Pre-existing in the original file;
+   the new quiz body-map question is what first exercised this toggle. */
+.bodymap svg[hidden] { display: none; }
 .body-silhouette { fill: var(--bg-raised); stroke: var(--line); stroke-width: 2; }
 .region {
   fill: var(--bg-raised); stroke: var(--line); stroke-width: 1.5;
@@ -397,7 +405,7 @@ input[type="range"]::-moz-range-thumb {
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   width: 100%; min-height: 58px; padding: 1rem 1.5rem;
-  font-family: var(--font-heading); font-weight: 400; font-size: 1.05rem;
+  font-family: var(--font-heading); font-weight: 700; font-size: 1.05rem;
   border: 0; border-radius: 999px; cursor: pointer;
   background: var(--accent); color: var(--bg); box-shadow: var(--shadow-md);
   transition: transform .08s, filter .15s;
@@ -519,7 +527,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .verdict--ok .verdict-head { color: #2f8f5b; }
 .verdict--no .verdict-head { color: var(--accent); }
-@media (prefers-color-scheme: dark) { .verdict--ok .verdict-head { color: #6cc48d; } }
+:root[data-theme="dark"] .verdict--ok .verdict-head { color: #6cc48d; }
 
 .verdict-mark {
   flex: 0 0 auto;
@@ -544,12 +552,12 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: var(--shadow-md); text-align: center;
 }
 .score-big {
-  font-family: var(--font-heading); font-weight: 400;
+  font-family: var(--font-heading); font-weight: 700;
   font-size: 2.75rem; line-height: 1;
   font-variant-numeric: tabular-nums; color: var(--ink-soft);
   margin: .25rem 0 1rem;
 }
-.score-big strong { font-weight: 400; color: var(--accent); }
+.score-big strong { font-weight: 700; color: var(--accent); }
 .score-track {
   height: 8px; background: var(--line); border-radius: 99px;
   overflow: hidden; margin-bottom: 1rem;
@@ -605,7 +613,7 @@ input[type="range"]::-moz-range-thumb {
   color: var(--accent-2);
 }
 
-.card-title { font-family: var(--font-heading); font-weight: 400; font-size: 1.2rem; margin: 0 0 .45rem; line-height: 1.3; }
+.card-title { font-family: var(--font-heading); font-weight: 700; font-size: 1.2rem; margin: 0 0 .45rem; line-height: 1.3; }
 .card-blurb { color: var(--ink-soft); font-size: .92rem; margin: 0 0 .9rem; }
 .card-go { color: var(--accent); font-weight: 650; font-size: .92rem; }
 

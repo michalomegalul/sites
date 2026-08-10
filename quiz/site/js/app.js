@@ -128,6 +128,26 @@
     });
   }
 
+  /* Light/dark switch. Bound once (the handler itself never changes), then
+     just re-labelled whenever the locale is known — same pattern as the brand
+     link and the language nav, which are also re-rendered rather than kept in
+     sync incrementally. */
+  var themeToggleBound = false;
+  function renderThemeToggle() {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn || !window.QuizTheme) return;
+    var mode = window.QuizTheme.getMode();
+    btn.setAttribute('aria-pressed', String(mode === 'dark'));
+    btn.setAttribute('aria-label', mode === 'dark' ? t.themeToLight : t.themeToDark);
+    if (!themeToggleBound) {
+      themeToggleBound = true;
+      btn.addEventListener('click', function () {
+        window.QuizTheme.setMode(window.QuizTheme.getMode() === 'dark' ? 'light' : 'dark');
+        renderThemeToggle();
+      });
+    }
+  }
+
   /* Shown on the chooser, consent and thanks screens — not while answering.
      A question screen is supposed to hold one question and nothing competing
      with it, and an "all questionnaires" link mid-survey is an accidental exit
@@ -1114,6 +1134,7 @@
 
     renderBrand();
     renderSiteBarLang();
+    renderThemeToggle();
 
     if (state.view === 'home') return renderHome();
 

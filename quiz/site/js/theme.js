@@ -1,4 +1,5 @@
-/* Applies the survey's accent colour before first paint.
+/* Applies the survey's accent colour AND the light/dark mode before first
+ * paint.
  *
  * The accent is a property of the SURVEY, set by the researcher in the editor —
  * respondents no longer choose it. That is the point: a questionnaire should
@@ -13,12 +14,45 @@
  * it since. A first-time visitor briefly gets the default palette, which is the
  * honest trade — the alternative is blocking first paint on a network call.
  *
+ * Light/dark mode is a separate, simpler choice: not per-survey, not
+ * server-authoritative, just a respondent preference. Default is light
+ * regardless of the OS/browser's prefers-color-scheme — style.css keys dark
+ * off `[data-theme="dark"]` alone, no media query — so a first-time visitor
+ * on a dark-mode OS still gets the warm cream ground the survey was designed
+ * against, and only sees dark if they ask for it via the switch in the site
+ * bar (rendered by app.js's renderThemeToggle).
+ *
  * A separate file rather than an inline <script> because the CSP is
  * script-src 'self' with no 'unsafe-inline'. Loads after palette.js, which
  * does the derivation and the contrast clamping.
  */
 (function () {
   'use strict';
+
+  var MODE_KEY = 'quiz:theme-mode';
+
+  function getMode() {
+    var m = null;
+    try { m = localStorage.getItem(MODE_KEY); } catch (e) { /* private mode */ }
+    return m === 'dark' ? 'dark' : 'light';
+  }
+
+  function applyMode(mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+    var meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) meta.setAttribute('content', mode);
+  }
+
+  window.QuizTheme = {
+    getMode: getMode,
+    setMode: function (mode) {
+      mode = mode === 'dark' ? 'dark' : 'light';
+      try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private mode */ }
+      applyMode(mode);
+    }
+  };
+
+  applyMode(getMode());
 
   var PREFIX = 'quiz:accent:';
 
