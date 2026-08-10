@@ -124,6 +124,15 @@ body {
   outline-offset: 3px;
   border-radius: 6px;
 }
+/* app.js moves keyboard focus to #screen (a tabindex="-1" <main>) after every
+   screen change, so assistive tech and keyboard users land on the new content
+   without tabbing through the whole page again — that focus move is the
+   point. The ring the rule above draws around it is not: it boxes the entire
+   question, appears the instant the screen loads, and vanishes the moment
+   focus moves anywhere else, which reads as a rendering glitch rather than a
+   focus indicator. A landmark, not a control, so it gets the move without
+   the visible ring. */
+#screen:focus-visible { outline: none; }
 
 /* ---------------------------------------------------------------- site bar */
 /* Brand and language. The palette picker that used to live here moved into the
