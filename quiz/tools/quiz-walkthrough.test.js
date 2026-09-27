@@ -108,7 +108,7 @@ const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
   // jsdom does not try to fetch them.
   .replace(/<script[^>]*src=[^>]*><\/script>/g, '');
 
-const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://quiz.dobsinsky.xyz/cs/s/endo-znalosti' });
+const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://quiz.dobsinsky.dev/cs/s/endo-znalosti' });
 const { window } = dom;
 
 window.fetch = (url, opts = {}) => {

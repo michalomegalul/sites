@@ -1,4 +1,4 @@
-"""dobsinsky.xyz portfolio API
+"""dobsinsky.dev portfolio API
 Run behind nginx. See nginx.conf in repo root for the header contract:
   - nginx MUST set X-Real-IP (and overwrite anything the client sent)
   - nginx sets X-Net: lan  ONLY on the LAN/Tailscale server block
@@ -56,7 +56,7 @@ PVE_VERIFY = os.getenv("PVE_VERIFY", "0") == "1"
 STEAM_API_KEY = os.getenv("STEAM_API_KEY", "")
 STEAM_VANITY = os.getenv("STEAM_VANITY", "ahoj_a_koukni_lul")
 
-NTFY_URL = os.getenv("NTFY_URL", "")        # e.g. https://ntfy.dobsinsky.xyz/portfolio
+NTFY_URL = os.getenv("NTFY_URL", "")        # e.g. https://ntfy.dobsinsky.dev/portfolio
 NTFY_TOKEN = os.getenv("NTFY_TOKEN", "")    # optional bearer token
 
 SERVICES = [
@@ -69,7 +69,7 @@ SERVICES = [
     {"name": "Pi-hole", "url": "http://192.168.4.25/admin", "note": "dns"},
     {"name": "Home Assistant", "url": "http://192.168.4.26:8123", "note": "home"},
     {"name": "Proxmox", "url": "https://192.168.4.10:8006", "note": "host"},
-    {"name": "Ntfy", "url": "https://ntfy.dobsinsky.xyz", "note": "alerts"},
+    {"name": "Ntfy", "url": "https://ntfy.dobsinsky.dev", "note": "alerts"},
 ]
 
 # --------------------------------------------------------------- db

@@ -1,4 +1,4 @@
-"""quiz.dobsinsky.xyz — survey engine API.
+"""quiz.dobsinsky.dev — survey engine API.
 
 Surveys are rows, not code. See ../SPEC.md for the constraints this file exists
 to enforce; the ones that bite are:

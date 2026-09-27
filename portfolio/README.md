@@ -1,4 +1,4 @@
-# dobsinsky.xyz — portfolio
+# dobsinsky.dev — portfolio
 
 Static brutalist site + tiny Flask API. Public side: CV, projects, contact.
 Trusted side (LAN/Tailscale only): Proxmox stats, service links, visitor tagging.
@@ -32,7 +32,7 @@ nano /etc/nginx/sites-enabled/portfolio   # set LAN IP of this container
 nginx -t && systemctl reload nginx
 ```
 
-Cloudflare Tunnel: point the `dobsinsky.xyz` ingress at `http://127.0.0.1:8480`.
+Cloudflare Tunnel: point the `dobsinsky.dev` ingress at `http://127.0.0.1:8480`.
 
 > **Path check.** The monorepo restructure moved this to `/opt/sites/portfolio`,
 > but `portfolio-api.service` and `nginx.conf` in this directory still reference

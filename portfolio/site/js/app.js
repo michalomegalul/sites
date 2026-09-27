@@ -1,4 +1,4 @@
-/* dobsinsky.xyz - app.js
+/* dobsinsky.dev - app.js
    Everything degrades gracefully: if /api is unreachable (e.g. previewing
    the file locally), demo data is shown and trusted mode stays off. */
 
@@ -519,7 +519,7 @@ async function loadVisitors() {
 
 /* ---------------- copy email ---------------- */
 $('#mx-copy').addEventListener('click', async () => {
-  await navigator.clipboard.writeText('michal@dobsinsky.xyz');
+  await navigator.clipboard.writeText('michal@dobsinsky.dev');
   $('#mx-copy').textContent = 'copied ✓';
   setTimeout(() => ($('#mx-copy').textContent = 'copy address'), 1500);
 });

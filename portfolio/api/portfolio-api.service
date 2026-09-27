@@ -1,5 +1,5 @@
 [Unit]
-Description=dobsinsky.xyz portfolio API
+Description=dobsinsky.dev portfolio API
 After=network.target
 
 [Service]

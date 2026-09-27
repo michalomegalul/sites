@@ -2,22 +2,27 @@
  *
  * Design brief, from SPEC: this is filled in on a phone, often lying down, by
  * someone who feels awful. So: one question per screen, nothing below 56px
- * that has to be tapped, no animation that moves the thing you are aiming at,
- * and a palette that is warm rather than clinical.
+ * that has to be tapped, no animation that moves the thing you are aiming at.
  *
- * "Organic" system (see quiz/Quiz UI redesign/design_handoff_quiz_ui/): warm
- * cream ground, terracotta accent, rounded cards. The mock pairs a display
- * face (Caprasimo) over a plain body face (Figtree); Caprasimo turned out to
- * be missing most Czech diacritic glyphs (see the @font-face comment below),
- * so Figtree carries both roles — body at 400, headings at 700. Colours below
- * are DERIVED, not literal — the researcher
- * picks one accent per survey via the editor's colour wheel and
- * js/palette.js produces the rest, clamping lightness until the contrast
- * floors hold (tools/palette.test.js proves this over 1,448 seed hues). The
- * values in :root are what that derivation returns for the system's own
- * terracotta seed (#c67139) — the NULL-accent default — so "no survey has
- * picked a colour yet" and "a survey picked terracotta" are the same code
- * path, not two palettes to keep in sync by hand.
+ * Palette anchor: endometriosis-awareness yellow — the condition's own ribbon
+ * colour, chosen so a link shared in a DM reads as a cause rather than a
+ * generic product. Because bright yellow cannot carry text on a near-white
+ * ground, the identity is split: --accent is a text-safe deep gold, and
+ * --accent-solid is the ribbon yellow used only as a fill under dark ink (see
+ * the :root comment). The earlier "organic" cream+terracotta system was
+ * dropped: that specific pairing has become the most recognisable "AI default"
+ * skin, which is the wrong signal for original student research.
+ *
+ * A researcher may still override per survey via the editor's colour wheel;
+ * js/palette.js derives the rest from that one hue, clamping lightness until
+ * the contrast floors hold (tools/palette.test.js proves this over 1,448 seed
+ * hues). The :root values below are the NULL-accent default — what a survey
+ * that has picked no colour uses — expressed literally here rather than derived.
+ *
+ * Body face is still Figtree (full Czech coverage; Caprasimo was dropped for
+ * missing diacritics — see the @font-face comment). A grotesque display face
+ * with verified ě ů ž č ř ď ť ň coverage is a deliberate next step, not done
+ * here, precisely so it does not repeat the broken-glyph regression.
  */
 
 /* Caprasimo (the mock's display face) was tried and dropped: its latin-ext
@@ -46,13 +51,23 @@
 }
 
 :root {
-  --bg:        #f4e6dc;
-  --bg-raised: #e9d4c6;
-  --ink:       #2b2827;
-  --ink-soft:  #645a54;
-  --accent:    #8b4f28;
-  --accent-2:  #be6c37;
-  --accent-bg: #f4efeb;
+  --bg:        #fbfaf7;
+  --bg-raised: #f3f1ea;
+  --ink:       #1c1b19;
+  --ink-soft:  #5c5852;
+  /* Endometriosis-awareness yellow is the anchor — the disease's own ribbon
+     colour, not a decorative accent. It cannot be a text colour on a near-white
+     ground (bright ribbon yellow fails the AA floor palette.js enforces), so it
+     lives in two roles: --accent is a text-safe deep gold used everywhere the
+     accent is drawn as ink or a thin stroke (links, eyebrow, option borders,
+     body-map regions), and --accent-solid is the literal ribbon yellow, used
+     ONLY as a fill under dark --accent-ink (the primary button, the progress
+     fill) where the yellow is large and contrast is trivial. */
+  --accent:       #8a6a00;
+  --accent-2:     #b8890a;
+  --accent-solid: #e8b10a;
+  --accent-ink:   #1c1b19;
+  --accent-bg:    #fbf3d6;
   --line:      color-mix(in srgb, var(--ink) 14%, transparent);
   --focus:     var(--accent);
 
@@ -86,13 +101,18 @@
    none exists yet — so a first-time visitor never sees an unrequested dark
    flash even on a dark-mode OS. */
 :root[data-theme="dark"] {
-  --bg:        #1b1613;
-  --bg-raised: #2b241f;
-  --ink:       #efedec;
-  --ink-soft:  #afa7a2;
-  --accent:    #ddaa88;
-  --accent-2:  #ce8555;
-  --accent-bg: #342a23;
+  --bg:        #17150f;
+  --bg-raised: #23201a;
+  --ink:       #f2eee6;
+  --ink-soft:  #ada79b;
+  /* On the dark ground the gold can run brighter and still read as text; the
+     ribbon yellow fill and its dark ink stay fixed, because the button is the
+     same yellow in both themes. */
+  --accent:       #e8c24a;
+  --accent-2:     #f2d06a;
+  --accent-solid: #e8b10a;
+  --accent-ink:   #1c1b19;
+  --accent-bg:    #2e2814;
   --pain-1:    #793440;
   --pain-2:    #be374e;
   --pain-3:    #d65168;
@@ -212,7 +232,7 @@ body {
 }
 #progress-fill {
   height: 100%; width: 0%;
-  background: var(--accent);
+  background: var(--accent-solid);
   border-radius: 99px;
   transition: width .35s cubic-bezier(.4, 0, .2, 1);
 }
@@ -416,7 +436,7 @@ input[type="range"]::-moz-range-thumb {
   width: 100%; min-height: 58px; padding: 1rem 1.5rem;
   font-family: var(--font-heading); font-weight: 700; font-size: 1.05rem;
   border: 0; border-radius: 999px; cursor: pointer;
-  background: var(--accent); color: var(--bg); box-shadow: var(--shadow-md);
+  background: var(--accent-solid); color: var(--accent-ink); box-shadow: var(--shadow-md);
   transition: transform .08s, filter .15s;
 }
 .btn:hover { filter: brightness(1.08); }

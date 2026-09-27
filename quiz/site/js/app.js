@@ -1,4 +1,4 @@
-/* quiz.dobsinsky.xyz — survey runner.
+/* quiz.dobsinsky.dev — survey runner.
  *
  * Vanilla, no build step: the deploy script has no npm stage and shouldn't
  * need one (SPEC). Screens are rendered one question at a time; every answer

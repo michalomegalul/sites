@@ -1,4 +1,4 @@
-/* dobsinsky.xyz - terminal.js v2
+/* dobsinsky.dev - terminal.js v2
    themes · snake · real neofetch · nano/vim · msg→ntfy · admin mode */
 
 (() => {
@@ -6,7 +6,7 @@
   const overlay = document.getElementById('term');
   const out = document.getElementById('term-out');
   const input = document.getElementById('term-in');
-  const PROMPT = () => `${state.trusted ? 'michal' : 'guest'}@dobsinsky.xyz:~$`;
+  const PROMPT = () => `${state.trusted ? 'michal' : 'guest'}@dobsinsky.dev:~$`;
 
   const state = { trusted: false, history: [], hIdx: -1, ssh: 0, game: null, editor: null };
 
@@ -394,10 +394,10 @@
     async dig(args) {
       if (!args[0]) {
         print(';; ANSWER SECTION:');
-        print('dobsinsky.xyz.   300  IN  A     ask cloudflare');
-        print('dobsinsky.xyz.   300  IN  MX    10 see-the-mx-section.');
-        print('dobsinsky.xyz.   300  IN  TXT   "v=human1 role=dev reg=cz"');
-        print('dobsinsky.xyz.   300  IN  PTR   .secret');
+        print('dobsinsky.dev.   300  IN  A     ask cloudflare');
+        print('dobsinsky.dev.   300  IN  MX    10 see-the-mx-section.');
+        print('dobsinsky.dev.   300  IN  TXT   "v=human1 role=dev reg=cz"');
+        print('dobsinsky.dev.   300  IN  PTR   .secret');
         print('');
         print('but this dig is real: try  dig nic.cz MX  or  dig vse.cz AAAA', 'term__dim');
         return;
@@ -792,7 +792,7 @@
     requestAnimationFrame(() => overlay.classList.add('term--open'));
     if (!out.dataset.booted) {
       out.dataset.booted = '1';
-      print('dobsinsky.xyz pseudo-shell - unauthenticated session', 'term__dim');
+      print('dobsinsky.dev pseudo-shell - unauthenticated session', 'term__dim');
       print("type 'help'. everything you do is logged. probably.", 'term__dim');
       print('');
     }

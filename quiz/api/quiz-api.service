@@ -1,5 +1,5 @@
 [Unit]
-Description=quiz.dobsinsky.xyz survey API
+Description=quiz.dobsinsky.dev survey API
 After=network.target
 
 [Service]

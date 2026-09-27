@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# One-time setup for quiz.dobsinsky.xyz on the cloudflared LXC.
+# One-time setup for quiz.dobsinsky.dev on the cloudflared LXC.
 #
 # Run as root on the host:
 #     bash /opt/sites/deploy/bootstrap-quiz.sh
@@ -159,7 +159,7 @@ cat <<'EOF'
 
      systemctl restart quiz-api && curl -s localhost:5051/api/health
 
-3. Cloudflare Tunnel: ingress for quiz.dobsinsky.xyz -> http://127.0.0.1:8480
+3. Cloudflare Tunnel: ingress for quiz.dobsinsky.dev -> http://127.0.0.1:8480
 
-Then: https://quiz.dobsinsky.xyz/cs/s/endo-2026
+Then: https://quiz.dobsinsky.dev/cs/s/endo-2026
 EOF

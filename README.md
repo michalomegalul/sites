@@ -5,8 +5,8 @@ Monorepo for everything served off the `cloudflared` LXC. One checkout at
 
 | Site | Domain | What it is |
 |---|---|---|
-| [`portfolio/`](portfolio/) | `dobsinsky.xyz` | CV, projects, and a trusted-only Proxmox panel |
-| [`quiz/`](quiz/) | `quiz.dobsinsky.xyz` | self-hosted survey engine — see [`quiz/SPEC.md`](quiz/SPEC.md) |
+| [`portfolio/`](portfolio/) | `dobsinsky.dev` | CV, projects, and a trusted-only Proxmox panel |
+| [`quiz/`](quiz/) | `quiz.dobsinsky.dev` | self-hosted survey engine — see [`quiz/SPEC.md`](quiz/SPEC.md) |
 
 ```
 deploy/deploy.sh      shared: git reset --hard, rebuild venv, restart unit, reload nginx
@@ -166,7 +166,7 @@ nano /etc/nginx/sites-enabled/quiz        # confirm the LAN IP in the internal b
 nginx -t && systemctl reload nginx
 ```
 
-**4. Cloudflare Tunnel.** Add a `quiz.dobsinsky.xyz` ingress pointing at
+**4. Cloudflare Tunnel.** Add a `quiz.dobsinsky.dev` ingress pointing at
 `http://127.0.0.1:8480`. Both sites share that port and are separated by
 `server_name`.
 
@@ -204,7 +204,7 @@ diagnosis predicts a higher score.
 
 ## The landing page
 
-`https://quiz.dobsinsky.xyz/` is a chooser listing every open survey, built from
+`https://quiz.dobsinsky.dev/` is a chooser listing every open survey, built from
 the public `GET /api/surveys`. It used to redirect straight into `endo-2026`.
 
 That endpoint is deliberately not `/api/admin/surveys`: the admin one carries
@@ -278,10 +278,10 @@ on a network round trip.
 ## Links to hand out
 
 ```
-https://quiz.dobsinsky.xyz/                                chooser (all surveys)
-https://quiz.dobsinsky.xyz/cs/s/endo-2026?src=insta        patient questionnaire
-https://quiz.dobsinsky.xyz/cs/s/endo-znalosti?src=insta    awareness quiz
-https://quiz.dobsinsky.xyz/en/s/endo-znalosti?src=insta
+https://quiz.dobsinsky.dev/                                chooser (all surveys)
+https://quiz.dobsinsky.dev/cs/s/endo-2026?src=insta        patient questionnaire
+https://quiz.dobsinsky.dev/cs/s/endo-znalosti?src=insta    awareness quiz
+https://quiz.dobsinsky.dev/en/s/endo-znalosti?src=insta
 ```
 
 Language is the path segment, never a cookie — a Czech link pasted into a Czech
@@ -302,7 +302,7 @@ survey with links to its dashboard, its editor and its CSV export. Install
 Tailscale on your phone and the same URL works from anywhere, with nothing
 exposed to the internet.
 
-This is deliberately *not* reachable at `quiz.dobsinsky.xyz` from your home
+This is deliberately *not* reachable at `quiz.dobsinsky.dev` from your home
 broadband. It would mean allowlisting a residential IP, and the editor can
 delete collected answers — the day the ISP reassigns that address, whoever gets
 it inherits the access. Tailscale costs one app and has no such failure mode.
@@ -360,12 +360,12 @@ portfolio, `GET /api/visits` counts people and visits from the existing
 Three layers, outside-in. The first two need no script on the page.
 
 **1. Cloudflare (do this first — it is where the traffic actually arrives).**
-In the dashboard for `dobsinsky.xyz`:
+In the dashboard for `dobsinsky.dev`:
 
 - **Security → Bots → Bot Fight Mode: on.** Challenges known bad automation at
   the edge, before it ever reaches the tunnel.
 - **Security → WAF → Rate limiting rules.** Add one: expression
-  `(http.host eq "quiz.dobsinsky.xyz" and starts_with(http.request.uri.path, "/api/"))`,
+  `(http.host eq "quiz.dobsinsky.dev" and starts_with(http.request.uri.path, "/api/"))`,
   10 requests per 10 seconds per IP, action *Block*, duration 60 s.
 - **Security → WAF → Custom rules.** Managed Challenge where
   `cf.threat_score gt 20` on that hostname.
@@ -464,7 +464,7 @@ line: aggregate is public, per-visitor is not.
 
 ### The counter on the portfolio
 
-The status bar on `dobsinsky.xyz` shows `⛨ N BLOCKED · M/7D`, served by
+The status bar on `dobsinsky.dev` shows `⛨ N BLOCKED · M/7D`, served by
 `GET /api/crowdsec`. It is public but returns **counts only** — the addresses
 behind them never leave the box. Publishing a blocked-IP list would be both a
 privacy problem and a free reputation feed for whoever wanted one.

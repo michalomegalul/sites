@@ -1,4 +1,4 @@
-# dobsinsky.xyz — crawl the CV, leave the API alone.
+# dobsinsky.dev — crawl the CV, leave the API alone.
 #
 # /api/ is disallowed because it is dynamic and pointless to index: the trusted
 # endpoints 403 for a crawler anyway, and the public ones return live numbers
@@ -9,4 +9,4 @@ User-agent: *
 Disallow: /api/
 Allow: /
 
-Sitemap: https://dobsinsky.xyz/sitemap.xml
+Sitemap: https://dobsinsky.dev/sitemap.xml

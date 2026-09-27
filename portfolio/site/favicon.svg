@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- dobsinsky.xyz — the `;;` that opens every comment line in a dig answer,
+<!-- dobsinsky.dev — the `;;` that opens every comment line in a dig answer,
      which is the whole visual idiom of the site. Drawn as shapes rather than
      <text> because a favicon cannot rely on a font being available. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="dobsinsky.xyz">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="dobsinsky.dev">
   <rect width="64" height="64" rx="10" fill="#0C0C0E"/>
   <!-- two semicolons: dot over comma, twice -->
   <g fill="#FFB000">

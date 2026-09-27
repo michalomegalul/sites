@@ -1,4 +1,4 @@
-# quiz.dobsinsky.xyz — survey engine
+# quiz.dobsinsky.dev — survey engine
 
 Handoff spec. Everything below is decided; treat open questions as the only
 things to ask about.
@@ -45,7 +45,7 @@ Prefer closed questions; keep free-text few and narrow.
   checkout.**
 - App: gunicorn on `127.0.0.1:5051`, systemd unit `quiz-api`, `User=www-data`.
 - nginx serves `quiz/site/` statically and proxies `/api/` to `:5051`.
-  Single `listen 127.0.0.1:8480` block, `server_name quiz.dobsinsky.xyz`.
+  Single `listen 127.0.0.1:8480` block, `server_name quiz.dobsinsky.dev`.
   Must force `X-Net: public` and set `X-Real-IP` from `CF-Connecting-IP`,
   matching the portfolio's existing trust contract, so the new subdomain
   cannot be used to spoof into it.

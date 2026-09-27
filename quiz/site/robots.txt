@@ -1,4 +1,4 @@
-# quiz.dobsinsky.xyz — no search indexing, but link previews must still work.
+# quiz.dobsinsky.dev — no search indexing, but link previews must still work.
 #
 # Why not indexed: a search result pointing at a live health survey invites
 # respondents who were never approached personally and arrive with no ?src=
