@@ -144,3 +144,19 @@
   border-radius: 8px; padding: .9rem 1.1rem; font-size: .87rem; color: var(--ink-2); margin-bottom: 2rem;
 }
 .empty { color: var(--ink-3); font-size: .87rem; padding: .5rem 0; }
+
+/* ------------------------------------------------------------ share links */
+.share-form, .share-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+.viz .share-tag, .viz .share-lang, .viz .share-url {
+  font: inherit; font-size: .87rem; min-height: 40px; padding: .45rem .8rem;
+  border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--raised); color: var(--ink);
+}
+.viz .share-tag { flex: 1 1 16rem; }
+.viz .share-url { flex: 1 1 22rem; min-width: 0; color: var(--ink-2); }
+.viz .share-tag:focus, .viz .share-lang:focus, .viz .share-url:focus { outline: 2px solid var(--series); outline-offset: 1px; }
+.viz button.toggle:disabled { opacity: .5; cursor: default; }
+.share-meta { font-size: .8rem; color: var(--ink-3); }
+.share-list { margin-top: 1rem; }
+.share-list .share-row { margin-bottom: .5rem; }
+.share-list .share-meta { flex-basis: 100%; margin-top: -.25rem; }

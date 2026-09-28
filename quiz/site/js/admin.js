@@ -130,6 +130,8 @@
     bar.appendChild(pr);
     root.appendChild(bar);
 
+    root.appendChild(sharePanel(survey.locales || ['cs']));
+
     if (done < 5) {
       root.appendChild(h('div', 'warn',
         'Fewer than five completed responses. Percentages are not meaningful yet, ' +
@@ -269,6 +271,139 @@
       return { label: d.ua_family || 'unknown', value: Number(d.n) };
     }), { labelHead: 'Device', valueHead: 'Responses' }));
     root.appendChild(s6);
+  }
+
+  // ---- share links
+  // Type where the link is going ("Instagram story", "Gymnázium Brno"), get a
+  // tagged public link to copy. The tag is registered as a source first, so
+  // responses arriving through it show up under "Where they came from".
+  var PUBLIC = ((window.QUIZ_CONFIG || {}).publicOrigin || location.origin).replace(/\/$/, '');
+
+  function tagOf(text) {
+    return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+  }
+
+  function linkFor(locale, tag) {
+    return PUBLIC + '/' + locale + '/s/' + encodeURIComponent(SLUG) + '?src=' + tag;
+  }
+
+  // navigator.clipboard needs a secure context, and the dashboard is served
+  // over plain http on the internal hostname — fall back to a selection copy.
+  function copy(text, btn) {
+    var done = function () {
+      var was = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = was; }, 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done);
+      return;
+    }
+    var ta = h('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+  }
+
+  function linkRow(url, meta) {
+    var row = h('div', 'share-row');
+    var field = h('input', 'share-url');
+    field.value = url;
+    field.readOnly = true;
+    field.addEventListener('focus', function () { field.select(); });
+    var btn = h('button', 'toggle', 'Copy');
+    btn.type = 'button';
+    btn.addEventListener('click', function () { copy(url, btn); });
+    row.appendChild(field);
+    row.appendChild(btn);
+    if (meta) row.appendChild(h('span', 'share-meta', meta));
+    return row;
+  }
+
+  function sharePanel(locales) {
+    var s = section('Share links',
+      'Write where the link is going, e.g. "Instagram story" or "Gymnázium Brno". ' +
+      'Each tag is counted separately under "Where they came from".');
+
+    var form = h('form', 'share-form');
+    var input = h('input', 'share-tag');
+    input.placeholder = 'Where will you share it?';
+    input.maxLength = 60;
+    input.required = true;
+    var lang = h('select', 'share-lang');
+    locales.forEach(function (l) {
+      var o = h('option', null, l === 'cs' ? 'Čeština' : l === 'en' ? 'English' : l);
+      o.value = l;
+      lang.appendChild(o);
+    });
+    var make = h('button', 'toggle', 'Create link');
+    make.type = 'submit';
+    var preview = h('span', 'share-meta');
+    input.addEventListener('input', function () {
+      var t = tagOf(input.value);
+      preview.textContent = t ? 'tag: ' + t : '';
+    });
+    form.appendChild(input);
+    form.appendChild(lang);
+    form.appendChild(make);
+    form.appendChild(preview);
+    s.appendChild(form);
+
+    var result = h('div');
+    s.appendChild(result);
+
+    var list = h('div', 'share-list');
+    s.appendChild(list);
+
+    function refresh() {
+      get('/api/admin/' + encodeURIComponent(SLUG) + '/sources').then(function (r) {
+        list.textContent = '';
+        if (!r.sources.length) return;
+        list.appendChild(h('p', 'note', 'Existing tags (' + lang.value + ' links):'));
+        r.sources.forEach(function (src) {
+          list.appendChild(linkRow(linkFor(lang.value, src.code),
+            (src.label && src.label !== src.code ? src.label + ' · ' : '') +
+            src.started + ' started · ' + src.completed + ' completed'));
+        });
+      }).catch(function () {});
+    }
+    lang.addEventListener('change', refresh);
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var tag = tagOf(input.value);
+      result.textContent = '';
+      if (!tag) {
+        result.appendChild(h('p', 'warn', 'Use at least one letter or number.'));
+        return;
+      }
+      make.disabled = true;
+      fetch('/api/admin/' + encodeURIComponent(SLUG) + '/sources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: tag, label: input.value.trim() })
+      }).then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      }).then(function (src) {
+        var url = linkFor(lang.value, src.code);
+        result.appendChild(linkRow(url, 'tag: ' + src.code));
+        result.querySelector('.share-url').focus();
+        input.value = '';
+        preview.textContent = '';
+        refresh();
+      }).catch(function (e) {
+        result.appendChild(h('p', 'warn', 'Could not create the link (' + e.message + ').'));
+      }).then(function () { make.disabled = false; });
+    });
+
+    refresh();
+    return s;
   }
 
   function rangeOf(spec) {

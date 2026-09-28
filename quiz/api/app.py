@@ -817,6 +817,60 @@ def admin_surveys():
         return jsonify(surveys=cur.fetchall())
 
 
+# Share links. A tag becomes a `sources` row so `?src=<tag>` is attributed;
+# the public start endpoint still never creates one (SPEC: the query string
+# cannot pollute the funnel), so this trusted endpoint is the only way in.
+TAG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
+
+
+@app.get("/api/admin/<slug>/sources")
+@trusted_only
+def admin_sources(slug):
+    if not SLUG_RE.match(slug):
+        return jsonify(error="bad_slug"), 400
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+        cur.execute(
+            "SELECT s.code, s.label, COALESCE(v.started, 0) AS started,"
+            "       COALESCE(v.completed, 0) AS completed"
+            " FROM sources s"
+            " LEFT JOIN v_source_stats v ON v.survey_id = s.survey_id AND v.source = s.code"
+            " WHERE s.survey_id = %s ORDER BY s.id",
+            (survey["id"],),
+        )
+        return jsonify(sources=cur.fetchall())
+
+
+@app.post("/api/admin/<slug>/sources")
+@trusted_only
+def admin_source_create(slug):
+    if not SLUG_RE.match(slug):
+        return jsonify(error="bad_slug"), 400
+    body = request.get_json(silent=True) or {}
+    code = (body.get("code") or "").strip()
+    label = (body.get("label") or "").strip()[:80] or code
+    if not TAG_RE.match(code):
+        return jsonify(error="bad_tag"), 422
+
+    with db().cursor() as cur:
+        survey, _ = load_survey(cur, slug)
+        if survey is None:
+            return jsonify(error="not_found"), 404
+        # Re-sharing an existing tag is normal (a second Instagram post), so a
+        # duplicate is not an error — it returns the same row.
+        cur.execute(
+            "INSERT INTO sources (survey_id, code, label) VALUES (%s, %s, %s)"
+            " ON CONFLICT (survey_id, code) DO UPDATE SET label = sources.label"
+            " RETURNING code, label, (xmax = 0) AS created",
+            (survey["id"], code, label),
+        )
+        row = cur.fetchone()
+        db().commit()
+    return jsonify(row), 201 if row["created"] else 200
+
+
 @app.get("/api/admin/<slug>/edit")
 @trusted_only
 def admin_edit_get(slug):

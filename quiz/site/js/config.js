@@ -17,5 +17,8 @@ window.QUIZ_CONFIG = {
   // `locales` column instead, so a survey that exists in one language only
   // never shows a switcher to a language it has no text for.
   locales: ['cs', 'en'],
-  defaultLocale: 'cs'
+  defaultLocale: 'cs',
+  // Where respondents open the quiz. The dashboard runs on the internal
+  // hostname, so share links cannot be built from location.origin.
+  publicOrigin: 'https://quiz.dobsinsky.dev'
 };
