@@ -609,7 +609,7 @@
       state.feedback[q.code] = fb;
       lock();
       panel.textContent = '';
-      panel.appendChild(verdictPanel(q, fb));
+      panel.appendChild(verdictPanel(q, fb, chosen));
       btn.textContent = t.next;
       btn.disabled = false;
       if (fresh) {
@@ -677,7 +677,22 @@
     return btn;
   }
 
-  function verdictPanel(q, fb) {
+  /* For a many-answer question (multi, or a select-mode body map) "the
+   * correct answer was A, B, C" makes the respondent diff it against their own
+   * picks. Say the difference directly instead: what they missed, and what
+   * they picked that is not part of it. */
+  function answerDiff(q, fb, chosen) {
+    if (q.kind !== 'multi' && q.kind !== 'bodymap') return null;
+    var picked = Array.isArray(chosen) ? chosen
+      : (chosen && typeof chosen === 'object') ? Object.keys(chosen) : [];
+    var want = fb.correct_options || [];
+    return {
+      missed: want.filter(function (c) { return picked.indexOf(c) === -1; }),
+      extra: picked.filter(function (c) { return want.indexOf(c) === -1; })
+    };
+  }
+
+  function verdictPanel(q, fb, chosen) {
     var box = h('div', 'verdict ' + (fb.correct ? 'verdict--ok' : 'verdict--no'));
     var head = h('p', 'verdict-head');
     head.appendChild(h('span', 'verdict-mark', fb.correct ? '✓' : '✕'));
@@ -686,7 +701,17 @@
 
     if (!fb.correct) {
       var labels = q.labels || {};
-      var names = (fb.correct_options || []).map(function (c) { return labels[c] || c; });
+      var nameOf = function (c) { return labels[c] || c; };
+      var diff = answerDiff(q, fb, chosen);
+      [[diff && diff.missed, t.answerMissed], [diff && diff.extra, t.answerExtra]]
+        .forEach(function (pair) {
+          if (!pair[0] || !pair[0].length) return;
+          var p = h('p', 'verdict-answer');
+          p.appendChild(h('strong', null, pair[1] + ' '));
+          p.appendChild(document.createTextNode(pair[0].map(nameOf).join(', ')));
+          box.appendChild(p);
+        });
+      var names = (fb.correct_options || []).map(nameOf);
       if (names.length) {
         var line = h('p', 'verdict-answer');
         line.appendChild(h('strong', null, t.correctAnswerWas + ' '));

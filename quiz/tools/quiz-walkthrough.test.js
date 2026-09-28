@@ -187,6 +187,13 @@ function check(cond, msg) {
 
     // If a verdict appeared, the same button now says Pokračovat — press on.
     if (doc.querySelector('.verdict')) {
+      // q_multi was answered with only its first option, so the verdict must
+      // name what was missed (B) up front, and report nothing extra.
+      if (prompt === 'Které příznaky?') {
+        const v = doc.querySelector('.verdict').textContent;
+        check(/Chybělo: B/.test(v), 'multi verdict names the missed option');
+        check(!/Navíc/.test(v), 'multi verdict reports no extra options');
+      }
       const next = buttonWith('Pokračovat');
       if (next) {
         next.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
@@ -216,6 +223,21 @@ function check(cond, msg) {
   console.log('\nanswers the server received: ' + Object.keys(server.answers).join(', '));
   check(Object.keys(server.answers).length === QUESTIONS.length,
     `all ${QUESTIONS.length} answers reached the server`);
+
+  console.log('\nbody map front/back toggle');
+  // Shoulders exist in both views, so this map builds the toggle. The views
+  // are SVGs, where `.hidden =` is inert — the attribute is what must change.
+  const map = window.BodyMap.create({
+    regions: ['shoulder-l', 'abdomen-lower-l'], levels: 1, t: window.I18N ? window.I18N.cs : {},
+  });
+  doc.body.appendChild(map);
+  const [front, back] = map.querySelectorAll('svg');
+  const [frontBtn, backBtn] = map.querySelectorAll('.view-toggle button');
+  check(!front.hasAttribute('hidden') && back.hasAttribute('hidden'), 'starts on the front view only');
+  backBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  check(front.hasAttribute('hidden') && !back.hasAttribute('hidden'), 'Zezadu shows only the back view');
+  frontBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  check(!front.hasAttribute('hidden') && back.hasAttribute('hidden'), 'Zepředu switches back');
 
   console.log(failures.length ? `\n${failures.length} FAILED` : '\nall checks passed');
   process.exit(failures.length ? 1 : 0);

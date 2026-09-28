@@ -243,8 +243,11 @@
 
     if (hasBack) {
       var show = function (front) {
-        frontSvg.hidden = !front;
-        backSvg.hidden = front;
+        // toggleAttribute, not `.hidden =`: `hidden` is an HTMLElement
+        // property; on an SVGElement assigning it only sets an inert expando,
+        // so the `.bodymap svg[hidden]` rule never matched and both views showed.
+        frontSvg.toggleAttribute('hidden', !front);
+        backSvg.toggleAttribute('hidden', front);
         frontBtn.setAttribute('aria-pressed', String(front));
         backBtn.setAttribute('aria-pressed', String(!front));
       };
