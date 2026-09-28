@@ -4,9 +4,12 @@
 -- handed out (…/s/endo-znalosti?src=…) keep working. The 3 responses that
 -- existed at the time were tests and are deleted with the old questions.
 --
--- Guard: refuse if more than those 3 responses exist by the time this
--- deploys — anything beyond them would be a real respondent, and deleting
+-- Guard: refuse if more than those 3 *completed* responses exist by the time
+-- this deploys — anything beyond them would be a real respondent, and deleting
 -- real answers must be a deliberate decision, not a side effect of a deploy.
+-- Unfinished responses are not counted: they answered questions this file
+-- removes, so they cannot carry over either way (at the time: 9, all from the
+-- same test devices and sessions as the 3 completed tests).
 --
 -- Graded questions carry "correct" in spec and an explain_md per locale
 -- (004). "nevím" is an ungraded-looking option but still counts as wrong on
@@ -18,9 +21,9 @@ DO $$
 BEGIN
   IF (SELECT count(*) FROM responses r
         JOIN surveys s ON s.id = r.survey_id
-       WHERE s.slug = 'endo-znalosti') > 3 THEN
+       WHERE s.slug = 'endo-znalosti' AND r.submitted_at IS NOT NULL) > 3 THEN
     RAISE EXCEPTION
-      'endo-znalosti has more than the 3 known test responses — refusing to replace its questions.';
+      'endo-znalosti has more than the 3 known completed test responses — refusing to replace its questions.';
   END IF;
 END $$;
 
