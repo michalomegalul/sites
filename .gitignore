@@ -17,3 +17,5 @@ quiz/tools/devtest/
 # so committing it would ship a design tool's export in the deploy checkout.
 "quiz/Quiz UI redesign/"
 "quiz/Quiz UI redesign.zip"
+runner.tar.gz
+.claude/*.tmp.*
