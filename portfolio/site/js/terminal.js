@@ -132,41 +132,41 @@
   /* ---------- fake fs (localStorage-backed for guests) ---------- */
   const baseFiles = {
     'about.txt':
-      'Michal Dobšínský, Prague.\nJunior dev at NIC.cz (.cz registry).\nData analytics student at VŠE.\nQualified electrician.',
+      'Michal Dobšínský, Prague.\nJunior dev at CZ.NIC (.cz registry).\nData analytics student at VŠE.\nQualified electrician.',
     'todo.txt':
       '[ ] finish semester\n[ ] stop buying hard drives\n[x] buy another hard drive\n[ ] touch grass (blocked by: homelab)',
+    'cv.txt':
+      "MICHAL DOBŠÍNSKÝ - junior developer, Prague\nmichal@dobsinsky.dev · github.com/michalomegalul\n\nEXPERIENCE\n  2025 -     junior developer, CZ.NIC (.cz registry)\n             python/django apps, DRF APIs, postgres, gitlab review\n  2023 - 24  junior python developer, Luxonis\n             data scripts, computer vision on the OAK-D, opencv\n  06/2024    internship, Applifting (flask, postgres, docker)\n  06/2023    internship, Photon Energy (it support, excel)\n\nEDUCATION\n  2025 -     data analytics, VŠE Prague\n  2026       electrician, vocational qualification\n  2022 - 25  Smíchovská SPŠ a gymnázium\n\nSKILLS\n  python sql r bash js(basic) c#\n  django drf flask postgres docker git linux proxmox nginx\n  opencv esp32 home-assistant\n\nLANGUAGES\n  czech (native) · english (B2-C1) · german (A1-A2)\n\nfull version: cv.html · pdf: cat cv.pdf",
     '.secret': 'you found it. mail me the word "PTR" and I owe you a beer.',
   };
-  const localFS = JSON.parse(localStorage.getItem('termfs') || '{}');
+  let localFS = {};
+  try { localFS = JSON.parse(localStorage.getItem('termfs') || '{}') || {}; } catch { /* blocked or corrupt */ }
   const fsAll = () => ({ ...baseFiles, ...localFS });
+  // `cat cv` finds cv.txt, like tab completion would have.
+  const fileName = (f) => {
+    const fs = fsAll();
+    return fs[f] === undefined && fs[f + '.txt'] !== undefined ? f + '.txt' : f;
+  };
   const fsSave = (name, content) => {
     localFS[name] = content;
-    localStorage.setItem('termfs', JSON.stringify(localFS));
+    try { localStorage.setItem('termfs', JSON.stringify(localFS)); } catch { /* kept for this visit only */ }
   };
 
   const DOG = [
-    '                          ....::..',
-    ':::--===----==+++*++*+=-===---------=++=*#+:',
-    '####*+*=-=**+++++=++**+==------====++++*%%#%%%-',
-    '+==+=---:-====-=++=++-::::-:-+++========+++#%@@@=',
-    '-=*+----:::---=*+::-:::::-:-=++====*****++++#@@@@@:',
-    '+#@%-==-::=++*%%:.....:==-:-==--:::-====++=++*@@@@@#',
-    '-#@@=+=-:-=%#@@%-....=@%+-:==--:..:---::::::-=+#@@@@%',
-    '*@@@#**-::=@@@@*-. .:@@#==-=:::::.:::-==-::.::-=*%@@@#',
-    '%%@@%*%+::-%@%+=.  .%@@#**::-::..::---==-:::..::-#@@@@+',
-    '#%@%@#%%::-*%*+:   +@@@@@#.::.....:-==--=-=++=:.:=@@@@@-',
-    '%@@%%#+@=:+%%*: .=+%@@@@@+....:.:::::::...:=+**+::=%@@@-',
-    '@@@%@#-##=#%#+::+@@@@@@@%...--:.:-=*##*=--::=+*##=:-+%@.',
-    '@%##@%-+@#*+**#%@@@@@@%+:.:%*-..=*%@@@@%@@#----*@@#.+==:::::..',
-    '%%**@@=*@=:=%@@@@@@@@%-:::%@@#::+%@@@@%#@@@#+=-+@@@===#-:--=====--',
-    '@@@@@@+**.-*#%%%@@@@@-:-==@*#%+==+#@@#-=%@@@%**#@@@@-=%@#+--===---',
-    '@@@@@@%%+.:+*+=*#@@@@-:+=*@+==-::+#-:..:-+%%*#%@@@@@%#@@@@#=::----',
-    '@+.:##=##=+--:=#%@@@@%+==%@@@+::-=-..:.:::-*#%@@@@@@@@@@@@%@*:....',
-    '*%  :-+:=#@%%@@@@@@@@@@@#@@@#=++-..:..::::--+@@%@@@@@@@@@%#%@@*.',
-    ' . .:=@%-%@@@@@@@@%+-..  .+#%@#*-:=-..::--#*+%@%=.    .=%@@@@@@@*.',
-    '               ...            -%#+%#--===*@%%@@.         =%%@@@@@@',
-    '                               .+#%##*%*+#%%*:             .:***@%',
-    '                                     .=+:',
+    "                                                   z",
+    "                                                 z",
+    "                                                Z",
+    "           __...------------...__",
+    "       _.-'                      `-._     _.-----._",
+    "     .'                              `-.-'         `-._",
+    "    /                                  /  .'`.   -     `----.",
+    "   ;                                  |  |   |              (@)",
+    "   |        _.--._                    |  |   |                |",
+    "   |      .'      `.                   \\  `.'      ,          |",
+    "    \\    /          \\                   `.     `-.__`---------'",
+    "     `._/            \\___________________/`---.____)___",
+    "   ____/__________)__)_______________(_______)(_______)__",
+    "  (_____________________________________________________)",
   ];
 
   /* ---------- themes ---------- */
@@ -174,7 +174,7 @@
   function setTheme(name) {
     if (name === 'amber') delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = name;
-    localStorage.setItem('theme', name);
+    try { localStorage.setItem('theme', name); } catch { /* theme lasts this visit only */ }
     if (window.__themeChosen) window.__themeChosen();
     if (window.__repaintBg) window.__repaintBg();
   }
@@ -190,6 +190,7 @@
         ['ls / cat / nano', 'look around, edit files'],
         ['vim', 'good luck'],
         ['msg <text>', 'send me a message (goes to my phone)'],
+        ['games', 'list of all games'],
         ['snake', 'wasd or arrows, q quits'],
         ['hangman', 'guess the word (linux/network terms)'],
         ['guess', 'guess the number, 1 to 100'],
@@ -312,8 +313,9 @@
     },
 
     cat(args) {
-      const f = args[0];
-      if (!f) return print('cat: missing operand');
+      if (!args[0]) return print('cat: missing operand');
+      if (args[0] === 'cv.pdf') return printHTML('binary file, <a href="/cv.pdf" download>download cv.pdf</a> instead');
+      const f = fileName(args[0]);
       const fs = fsAll();
       if (f === '.secret') unlock('secret');
       if (fs[f]) return fs[f].split('\n').forEach((l) => print(l));
@@ -321,8 +323,8 @@
     },
 
     nano(args) {
-      const f = args[0];
-      if (!f) return print('nano: which file? (new names are ok, saved only in your browser)');
+      if (!args[0]) return print('nano: which file? (new names are ok, saved only in your browser)');
+      const f = fileName(args[0]);
       if (f === 'now.json' || f === 'status') return cmds.status();
       openEditor(f, fsAll()[f] || '', (txt) => { fsSave(f, txt); print(`wrote ${f}${baseFiles[f] ? ' (your local copy)' : ''}`); });
     },
@@ -841,6 +843,20 @@
       unlock('pet');
     },
 
+    games() {
+      const played = achLoad().played;
+      const list = [
+        ['snake', 'wasd or arrows, eat the ◆'],
+        ['slots', '5×5 slot machine, do not run out of credits'],
+        ['wpm', 'typing test'],
+        ['hangman', 'guess the word (linux/network terms)'],
+        ['guess', 'guess the number, 1 to 100'],
+        ['reaction', 'how fast are you'],
+      ];
+      list.forEach(([g, d]) => print(`  ${played.includes(g) ? '✓' : ' '} ${g.padEnd(10)} ${d}`));
+      print(`${played.filter((g) => GAMES.includes(g)).length}/${GAMES.length} played. screensavers: bonsai, pipes, matrix`, 'term__dim');
+    },
+
     xyzzy() {
       print('nothing happens.');
       unlock('hidden');
@@ -1078,6 +1094,13 @@
     overlay.classList.remove('term--open');
     setTimeout(() => (overlay.hidden = true), 250);
   }
+
+  // For the typing cursor in cursor.js: open the shell and run what was typed.
+  window.__term = {
+    isCommand: (name) => Object.prototype.hasOwnProperty.call(cmds, name.toLowerCase()),
+    names: () => Object.keys(cmds),
+    exec: (line) => { openTerm(); run(line); },
+  };
 
   document.getElementById('term-open').addEventListener('click', openTerm);
   document.getElementById('term-close').addEventListener('click', closeTerm);

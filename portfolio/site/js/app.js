@@ -8,10 +8,13 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------------- visitor id ---------------- */
 function visitorId() {
-  let v = localStorage.getItem('vid');
+  // Storage can be blocked (private mode, site data off); a throw here would
+  // take the whole page script down with it.
+  let v = null;
+  try { v = localStorage.getItem('vid'); } catch (e) { /* storage blocked */ }
   if (!v) {
     v = (crypto.randomUUID ? crypto.randomUUID() : 'v-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 13);
-    localStorage.setItem('vid', v);
+    try { localStorage.setItem('vid', v); } catch (e) { /* storage blocked */ }
   }
   return v;
 }
@@ -53,7 +56,7 @@ const DEFAULT_THEME = 'mocha';
   else document.documentElement.dataset.theme = theme;
 })();
 
-window.__themeChosen = () => sessionStorage.setItem('themeOverride', '1');
+window.__themeChosen = () => { try { sessionStorage.setItem('themeOverride', '1'); } catch (e) { /* storage blocked */ } };
 window.__repaintBg = () => {
   const c = cssVar(currentBgKey) || cssVar('ink');
   if (window.gsap) gsap.killTweensOf('body');

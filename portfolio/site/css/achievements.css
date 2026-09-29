@@ -22,3 +22,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ach-toast { transition: none; transform: none; }
 }
+
+/* Phone: toasts go to the top so they don't cover the footer. */
+@media (max-width: 640px) {
+  #ach-toasts { top: 3rem; bottom: auto; left: 1rem; right: 1rem; align-items: stretch; }
+}
