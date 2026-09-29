@@ -25,19 +25,71 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Person",
-  "name": "Michal Dobšínský",
-  "alternateName": ["Dobšínský", "Michal Dobsinsky"],
-  "url": "https://dobsinsky.dev/",
-  "email": "mailto:michal@dobsinsky.dev",
-  "jobTitle": "Junior Developer",
-  "worksFor": { "@type": "Organization", "name": "CZ.NIC", "url": "https://www.nic.cz" },
-  "alumniOf": { "@type": "CollegeOrUniversity", "name": "Vysoká škola ekonomická v Praze" },
-  "address": { "@type": "PostalAddress", "addressLocality": "Prague", "addressCountry": "CZ" },
-  "image": "https://dobsinsky.dev/img/og.png",
-  "sameAs": [
-    "https://github.com/michalomegalul",
-    "https://www.linkedin.com/in/michal-dobsinsky-496617268"
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://dobsinsky.dev/#website",
+      "url": "https://dobsinsky.dev/",
+      "name": "Michal Dobšínský",
+      "alternateName": [
+        "dobsinsky.dev",
+        "Michal Dobsinsky"
+      ],
+      "inLanguage": "en"
+    },
+    {
+      "@type": "ProfilePage",
+      "@id": "https://dobsinsky.dev/#profile",
+      "url": "https://dobsinsky.dev/",
+      "name": "Michal Dobšínský",
+      "isPartOf": {
+        "@id": "https://dobsinsky.dev/#website"
+      },
+      "mainEntity": {
+        "@id": "https://dobsinsky.dev/#me"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://dobsinsky.dev/#me",
+      "name": "Michal Dobšínský",
+      "givenName": "Michal",
+      "familyName": "Dobšínský",
+      "alternateName": [
+        "Michal Dobsinsky",
+        "Dobšínský"
+      ],
+      "url": "https://dobsinsky.dev/",
+      "email": "mailto:michal@dobsinsky.dev",
+      "image": "https://dobsinsky.dev/img/og.png",
+      "jobTitle": "Junior Developer",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "CZ.NIC",
+        "url": "https://www.nic.cz"
+      },
+      "alumniOf": {
+        "@type": "CollegeOrUniversity",
+        "name": "Vysoká škola ekonomická v Praze"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Prague",
+        "addressCountry": "CZ"
+      },
+      "knowsAbout": [
+        "Python",
+        "Django",
+        "PostgreSQL",
+        "Data analytics",
+        "Proxmox",
+        "Electrical installations"
+      ],
+      "sameAs": [
+        "https://github.com/michalomegalul",
+        "https://www.linkedin.com/in/michal-dobsinsky-496617268"
+      ]
+    }
   ]
 }
 </script>
