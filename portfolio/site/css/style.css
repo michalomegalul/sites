@@ -1,5 +1,5 @@
 /* ============================================================
-   dobsinsky.dev — zone file
+   dobsinsky.dev - zone file
    palette: ink #0C0C0E · cobalt #152A52 · oxide #5E2218 · bone #DFD9CB
    accent:  signal #FFB000 (amber terminal)
    type:    Archivo Black (display) · IBM Plex Mono (everything else)
@@ -94,7 +94,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 .hero__name {
   font-family: var(--display);
   /* Tuned to the LONGER row: "DOBŠÍNSKÝ" is 9 glyphs of Archivo Black, which
-     averages ~0.78em of advance each — about 7em — and the offset row gives up
+     averages ~0.78em of advance each - about 7em - and the offset row gives up
      another 4vw to its indent. At the old 13vw it ran off the right edge on any
      normal laptop. Keep this in step with the indent below if the name changes. */
   font-size: clamp(2.25rem, 10.5vw, 9.5rem);
@@ -130,7 +130,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 .grid--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
 
 .panel {
-  /* Same var-driven transform as .project — attachTilt writes these and no
+  /* Same var-driven transform as .project - attachTilt writes these and no
      longer touches style.transform, so the stylesheet has to compose it here or
      the panels would not tilt at all. */
   --rx: 0deg; --ry: 0deg; --lift: 0;
@@ -154,6 +154,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 .panel__body { font-size: 0.95rem; }
 .panel--terminal { background: #050505; }
 .now__output { font-size: 0.82rem; white-space: pre-wrap; color: #c9ffd8; min-height: 8rem; }
+.now--stale { opacity: 0.5; }
 .panel__foot { margin-top: 1rem; font-size: 0.75rem; color: var(--fg-dim); }
 
 /* ---------- marquee ---------- */
@@ -230,7 +231,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 }
 
 /* ---- 1. HOLOGRAPHIC (Balatro) ------------------------------------------- */
-/* Magenta-dominant with cyan and gold streaks, not a full rainbow — that is
+/* Magenta-dominant with cyan and gold streaks, not a full rainbow - that is
    what separates Balatro's Holographic from its Polychrome. The hue rotates
    with pointer x, because a hologram changes colour with viewing angle; a fixed
    gradient just looks like a sticker. Faintly present at rest and drifting,
@@ -339,6 +340,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 .project__stack { font-size: 0.7rem; color: var(--signal); letter-spacing: 0.08em; }
 .project__desc { font-size: 0.88rem; color: var(--fg); flex: 1; }
 .project__link { align-self: flex-start; font-size: 0.8rem; }
+.project__count { font-size: 0.75rem; color: var(--fg-dim); }
 .project--archive { opacity: 0.85; border-style: dashed; }
 
 .archive-toggle {
@@ -352,7 +354,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 
 /* ---------- SRV / homelab ---------- */
 /* Every section is now `ink`, so this block reads on dark. It used to sit on
-   `bone` and hard-coded ink text and rgba(12,12,14,…) borders — on a dark
+   `bone` and hard-coded ink text and rgba(12,12,14,...) borders - on a dark
    background that was ink-on-ink, i.e. invisible. Everything here goes through
    --fg / --signal instead, so it survives a theme change too. */
 .sec--srv .rec__header { border-color: rgba(255,255,255,0.22); }
@@ -585,3 +587,18 @@ body.term-open { overflow: hidden; }
   gap: 1rem; text-align: center; padding: 2rem;
 }
 .wasted__sub { font-family: var(--mono); font-size: 0.95rem; color: #777; }
+
+/* ---------- viewfinder cursor (js/cursor.js) ---------- */
+.cursor {
+  position: fixed; left: 0; top: 0; z-index: 2147483000;
+  width: 32px; height: 32px; pointer-events: none;
+  color: #fff; fill: currentColor; mix-blend-mode: difference;
+  will-change: transform;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.has-cursor, html.has-cursor * { cursor: none !important; }
+  html.has-cursor #term, html.has-cursor #term * { cursor: auto !important; }
+  html.has-cursor #term .term__input,
+  html.has-cursor textarea,
+  html.has-cursor input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]) { cursor: text !important; }
+}

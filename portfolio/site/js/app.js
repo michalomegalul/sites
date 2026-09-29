@@ -38,7 +38,7 @@ let currentBgKey = 'ink';
  * on the next reload. Whatever setTheme() last wrote is what comes back.
  *
  * `amber` is the palette baked into :root, so it is represented by the ABSENCE
-   of data-theme — that is separate from which theme is the default. Changing the
+   of data-theme - that is separate from which theme is the default. Changing the
    default to mocha only changes what a first-time visitor gets. terminal.js
    reads this too (top-level const in a classic script is visible to later
    scripts). */
@@ -117,11 +117,61 @@ if (window.gsap && !reducedMotion) {
   window.__reveal = reveal;
 }
 
+/* ---------------- scramble / resolve ---------------- */
+/* Random glyphs settle into the real text left to right, like a DNS answer
+   resolving. The accessible name is pinned in aria-label first, so screen
+   readers never see the intermediate glyphs. Length never changes. */
+const SCRAMBLE_GLYPHS = '0123456789abcdef:.-_/';
+function scramble(el, text, duration) {
+  if (el._scramble) el._scramble.kill();
+  const state = { p: 0 };
+  el._scramble = gsap.to(state, {
+    p: 1, duration, ease: 'none',
+    onUpdate: () => {
+      const done = Math.floor(state.p * text.length);
+      let out = '';
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        out += i < done || c === ' ' || c === ';'
+          ? c
+          : SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
+      }
+      el.textContent = out;
+    },
+    onComplete: () => { el.textContent = text; },
+  });
+}
+
+if (window.gsap && !reducedMotion) {
+  /* record headers resolve once, the first time they scroll into view */
+  document.querySelectorAll('.rec__type').forEach((el) => {
+    if (el.closest('[hidden]')) return;
+    const text = el.textContent;
+    const head = el.closest('h2');
+    if (head) head.setAttribute('aria-label', head.textContent.replace(/\s+/g, ' ').trim());
+    ScrollTrigger.create({
+      trigger: el,
+      start: 'top 90%',
+      once: true,
+      onEnter: () => scramble(el, text, 0.5),
+    });
+  });
+
+  /* nav links resolve again on hover and keyboard focus */
+  document.querySelectorAll('.statusbar__nav a').forEach((a) => {
+    const text = a.textContent;
+    a.setAttribute('aria-label', text);
+    const run = () => scramble(a, text, 0.3);
+    a.addEventListener('pointerenter', run);
+    a.addEventListener('focus', run);
+  });
+}
+
 /* mouse tilt on cards (kept subtle) */
 /* Writes CSS custom properties instead of an inline `transform`.
  *
  * The old version assigned el.style.transform directly, which put it in a fight
- * with GSAP's reveal tween on the same element — whichever wrote last won, and
+ * with GSAP's reveal tween on the same element - whichever wrote last won, and
  * the snap-back on mouseleave had no easing at all. That is what made the hover
  * feel broken. CSS owns the transform now and composes it from these vars, so
  * nothing overwrites anything and the return is eased.
@@ -155,7 +205,7 @@ function attachTilt(el, holo) {
     s.setProperty('--bx', (85 - x * 70).toFixed(1) + '%');
     s.setProperty('--by', (85 - y * 70).toFixed(1) + '%');
     // Unitless, for hue-rotate and conic angles. The colour shifting with
-    // viewing angle is the whole point of a hologram — without it you have a
+    // viewing angle is the whole point of a hologram - without it you have a
     // sticker.
     s.setProperty('--hx', (x * 100).toFixed(1));
     s.setProperty('--hy', (y * 100).toFixed(1));
@@ -176,7 +226,7 @@ function attachTilt(el, holo) {
     s.setProperty('--ry', '0deg');
   });
 }
-// Not `.forEach(attachTilt)` — forEach passes the index as the second argument,
+// Not `.forEach(attachTilt)` - forEach passes the index as the second argument,
 // which would land in `holo` and foil every panel after the first.
 document.querySelectorAll('[data-tilt]').forEach((el) => attachTilt(el));
 
@@ -193,6 +243,21 @@ async function loadProjects() {
      alternatives. Collapse this to a single class once one wins. */
   const FX = ['fx-holo', 'fx-foil', 'fx-poly', 'fx-crt', 'fx-glass'];
 
+  /* The count comes through our own API, never straight from the quiz site: the
+     CSP is self-only and this page makes no third-party requests to it. Silent
+     on any failure and on null (fewer than 10 responses, nothing worth showing). */
+  const QUIZ_URL = 'https://quiz.dobsinsky.dev/';
+  const addQuizCount = async (el) => {
+    try {
+      const d = await (await fetch(`${API}/quizcount`)).json();
+      if (typeof d.responses !== 'number' || d.responses < 1) return;
+      const line = document.createElement('p');
+      line.className = 'project__count';
+      line.textContent = `${d.responses}+ responses so far`;
+      el.querySelector('.project__desc').after(line);
+    } catch { /* stays absent */ }
+  };
+
   const card = (p, archive, i) => {
     const el = document.createElement('article');
     el.className = 'project'
@@ -205,9 +270,10 @@ async function loadProjects() {
       ${archive ? '' : '<span class="project__foil" aria-hidden="true"></span><span class="project__glare" aria-hidden="true"></span>'}
     `;
     // Foil only on featured. A page where every card shimmers says nothing about
-    // which ones matter — and the archive is dug live from GitHub, so it is a
+    // which ones matter - and the archive is dug live from GitHub, so it is a
     // long list.
     attachTilt(el, !archive);
+    if (p.url === QUIZ_URL) addQuizCount(el);
     return el;
   };
   data.featured.forEach((p, i) => $('#projects-featured').appendChild(card(p, false, i)));
@@ -249,9 +315,42 @@ $('#archive-toggle').addEventListener('click', () => {
 });
 
 /* ---------------- NOW panel ---------------- */
+const NOW_STALE_DAYS = 30;
+
+/* "updated" is a plain YYYY-MM-DD from the notebook. Returns whole days since
+   then, or null when it is missing, malformed, not a real date or in the future,
+   so the caller shows nothing extra rather than a wrong age. */
+function daysSince(updated) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(updated || '');
+  if (!m) return null;
+  const [y, mo, d] = m.slice(1).map(Number);
+  const then = Date.UTC(y, mo - 1, d);
+  const chk = new Date(then);
+  if (chk.getUTCFullYear() !== y || chk.getUTCMonth() !== mo - 1 || chk.getUTCDate() !== d) return null;
+  const t = new Date();
+  const days = Math.round((Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) - then) / 86400000);
+  return days < 0 ? null : days;
+}
+
+function ageText(days) {
+  const n = (v, unit) => `${v} ${unit}${v === 1 ? '' : 's'} ago`;
+  if (days === 0) return 'today';
+  if (days < 14) return n(days, 'day');
+  if (days < 60) return n(Math.floor(days / 7), 'week');
+  if (days < 730) return n(Math.floor(days / 30), 'month');
+  return n(Math.floor(days / 365), 'year');
+}
+
 async function loadNow() {
   try {
     const now = await (await fetch(`${API}/now`)).json();
+    const days = daysSince(now.updated);
+    const stale = days !== null && days > NOW_STALE_DAYS;
+    /* A notebook nobody has touched for months is not "live", so the label
+       stops saying so and the whole panel is dimmed. */
+    $('#now-label').textContent = stale ? 'NOW (from my notebook)' : 'NOW (live from my notebook)';
+    $('#now-output').classList.toggle('now--stale', stale);
+    const age = days === null ? '' : ` (${stale ? 'last updated ' : ''}${ageText(days)})`;
     $('#now-output').textContent = [
       `$ cat /proc/michal/status`,
       `working_on : ${now.working_on}`,
@@ -259,7 +358,7 @@ async function loadNow() {
       `playing    : ${now.playing}`,
       `reading    : ${now.reading}`,
       `mood       : ${now.mood}`,
-      `updated    : ${now.updated}`,
+      `updated    : ${now.updated}${age}`,
     ].join('\n');
   } catch {
     $('#now-output').textContent =
@@ -348,7 +447,7 @@ async function loadDefence() {
     $('#crowdsec-sep').hidden = false;
   }
   /* Header chip stays hidden when CrowdSec is unreachable. A defence counter
-     showing an invented number is worse than no counter — unlike VITALS, this
+     showing an invented number is worse than no counter - unlike VITALS, this
      one gets no demo fallback. */
 
   const lines = ['crowdsec  · community blocklist'];

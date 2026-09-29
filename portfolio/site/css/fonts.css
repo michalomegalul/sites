@@ -1,5 +1,5 @@
 /* Self-hosted, generated from the Google Fonts CSS and then committed.
- * Only latin and latin-ext are kept — latin-ext carries the Czech
+ * Only latin and latin-ext are kept - latin-ext carries the Czech
  * diacritics, and cyrillic/vietnamese were dead weight. Only weights 400
  * and 700 are here because those are the only two the stylesheet uses; the
  * old <link> was fetching 500 and an italic that nothing referenced.

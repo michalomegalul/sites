@@ -7,7 +7,7 @@ DIR="$ROOT/$SITE"
 
 # Both sites share this one checkout and every deploy runs `git reset --hard`
 # on it. A commit touching portfolio/ and quiz/ fires both workflows, and their
-# concurrency groups are per-workflow so they cannot see each other — with more
+# concurrency groups are per-workflow so they cannot see each other - with more
 # than one self-hosted runner they would reset the tree under each other. Wait
 # our turn instead.
 #
@@ -26,7 +26,7 @@ flock 9
 [ -d "$DIR" ] || { echo "no such site: $SITE"; exit 1; }
 
 # Preflight. Every deploy writes into .git. If anything in there belongs to
-# another user — a deploy once run under sudo, or a clone made as root — git
+# another user - a deploy once run under sudo, or a clone made as root - git
 # dies inside fetch with "insufficient permission for adding an object to
 # repository database .git/objects", which names neither the user nor the file.
 # Say it plainly instead, and point at the fix.

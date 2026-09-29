@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Michal Dobšínský — dobsinsky.dev</title>
-<meta name="description" content="Michal Dobšínský - junior developer @ NIC.cz, data analytics @ VŠE, homelab operator.">
+<title>Michal Dobšínský | dobsinsky.dev</title>
+<meta name="description" content="Michal Dobšínský, junior developer at NIC.cz. Data analytics student at VŠE, homelab on the side.">
 <meta name="author" content="Michal Dobšínský">
 <link rel="canonical" href="https://dobsinsky.dev/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -12,15 +12,15 @@
 <!-- Link preview, for when this gets pasted into a chat or a job application. -->
 <meta property="og:type" content="profile">
 <meta property="og:url" content="https://dobsinsky.dev/">
-<meta property="og:title" content="Michal Dobšínský — dobsinsky.dev">
-<meta property="og:description" content="Junior developer at NIC.cz, the .cz registry. Data analytics at VŠE. Everything on this page is served off a Proxmox box in the next room.">
+<meta property="og:title" content="Michal Dobšínský | dobsinsky.dev">
+<meta property="og:description" content="Junior developer at NIC.cz, the .cz registry. Data analytics at VŠE. This page is served from a Proxmox box in the next room.">
 <meta property="og:image" content="https://dobsinsky.dev/img/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 
 <!-- Structured data: tells search engines this page IS the person, not just a
-     page about them — the thing that makes a name search resolve here instead
+     page about them - the thing that makes a name search resolve here instead
      of to a LinkedIn or GitHub listing. -->
 <script type="application/ld+json">
 {
@@ -48,6 +48,7 @@
 <link rel="preload" href="/fonts/IBMPlexMono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/achievements.css">
 </head>
 <body data-bg="ink">
 
@@ -74,7 +75,7 @@
 
 <!-- ============ HERO / SOA RECORD ============ -->
 <section class="sec sec--hero" data-bg="ink" id="top">
-  <p class="dig-line">;; zone transfer: dobsinsky.dev - human-readable</p>
+  <p class="dig-line">;; zone transfer: dobsinsky.dev (human-readable)</p>
   <p class="dig-line dig-line--dim">;; ANSWER SECTION:</p>
 
   <h1 class="hero__name">
@@ -83,9 +84,9 @@
   </h1>
 
   <div class="hero__soa">
-    <div class="soa__line"><span class="soa__key">ROLE</span><span>junior developer @ <a href="https://www.nic.cz" target="_blank" rel="noopener">NIC.cz</a> - the .cz registry</span></div>
+    <div class="soa__line"><span class="soa__key">ROLE</span><span>junior developer @ <a href="https://www.nic.cz" target="_blank" rel="noopener">NIC.cz</a> (the .cz registry)</span></div>
     <div class="soa__line"><span class="soa__key">EDU</span><span>data analytics @ VŠE Praha · FIS</span></div>
-    <div class="soa__line"><span class="soa__key">ALSO</span><span>requalifying as an electrician - software AND hardware fail differently</span></div>
+    <div class="soa__line"><span class="soa__key">ALSO</span><span>qualified electrician</span></div>
     <div class="soa__line"><span class="soa__key">LOC</span><span>Prague, CZ</span></div>
   </div>
 
@@ -102,38 +103,36 @@
     <div class="panel" data-tilt>
       <p class="panel__label">RECORD</p>
       <p class="panel__body">
-        I'm a developer at NIC.cz, which runs the .cz registry. Alongside that I'm
-        finishing a data analytics degree at VŠE - mostly statistics and R, some
-        machine learning.
+        I'm a developer at NIC.cz, which runs the .cz registry. I'm also
+        finishing a data analytics degree at VŠE, mostly statistics and R with a
+        bit of machine learning.
       </p>
       <p class="panel__body">
-        Most of what I've actually learned came from the Proxmox box in the next
-        room. Roughly fifteen containers, and everything on this page is served
-        off one of them. It breaks in ways tutorials don't cover, which turns out
-        to be the useful part.
+        Most of what I know I picked up from the Proxmox box in the next room.
+        It runs about fifteen containers and this page is served from one of them.
+        It breaks in ways tutorials don't cover.
       </p>
       <p class="panel__body">
-        I'm also retraining as an electrician. Different failure modes: software
-        tells you what went wrong eventually, wiring just doesn't work and waits
-        for you to figure out why.
+        I'm also a qualified electrician. Software at least tells you what
+        went wrong, eventually.
       </p>
       <p class="panel__foot" id="steam-now" hidden></p>
     </div>
 
     <div class="panel panel--terminal" data-tilt>
-      <p class="panel__label">NOW - live from my notebook</p>
-      <pre class="now__output" id="now-output">loading…</pre>
-      <p class="panel__foot" id="last-commit">fetching last commit…</p>
+      <p class="panel__label" id="now-label">NOW (live from my notebook)</p>
+      <pre class="now__output" id="now-output">loading...</pre>
+      <p class="panel__foot" id="last-commit">fetching last commit...</p>
     </div>
 
     <div class="panel panel--terminal" data-tilt>
-      <p class="panel__label">VITALS - the box, live</p>
-      <pre class="now__output" id="pulse-output">querying…</pre>
+      <p class="panel__label">VITALS (the box, live)</p>
+      <pre class="now__output" id="pulse-output">querying...</pre>
     </div>
 
     <div class="panel panel--terminal" data-tilt>
-      <p class="panel__label">DEFENCE - crowdsec + nginx, live</p>
-      <pre class="now__output" id="defence-output">querying…</pre>
+      <p class="panel__label">DEFENCE (crowdsec + nginx, live)</p>
+      <pre class="now__output" id="defence-output">querying...</pre>
     </div>
   </div>
 
@@ -161,7 +160,7 @@
   <h2 class="rec__header"><span class="rec__type">;; SRV</span> internal services <span class="rec__badge">TRUSTED NET</span></h2>
 
   <div class="grid grid--stats" id="pve-stats">
-    <p class="dig-line">querying proxmox…</p>
+    <p class="dig-line">querying proxmox...</p>
   </div>
 
   <div class="grid grid--services" id="service-links"></div>
@@ -180,10 +179,12 @@
   <div class="mx__links">
     <a href="https://github.com/michalomegalul" target="_blank" rel="noopener">github/michalomegalul</a>
     <a href="https://www.linkedin.com/in/michal-dobsinsky-496617268" target="_blank" rel="noopener">linkedin</a>
+    <a href="/cv.pdf" download>cv.pdf</a>
+    <a href="/cv.html">cv (web)</a>
   </div>
   <footer class="footer">
     <p>;; Query time: <span id="render-time">0</span> msec · WHEN: <span id="footer-date"></span></p>
-    <p>;; SERVER: self-hosted on proxmox · nothing third-party, this id never leaves the box <span class="footer__vid" id="footer-vid"></span></p>
+    <p>;; SERVER: self-hosted on proxmox, no third parties. this id stays on the box <span class="footer__vid" id="footer-vid"></span></p>
   </footer>
 </section>
 
@@ -212,6 +213,7 @@
 <script defer src="vendor/gsap.min.js"></script>
 <script defer src="vendor/ScrollTrigger.min.js"></script>
 <script defer src="js/app.js"></script>
+<script defer src="js/cursor.js"></script>
 <script defer src="js/terminal.js"></script>
 </body>
 </html>

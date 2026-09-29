@@ -18,7 +18,7 @@ Environment=HOME=/run/portfolio-api
 
 # visitors.db and now.json live here, not in the checkout. systemd creates
 # /var/lib/portfolio-api owned by User= on first start, which is what makes the
-# directory writable — SQLite needs to create its journal beside the database,
+# directory writable - SQLite needs to create its journal beside the database,
 # so a writable file in a read-only directory is not enough.
 StateDirectory=portfolio-api
 Environment=STATE_DIR=/var/lib/portfolio-api

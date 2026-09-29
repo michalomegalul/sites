@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- One page, one entry. The sections are anchors on it, not separate URLs, so
-     listing them would be claiming pages that do not exist. quiz.dobsinsky.dev
+<!-- The front page, plus the CV page. The sections are anchors on the front
+     page, not separate URLs, so listing them would be claiming pages that do not
+     exist. quiz.dobsinsky.dev
      is deliberately absent: it asks not to be indexed at all. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
@@ -8,5 +9,11 @@
     <lastmod>2026-08-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://dobsinsky.dev/cv.html</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

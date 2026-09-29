@@ -30,7 +30,7 @@ BASE = Path(__file__).parent
 #     tracked here is reverted and anything untracked is one `git clean` away.
 #   * api/ is owned by the runner, not www-data. SQLite writes its rollback
 #     journal next to the database file, so an INSERT needs a writable
-#     *directory*, not just a writable file — which is why /api/visits (a plain
+#     *directory*, not just a writable file - which is why /api/visits (a plain
 #     SELECT) worked while /api/whoami quietly 500'd, and the front end fell back
 #     to PUBLIC because whoami()'s catch swallows the error.
 #
@@ -55,6 +55,8 @@ PVE_VERIFY = os.getenv("PVE_VERIFY", "0") == "1"
 
 STEAM_API_KEY = os.getenv("STEAM_API_KEY", "")
 STEAM_VANITY = os.getenv("STEAM_VANITY", "ahoj_a_koukni_lul")
+
+QUIZ_COUNT_URL = os.getenv("QUIZ_COUNT_URL", "https://quiz.dobsinsky.dev/api/public/count")
 
 NTFY_URL = os.getenv("NTFY_URL", "")        # e.g. https://ntfy.dobsinsky.dev/portfolio
 NTFY_TOKEN = os.getenv("NTFY_TOKEN", "")    # optional bearer token
@@ -209,7 +211,7 @@ def visitors():
 
 @app.get("/api/visits")
 def visits():
-    """Public — aggregate counts only.
+    """Public - aggregate counts only.
 
     /api/visitors above is trusted_only and hands back vids, names and
     user-agent strings. This is the same table reduced to three numbers, and
@@ -369,7 +371,7 @@ def proxmox():
 
 @app.get("/api/pulse")
 def pulse():
-    """Public, reduced vitals — numbers only, no names of services."""
+    """Public, reduced vitals - numbers only, no names of services."""
     try:
         d = _pve_data()
         return jsonify(
@@ -449,7 +451,7 @@ def _crowdsec_data():
 
 @app.get("/api/crowdsec")
 def crowdsec():
-    """Public — counts only, never the addresses behind them.
+    """Public - counts only, never the addresses behind them.
 
     Same rule as /api/pulse. Publishing the blocked-IP list would be both a
     privacy problem and a free reputation feed for anyone who wanted one; the
@@ -459,7 +461,7 @@ def crowdsec():
         return jsonify({"error": "disabled"}), 503
     try:
         return jsonify(_crowdsec_data())
-    except Exception:  # noqa: BLE001 — missing binary, sudo denied, LAPI down
+    except Exception:  # noqa: BLE001 - missing binary, sudo denied, LAPI down
         return jsonify({"error": "crowdsec unavailable"}), 502
 
 
@@ -497,6 +499,32 @@ def steam():
         return jsonify(data)
     except Exception:
         return jsonify({"error": "steam unreachable"}), 502
+
+
+_quiz_cache = {"t": 0, "data": None}
+
+
+@app.get("/api/quizcount")
+def quizcount():
+    """Survey response count for the project card, public, cached 10 min.
+
+    The quiz site already floors the number to a multiple of 10 and sends null
+    under 10; this only relays it, so the browser never has to talk to a second
+    origin.
+    """
+    if time.time() - _quiz_cache["t"] < 600 and _quiz_cache["data"]:
+        return jsonify(_quiz_cache["data"])
+    try:
+        r = requests.get(QUIZ_COUNT_URL, timeout=5)
+        r.raise_for_status()
+        n = r.json()["responses"]
+        if n is not None and (isinstance(n, bool) or not isinstance(n, int)):
+            raise ValueError("responses is not an integer")
+        data = {"responses": n}
+        _quiz_cache.update(t=time.time(), data=data)
+        return jsonify(data)
+    except Exception:  # noqa: BLE001 - network, HTTP status, bad JSON, bad shape
+        return jsonify({"error": "quiz unreachable"}), 502
 
 
 if __name__ == "__main__":

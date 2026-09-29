@@ -1,0 +1,24 @@
+/* achievement toasts + dog art (used by js/terminal.js) */
+
+#ach-toasts {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 300;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;
+  pointer-events: none;
+}
+.ach-toast {
+  font-family: var(--mono); font-size: 0.8rem;
+  color: var(--fg); background: var(--ink);
+  border: 2px solid var(--signal);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+  padding: 0.5rem 0.8rem; max-width: min(24rem, calc(100vw - 2rem));
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.ach-toast::before { content: '> '; color: var(--signal); }
+.ach-toast--in { opacity: 1; transform: none; }
+
+.term__dog { line-height: 1.05; font-size: clamp(0.4rem, 1.6vw, 0.85rem); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ach-toast { transition: none; transform: none; }
+}

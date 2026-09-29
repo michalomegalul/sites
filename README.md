@@ -5,8 +5,8 @@ Monorepo for everything served off the `cloudflared` LXC. One checkout at
 
 | Site | Domain | What it is |
 |---|---|---|
-| [`portfolio/`](portfolio/) | `dobsinsky.dev` | CV, projects, and a trusted-only Proxmox panel |
-| [`quiz/`](quiz/) | `quiz.dobsinsky.dev` | self-hosted survey engine — see [`quiz/SPEC.md`](quiz/SPEC.md) |
+| [`portfolio/`](portfolio/) | `dobsinsky.dev` | CV, projects and a Proxmox panel for trusted networks |
+| [`quiz/`](quiz/) | `quiz.dobsinsky.dev` | self-hosted survey engine - see [`quiz/SPEC.md`](quiz/SPEC.md) |
 
 ```
 deploy/deploy.sh      shared: git reset --hard, rebuild venv, restart unit, reload nginx
@@ -24,9 +24,9 @@ The deploy script does **only** these: fetch and `git reset --hard`, rebuild the
 venv if `requirements.txt` exists, restart `<site>-api` **if that unit is already
 installed**, then `nginx -t && systemctl reload nginx`.
 
-It deliberately does not install systemd units, write `.env`, symlink nginx
+It does not install systemd units, write `.env`, symlink nginx
 configs, or run database migrations. Those are one-time, root-owned, and
-sometimes destructive — so they stay manual. **A green workflow does not mean a
+sometimes destructive, so they stay manual. **A green workflow does not mean a
 working site on first deploy.** See the first-time setup below.
 
 > `git reset --hard` runs every time. Nothing that must survive a deploy may
@@ -53,7 +53,7 @@ pointing at a directory that no longer existed, and a 404 on the live site.
 The fix is `chown -R ghrunner:ghrunner /opt/sites`, but it has a sting:
 
 > That also strips `root:www-data` off **every** `.env`, and python-dotenv raises
-> on a file it cannot read rather than skipping it — so the next restart of
+> on a file it cannot read rather than skipping it - so the next restart of
 > either API dies before it serves a request. Re-apply in the same breath:
 >
 > ```bash
@@ -65,19 +65,19 @@ The fix is `chown -R ghrunner:ghrunner /opt/sites`, but it has a sting:
 > `visitors.db` and `now.json` live in `/var/lib/portfolio-api`, created by
 > systemd's `StateDirectory=` and owned by `www-data`.
 >
-> That move fixed a bug worth remembering the shape of. SQLite writes its
+> That move fixed a bug. SQLite writes its
 > rollback journal *beside* the database file, so a write needs a writable
 > **directory**, not just a writable file. With the database inside the
 > runner-owned checkout, `/api/whoami` raised on every `INSERT` and 500'd, the
 > front end's `catch` swallowed it, and the badge silently read PUBLIC on the
-> LAN — while `/api/visits` kept working the whole time because it is a plain
+> LAN - while `/api/visits` kept working the whole time because it is a plain
 > `SELECT`. It looked like a broken trust contract and was a filesystem
 > permission.
 
 Don't work in `/opt/sites` as root. Use `sudo -u ghrunner` for anything touching
 git.
 
-## quiz — first-time setup
+## quiz - first-time setup
 
 Everything here is done once, as root on the `cloudflared` LXC.
 
@@ -94,7 +94,7 @@ psql -h 192.168.4.32 -U postgres -d quiz -c \
 ```
 
 **Migrations then run themselves.** `deploy.sh` runs `db/migrate.py` before
-restarting the service, so the schema is never behind the code — the failure
+restarting the service, so the schema is never behind the code - the failure
 that motivated this was deploying an app that selected `surveys.mode` before
 that column existed, which 500s every request including the survey that was
 already working.
@@ -102,7 +102,7 @@ already working.
 The runner records what it applied in `schema_migrations` and skips it
 afterwards, so it is a no-op once you are current. On a database that already
 has tables but no `schema_migrations` it adopts `001`–`003` as a baseline
-rather than replaying them — `001` is not idempotent and `003` would delete
+rather than replaying them - `001` is not idempotent and `003` would delete
 collected responses. Run it by hand any time with:
 
 ```bash
@@ -113,22 +113,21 @@ The `ALTER DEFAULT PRIVILEGES` line matters: without it, every migration that
 adds a table or view needs a fresh `GRANT` before the app can read it.
 
 **`migrate.py` now re-asserts those grants itself**, on every run rather than
-only when it applies something — so a database that is already current but
+only when it applies something - so a database that is already current but
 missing a grant repairs itself. It grants to `APP_DB_ROLE` (default `quiz`); if
 the connecting role isn't allowed to grant, it warns loudly and carries on
 rather than failing the deploy.
 
-That exists because of a real outage worth understanding, since the shape
-recurs. Nine views have been created by migrations and **not one carried a
-`GRANT`** — whether the API could read them depended entirely on whether
+That exists because of a real outage. Nine views have been created by migrations and **not one carried a
+`GRANT`** - whether the API could read them depended entirely on whether
 `ALTER DEFAULT PRIVILEGES` happened to be set for whichever role ran the
 migration. When it wasn't, nothing failed at migration time. It surfaced weeks
-later as `permission denied for view v_quiz_stats` — a 500 on the results
+later as `permission denied for view v_quiz_stats` - a 500 on the results
 dashboard, introduced by `004` but only noticed once the quiz had responses
-worth looking at. A migration that succeeds is not the same claim as a schema
-the app can read.
+worth looking at. A migration that succeeded does not mean the app can read
+what it created.
 
-**2. Config.** `.env` must be `640 root:www-data` — python-dotenv raises on an
+**2. Config.** `.env` must be `640 root:www-data` - python-dotenv raises on an
 unreadable file rather than skipping it, and the app loads it as `www-data`.
 
 ```bash
@@ -140,7 +139,7 @@ chown root:www-data .env && chmod 640 .env
 **Two users need to read that file, not one.** The app reads it as `www-data`,
 but `deploy.sh` runs `db/migrate.py` as the **runner**, so `ghrunner` needs it
 too. With `640 root:www-data` and nothing else, every deploy dies in migrate.py
-with `PermissionError: '/opt/sites/quiz/db/../api/.env'` — and because the
+with `PermissionError: '/opt/sites/quiz/db/../api/.env'` - and because the
 migration step precedes the service restart, the deploy stops there. Loosening
 the mode to `644` is the wrong fix: `DATABASE_URL` contains the password. Put the
 runner in the group instead:
@@ -199,7 +198,7 @@ knew that pregnancy does not cure it") and `v_quiz_scores` gives the score
 distribution. Both appear on the dashboard under *What people knew*.
 
 Because `heard_before` and `knows_someone` are ungraded context questions, you
-can segment awareness by them — for example, whether knowing someone with the
+can segment awareness by them - for example, whether knowing someone with the
 diagnosis predicts a higher score.
 
 ## The landing page
@@ -207,10 +206,10 @@ diagnosis predicts a higher score.
 `https://quiz.dobsinsky.dev/` is a chooser listing every open survey, built from
 the public `GET /api/surveys`. It used to redirect straight into `endo-2026`.
 
-That endpoint is deliberately not `/api/admin/surveys`: the admin one carries
+That endpoint is not `/api/admin/surveys`: the admin one carries
 submitted-response counts. The public one returns slug, title, mode, locales and
 the first paragraph of the intro, and **a closed survey is not listed publicly at
-all** — its existence is not something the internet needs to know.
+all** - its existence is not something the internet needs to know.
 
 The response also carries `trusted`, and when it is true the page renders an
 admin block with per-survey links to the dashboard, the editor and the CSV
@@ -225,17 +224,16 @@ one thing to change.
 ## Themes and chrome
 
 The quiz has a site bar (brand, language) and a footer on the chooser, consent
-and thanks screens. Question screens get neither — one question per screen is a
+and thanks screens. Question screens get neither - one question per screen is a
 SPEC rule, and a link out of the survey mid-survey is an accidental exit. The
 print view drops all of it.
 
-### The accent colour is the researcher's, not the respondent's
+### Accent colour
 
 There used to be a four-palette picker in the public header. It is gone. Colour
 is now a property of the **survey**, chosen with a colour wheel in the editor and
-stored in `surveys.accent`. A questionnaire should look the same to everyone
-filling it in, and a palette picker on a question screen is decoration competing
-with the question.
+stored in `surveys.accent`. A questionnaire should look the same for everyone
+filling it in.
 
 **You pick one colour; everything else is derived.** `site/js/palette.js` builds
 the background, ink, borders and accent ramp from that seed and *clamps
@@ -247,7 +245,7 @@ lightness until the contrast floors hold*:
 | secondary text on background | 4.5:1 (AA) |
 | accent on background | 4.5:1 (AA) |
 
-`quiz/tools/palette.test.js` proves this over every hue — 11,584 assertions
+`quiz/tools/palette.test.js` proves this over every hue - 11,584 assertions
 across 1,448 seeds, including pure yellow, neon cyan, white, black and mid grey,
 which are the ones that break naive derivation. Run it after touching the
 derivation:
@@ -260,7 +258,7 @@ Storing the individual variables instead of a seed would hand back exactly the
 way to break this, which is why the wheel gives you one choice. The editor shows
 the derived light and dark palettes side by side with their measured ratios, so
 a colour that only works in one mode is visible before you save. Expect the
-rendered accent to differ from the swatch you picked — that is the clamping
+rendered accent to differ from the swatch you picked - that is the clamping
 doing its job.
 
 `NULL` accent means the built-in rose, so a survey that has never been themed
@@ -284,7 +282,7 @@ https://quiz.dobsinsky.dev/cs/s/endo-znalosti?src=insta    awareness quiz
 https://quiz.dobsinsky.dev/en/s/endo-znalosti?src=insta
 ```
 
-Language is the path segment, never a cookie — a Czech link pasted into a Czech
+Language is the path segment, never a cookie - a Czech link pasted into a Czech
 group cannot land someone in English. `?src=` must match a row in `sources`
 (`direct`, `insta`, `fb-group`, `reddit`, `clinic`, `word`); anything else is
 stored as NULL rather than auto-created, so the funnel cannot be polluted from
@@ -292,7 +290,7 @@ the query string.
 
 ## Reading the results
 
-The dashboard and exports are on the internal hostname only —
+The dashboard and exports are on the internal hostname only -
 `http://quiz.internal/` over LAN or Tailscale. The public block returns 404 for
 both the pages and the admin API, and the API checks the network itself as well.
 
@@ -302,9 +300,9 @@ survey with links to its dashboard, its editor and its CSV export. Install
 Tailscale on your phone and the same URL works from anywhere, with nothing
 exposed to the internet.
 
-This is deliberately *not* reachable at `quiz.dobsinsky.dev` from your home
+This is *not* reachable at `quiz.dobsinsky.dev` from your home
 broadband. It would mean allowlisting a residential IP, and the editor can
-delete collected answers — the day the ISP reassigns that address, whoever gets
+delete collected answers - the day the ISP reassigns that address, whoever gets
 it inherits the access. Tailscale costs one app and has no such failure mode.
 
 | What | Where |
@@ -312,7 +310,7 @@ it inherits the access. Tailscale costs one app and has no such failure mode.
 | **Edit questions and survey text** | `/editor.html` |
 | Completion, sources, drop-off, pain heat map | `/admin.html` |
 | Spreadsheet export, one row per response | `/api/admin/endo-2026/export.csv` |
-| Long format, one row per answer | `…/export.csv?format=long` |
+| Long format, one row per answer | `.../export.csv?format=long` |
 | Blank questionnaire for the thesis appendix | `/cs/s/endo-2026/print` → print to PDF |
 
 CSV columns are keyed on `questions.code`, never on prompt text, so renaming a
@@ -321,32 +319,31 @@ UTF-8 BOM so Excel opens Czech diacritics correctly.
 
 **The useful number is drop-off.** `v_dropoff` gives the last question answered
 by everyone who started but never submitted. A spike at one question means that
-question is the problem — too personal, too confusing, or too much typing.
+question is the problem - too personal, too confusing, or too much typing.
 Position 0 means they consented and left immediately, which points at the
 consent screen or the first question rather than anything deeper in.
 
 ## Analytics
 
-**There is none, and that is a decision rather than a gap.**
+**There is none, on purpose.**
 
 Google Analytics was wired in, consent-gated, deployed, and then removed on
 2026-07-30. Two reasons, in order of weight:
 
 1. **The dashboard already answers the question better.** GA was there to show
    where people give up. `v_dropoff` gives the last question answered by everyone
-   who started and never submitted — by question code, with no sampling and no
+   who started and never submitted - by question code, with no sampling and no
    setup. To chart the same thing in GA you had to register a custom dimension
    and wait for it to start collecting. The local view was always the better
    source; the README said so even while GA was installed.
 2. **It was the only off-origin request left.** Fonts and GSAP are self-hosted
    now, so removing the tag made `default-src 'self'` with no exceptions true of
    the whole site. The CSP in `quiz/nginx.conf` no longer allow-lists anything
-   external, which means a script added by accident is *blocked*, not merely
-   discouraged.
+   external, so a script added by accident gets blocked.
 
 What replaced it: nothing on the quiz, because nothing was needed. On the
 portfolio, `GET /api/visits` counts people and visits from the existing
-`visitors` table — first-party, aggregate, and the id never leaves the box.
+`visitors` table - first-party, aggregate, and the id never leaves the box.
 
 > Worth keeping in mind if you are ever tempted to add a tag back, since it is a
 > thesis on the line: the respondents are a small group approached personally. A
@@ -359,7 +356,7 @@ portfolio, `GET /api/visits` counts people and visits from the existing
 
 Three layers, outside-in. The first two need no script on the page.
 
-**1. Cloudflare (do this first — it is where the traffic actually arrives).**
+**1. Cloudflare (do this first - it is where the traffic actually arrives).**
 In the dashboard for `dobsinsky.dev`:
 
 - **Security → Bots → Bot Fight Mode: on.** Challenges known bad automation at
@@ -371,11 +368,11 @@ In the dashboard for `dobsinsky.dev`:
   `cf.threat_score gt 20` on that hostname.
 - **Scrape Shield → Email obfuscation: on.**
 
-Turnstile is the escalation if these are not enough. It is deliberately not used
+Turnstile is the escalation if these are not enough. It is not used
 yet: it is a third-party script in the page, which the SPEC rules out, and the
 edge rules cost nothing in privacy.
 
-**2. nginx** (`quiz/nginx.conf`) — defense in depth, already configured:
+**2. nginx** (`quiz/nginx.conf`) - defense in depth, already configured:
 30 req/min per IP on `/api/`, 5 req/min on `start`, 20 concurrent connections,
 256 KB body cap.
 
@@ -384,11 +381,11 @@ cloudflared connects from localhost, so every public request has
 `$remote_addr = 127.0.0.1`; a zone keyed on that would throttle the entire site
 as one bucket. If you copy these rules to another block, check that first.
 
-**3. The app** — a honeypot field hidden with CSS on both the start and followup
+**3. The app** - a honeypot field hidden with CSS on both the start and followup
 forms, a minimum time between `start` and `submit` (`MIN_FILL_SECONDS`, default
 15 s), and per-IP hourly caps on `start` and `followup`. Rate-limit state is
 kept in process memory and keyed on the Cloudflare client IP, which is never
-written to the database — an IP must not end up in Postgres next to health data.
+written to the database - an IP must not end up in Postgres next to health data.
 
 ### CrowdSec (the shared-blocklist one)
 
@@ -417,13 +414,13 @@ cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
 
 > **The trap.** cloudflared connects from localhost, so by default every public
 > request is logged with `remote_addr = 127.0.0.1`. CrowdSec would attribute all
-> traffic — including attacks — to the loopback address and eventually ban it,
+> traffic - including attacks - to the loopback address and eventually ban it,
 > which takes the whole site down while looking like a random outage.
 >
 > Both `quiz/nginx.conf` and `portfolio/nginx.conf` now carry the fix:
 > `set_real_ip_from 127.0.0.1` plus `real_ip_header CF-Connecting-IP` in the
 > Cloudflare-facing block, so `$remote_addr` and the log line carry the true
-> client IP. They are deliberately **not** in the internal blocks, where
+> client IP. They are **not** in the internal blocks, where
 > `$remote_addr` must stay the real LAN peer.
 >
 > Since `deploy.sh` never copies nginx configs, a fix in this repo is not a fix
@@ -443,20 +440,20 @@ cscli decisions delete --ip 1.2.3.4     # if it blocks someone real
 > That `cp` is safe as of 2026-07-29, when the repo copy was reconciled against
 > the live file: it had drifted to `root /opt/portfolio/site` and
 > `listen 192.168.4.30:80`, neither of which exists on the box. If you ever
-> hand-edit a live config again, fix the repo copy in the same sitting — the
+> hand-edit a live config again, fix the repo copy in the same sitting - the
 > next person to run that `cp` is trusting it.
 
 ### The DEFENCE panel on the portfolio
 
 The A-section panel and the slim header chip both come from one pass over two
-endpoints, and each half fails on its own — CrowdSec being absent still leaves a
+endpoints, and each half fails on its own - CrowdSec being absent still leaves a
 working visit counter.
 
 | Endpoint | Public? | Returns |
 |---|---|---|
 | `GET /api/crowdsec` | yes | blocked now, alerts 24h/7d, requests 7d |
 | `GET /api/visits` | yes | visitor count, visit count, active in 7d |
-| `GET /api/visitors` | **trusted only** | vids, names, user-agents — the detail |
+| `GET /api/visitors` | **trusted only** | vids, names, user-agents - the detail |
 
 `/api/visits` exists so the front page never needs the trusted one. If you find
 yourself wanting to put a name or a user-agent on the public panel, that is the
@@ -465,7 +462,7 @@ line: aggregate is public, per-visitor is not.
 ### The counter on the portfolio
 
 The status bar on `dobsinsky.dev` shows `⛨ N BLOCKED · M/7D`, served by
-`GET /api/crowdsec`. It is public but returns **counts only** — the addresses
+`GET /api/crowdsec`. It is public but returns **counts only** - the addresses
 behind them never leave the box. Publishing a blocked-IP list would be both a
 privacy problem and a free reputation feed for whoever wanted one.
 
@@ -491,8 +488,8 @@ curl -s localhost:5050/api/crowdsec
 
 The response caches for 120 s, so the counter costs one `cscli` pair per two
 minutes no matter how many people load the page. If CrowdSec is not installed
-yet the endpoint 502s and the status bar simply stays empty — set `CROWDSEC=0`
-in `.env` to switch it off deliberately.
+yet the endpoint 502s and the status bar simply stays empty - set `CROWDSEC=0`
+in `.env` to switch it off.
 
 `events_7d` is the number of malicious *requests*, not incidents: one alert
 bundles the several requests that triggered it. That is the bigger number and
@@ -501,7 +498,7 @@ the one on the bar.
 ### Verifying the Cloudflare bouncer
 
 The firewall bouncer blocks at the LXC, after Cloudflare. The Cloudflare
-bouncer blocks at the edge instead, so the visitor never reaches the box — but
+bouncer blocks at the edge instead, so the visitor never reaches the box - but
 it fails quietly if the API token is wrong, and a quiet failure looks exactly
 like "no attacks today". Check it explicitly:
 
@@ -527,8 +524,8 @@ token missing that scope is the usual cause of a bouncer that starts cleanly and
 then does nothing.
 
 Because traffic arrives through the tunnel, the firewall bouncer blocks at the
-LXC, after Cloudflare. To block at the edge instead — cheaper, and the visitor
-never reaches your box — use the Cloudflare bouncer with a scoped API token:
+LXC, after Cloudflare. To block at the edge instead - cheaper, and the visitor
+never reaches your box - use the Cloudflare bouncer with a scoped API token:
 
 ```bash
 apt install -y crowdsec-cloudflare-bouncer
@@ -544,10 +541,10 @@ These came out of the GDPR analysis in `quiz/SPEC.md` and are easy to break by
 accident. If you change the schema or the API, re-check all five.
 
 1. No name, email, or IP is stored on or joinable to a response.
-2. Answers store language-neutral codes, never display text — a Czech "Ano" and
+2. Answers store language-neutral codes, never display text - a Czech "Ano" and
    an English "Yes" must land in the database as the same value.
 3. `followups` has no foreign key to `responses`, and the followup endpoint
-   never receives a `response_id` — not even for convenience. `created_at` is a
+   never receives a `response_id` - not even for convenience. `created_at` is a
    **date**, not a timestamp, because in a small sample a timestamp seconds away
    from a submission is a de facto join.
 4. Consent is recorded as data, with the version of the text agreed to
@@ -557,7 +554,7 @@ accident. If you change the schema or the API, re-check all five.
 
 ## Editing the surveys
 
-`http://quiz.internal/editor.html` — LAN/Tailscale only, same gate as the
+`http://quiz.internal/editor.html` - LAN/Tailscale only, same gate as the
 dashboard. Edit survey text per locale, add/edit/reorder/delete questions,
 manage options and their labels, and tick which options are correct.
 
@@ -571,7 +568,7 @@ sends the request:
 - **An option still referenced by an answer cannot be removed**, and deleting a
   question that has answers needs an explicit confirm, because it cascades.
 
-Wording — prompts, help text, labels, explanations — stays editable at any
+Wording - prompts, help text, labels, explanations - stays editable at any
 time. That is the point: fixing a confusing question mid-collection is exactly
 what the drop-off view is for.
 
@@ -592,7 +589,7 @@ FROM surveys WHERE slug = 'endo-2026';
 
 Then a `question_i18n` row per locale with `prompt` and a `labels` map covering
 every option code. Positions step by 10 so there is room to insert without
-renumbering. **Never change a `code` once collection has started** — it is the
+renumbering. **Never change a `code` once collection has started** - it is the
 export key, and changing it splits a column in the spreadsheet.
 
 Kinds: `text` `textarea` `single` `multi` `scale` `number` `date` `bodymap`.
@@ -605,7 +602,7 @@ frontend will not show feedback:
 UPDATE questions SET spec = spec || '{"correct":["b"]}'::jsonb
 WHERE code = 'new_code';
 
-UPDATE question_i18n SET explain_md = 'Proč to tak je…'
+UPDATE question_i18n SET explain_md = 'Proč to tak je...'
 WHERE question_id = (SELECT id FROM questions WHERE code = 'new_code')
   AND locale = 'cs';
 ```

@@ -13,6 +13,104 @@
   /* expose hook so app.js can tell us we're trusted */
   window.__termTrusted = () => (state.trusted = true);
 
+  /* ---------- achievements ---------- */
+  const ACH = [
+    ['shell', 'hello world', 'open the shell'],
+    ['help', 'rtfm', 'run help'],
+    ['secret', 'dotfile hunter', 'read a hidden file'],
+    ['hidden', 'easter egg', 'find a command that is not in help'],
+    ['sudo', 'not in sudoers', 'try to become root'],
+    ['rmrf', 'last words', 'you know the command'],
+    ['pet', 'good human', 'pet the dog'],
+    ['sections', 'scroll tourist', 'visit every section of the page'],
+    ['snake10', 'ssssnake', 'get 10 points in snake'],
+    ['jackpot', 'jackpot', 'win 30 or more credits in one spin'],
+    ['wpm60', 'fast fingers', 'type at 60 wpm or more, 90% accuracy'],
+    ['hangman', 'not hanged', 'win a game of hangman'],
+    ['guess', 'mind reader', 'win the number guessing game'],
+    ['reaction', 'quick hands', 'average under 250 ms in reaction'],
+    ['allgames', 'gamer', 'play every game once'],
+    ['all', 'completionist', 'unlock everything else'],
+  ];
+  const GAMES = ['snake', 'slots', 'wpm', 'hangman', 'guess', 'reaction'];
+  const SECTIONS = ['top', 'rec-a', 'rec-txt', 'rec-mx'];
+  const achLoad = () => {
+    try {
+      const d = JSON.parse(localStorage.getItem('ach') || '{}');
+      return { done: d.done || {}, seen: d.seen || [], played: d.played || [] };
+    } catch { return { done: {}, seen: [], played: [] }; }
+  };
+  const achSave = (d) => { try { localStorage.setItem('ach', JSON.stringify(d)); } catch {} };
+
+  function toast(text) {
+    let box = document.getElementById('ach-toasts');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'ach-toasts';
+      box.setAttribute('aria-live', 'polite');
+      document.body.appendChild(box);
+    }
+    const t = document.createElement('div');
+    t.className = 'ach-toast';
+    t.textContent = `achievement unlocked: ${text}`;
+    box.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('ach-toast--in'));
+    setTimeout(() => {
+      t.classList.remove('ach-toast--in');
+      setTimeout(() => t.remove(), 300);
+    }, 3000);
+  }
+
+  function unlock(id) {
+    const d = achLoad();
+    if (d.done[id]) return;
+    d.done[id] = Date.now();
+    achSave(d);
+    toast(ACH.find((a) => a[0] === id)[1]);
+    if (ACH.every((a) => a[0] === 'all' || d.done[a[0]])) unlock('all');
+  }
+  function markPlayed(game) {
+    const d = achLoad();
+    if (!d.played.includes(game)) { d.played.push(game); achSave(d); }
+    if (GAMES.every((g) => d.played.includes(g))) unlock('allgames');
+  }
+  function markSeen(id) {
+    const d = achLoad();
+    if (!d.seen.includes(id)) { d.seen.push(id); achSave(d); }
+    if (SECTIONS.every((x) => d.seen.includes(x))) unlock('sections');
+  }
+  if ('IntersectionObserver' in window) {
+    // a section counts once it crosses the middle of the screen
+    const io = new IntersectionObserver((es) => es.forEach((e) => {
+      if (e.isIntersecting) { markSeen(e.target.id); io.unobserve(e.target); }
+    }), { rootMargin: '-45% 0px -45% 0px' });
+    SECTIONS.forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+  }
+
+  /* keyboard-only games: state.game is truthy while one runs, Esc quits (q too if quitOnQ) */
+  function keyGame(name, quitOnQ, onKey, cleanup) {
+    const stop = () => {
+      if (cleanup) cleanup();
+      state.game = null;
+      removeEventListener('keydown', handler, true);
+      input.focus();
+    };
+    const handler = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'Escape' || (quitOnQ && e.key.toLowerCase() === 'q')) {
+        e.preventDefault(); e.stopPropagation();
+        stop();
+        print(`${name}: quit`, 'term__dim');
+        return;
+      }
+      if (e.key.length === 1 || ['Enter', 'Backspace'].includes(e.key)) e.preventDefault();
+      onKey(e.key, stop);
+    };
+    state.game = 1;
+    addEventListener('keydown', handler, true);
+    markPlayed(name);
+  }
+
   /* ---------- output helpers ---------- */
   const print = (text = '', cls = '') => {
     const l = document.createElement('div');
@@ -34,7 +132,7 @@
   /* ---------- fake fs (localStorage-backed for guests) ---------- */
   const baseFiles = {
     'about.txt':
-      'Michal Dobšínský - Prague.\nJunior developer @ NIC.cz (the .cz registry).\nData analytics student @ VŠE.\nRequalifying as an electrician, because software\ncrashes are boring once you can also blow a fuse.',
+      'Michal Dobšínský, Prague.\nJunior dev at NIC.cz (.cz registry).\nData analytics student at VŠE.\nQualified electrician.',
     'todo.txt':
       '[ ] finish semester\n[ ] stop buying hard drives\n[x] buy another hard drive\n[ ] touch grass (blocked by: homelab)',
     '.secret': 'you found it. mail me the word "PTR" and I owe you a beer.',
@@ -45,6 +143,31 @@
     localFS[name] = content;
     localStorage.setItem('termfs', JSON.stringify(localFS));
   };
+
+  const DOG = [
+    '                          ....::..',
+    ':::--===----==+++*++*+=-===---------=++=*#+:',
+    '####*+*=-=**+++++=++**+==------====++++*%%#%%%-',
+    '+==+=---:-====-=++=++-::::-:-+++========+++#%@@@=',
+    '-=*+----:::---=*+::-:::::-:-=++====*****++++#@@@@@:',
+    '+#@%-==-::=++*%%:.....:==-:-==--:::-====++=++*@@@@@#',
+    '-#@@=+=-:-=%#@@%-....=@%+-:==--:..:---::::::-=+#@@@@%',
+    '*@@@#**-::=@@@@*-. .:@@#==-=:::::.:::-==-::.::-=*%@@@#',
+    '%%@@%*%+::-%@%+=.  .%@@#**::-::..::---==-:::..::-#@@@@+',
+    '#%@%@#%%::-*%*+:   +@@@@@#.::.....:-==--=-=++=:.:=@@@@@-',
+    '%@@%%#+@=:+%%*: .=+%@@@@@+....:.:::::::...:=+**+::=%@@@-',
+    '@@@%@#-##=#%#+::+@@@@@@@%...--:.:-=*##*=--::=+*##=:-+%@.',
+    '@%##@%-+@#*+**#%@@@@@@%+:.:%*-..=*%@@@@%@@#----*@@#.+==:::::..',
+    '%%**@@=*@=:=%@@@@@@@@%-:::%@@#::+%@@@@%#@@@#+=-+@@@===#-:--=====--',
+    '@@@@@@+**.-*#%%%@@@@@-:-==@*#%+==+#@@#-=%@@@%**#@@@@-=%@#+--===---',
+    '@@@@@@%%+.:+*+=*#@@@@-:+=*@+==-::+#-:..:-+%%*#%@@@@@%#@@@@#=::----',
+    '@+.:##=##=+--:=#%@@@@%+==%@@@+::-=-..:.:::-*#%@@@@@@@@@@@@%@*:....',
+    '*%  :-+:=#@%%@@@@@@@@@@@#@@@#=++-..:..::::--+@@%@@@@@@@@@%#%@@*.',
+    ' . .:=@%-%@@@@@@@@%+-..  .+#%@#*-:=-..::--#*+%@%=.    .=%@@@@@@@*.',
+    '               ...            -%#+%#--===*@%%@@.         =%%@@@@@@',
+    '                               .+#%##*%*+#%%*:             .:***@%',
+    '                                     .=+:',
+  ];
 
   /* ---------- themes ---------- */
   const THEMES = ['amber', 'magma', 'mocha', 'latte', 'dracula', 'gruvbox', 'nord'];
@@ -60,43 +183,50 @@
   const cmds = {
     help() {
       const rows = [
-        ['help', 'this'],
-        ['whoami', 'who the server thinks you are'],
-        ['neofetch', 'YOUR machine, actually'],
-        ['theme <name|lucky>', '7 themes · lucky never rolls latte'],
-        ['ls / cat / nano', 'poke around, edit scratch files'],
+        ['help', 'this list'],
+        ['whoami', 'what the server knows about you'],
+        ['neofetch', 'info about your machine'],
+        ['theme <name|lucky>', '7 themes, lucky never picks latte'],
+        ['ls / cat / nano', 'look around, edit files'],
         ['vim', 'good luck'],
-        ['msg <text>', 'send a message straight to my phone'],
-        ['snake', 'wasd/arrows · q quits'],
-        ['now', 'what I am doing right now'],
-        ['projects / mail / dig / uptime', 'the cv stuff'],
-        ['dig <domain> [type]', 'REAL dns lookup over DoH'],
-        ['bonsai / pipes / matrix', 'terminal screensavers'],
+        ['msg <text>', 'send me a message (goes to my phone)'],
+        ['snake', 'wasd or arrows, q quits'],
+        ['hangman', 'guess the word (linux/network terms)'],
+        ['guess', 'guess the number, 1 to 100'],
+        ['reaction', 'reaction time test'],
+        ['now', 'what I am up to now'],
+        ['projects / mail / dig / uptime', 'cv stuff'],
+        ['cv', 'my cv (web + pdf)'],
+        ['dig <domain> [type]', 'real dns lookup (DoH)'],
+        ['bonsai / pipes / matrix', 'screensavers'],
         ['wpm', 'typing test'],
-        ['slots [pay]', '5×5 · cloverpit-style · losing has consequences'],
-        ['gh', 'my repos, live'],
-        ['cowsay / fortune / sl', 'unix classics'],
+        ['slots [pay]', '5×5 slot machine, do not run out of credits'],
+        ['gh', 'my github repos'],
+        ['dog / pet', 'my dog'],
+        ['achievements', 'your progress'],
+        ['cowsay / fortune / sl', 'the classics'],
         ['clear / exit', 'housekeeping'],
       ];
       rows.forEach(([c, d]) => print(`  ${c.padEnd(18)} ${d}`));
       if (state.trusted) {
         print('');
         print('admin:', 'term__accent');
-        [['status', 'edit the NOW panel (live)'], ['pve', 'proxmox stats'], ['inbox', 'messages from visitors'], ['visitors', 'who was here'], ['tag <vid> <name> | <greeting>', 'tag a friend']].forEach(
+        [['status', 'edit the NOW panel'], ['pve', 'proxmox stats'], ['inbox', 'messages from visitors'], ['visitors', 'recent visitors'], ['tag <vid> <name> | <greeting>', 'tag a friend']].forEach(
           ([c, d]) => print(`  ${c.padEnd(18)} ${d}`, 'term__accent')
         );
       }
-      print('there may be undocumented ones.', 'term__dim');
+      print('some commands are not listed.', 'term__dim');
+      unlock('help');
     },
 
     async whoami() {
       const vid = localStorage.getItem('vid') || 'unknown';
       print(`visitor id : ${vid}`);
-      print(`network    : ${state.trusted ? 'TRUSTED - hello me (or someone on my LAN, hm)' : 'public internet'}`);
+      print(`network    : ${state.trusted ? 'trusted (me, or someone on my LAN)' : 'public internet'}`);
       const name = localStorage.getItem('fname');
       const ftheme = localStorage.getItem('ftheme');
       if (name) print(`known as   : ${name}`, 'term__accent');
-      if (ftheme) print(`theme      : ${ftheme} (set by michal because he cares)`, 'term__dim');
+      if (ftheme) print(`theme      : ${ftheme} (picked by michal)`, 'term__dim');
     },
 
     async neofetch() {
@@ -108,11 +238,11 @@
         const angle = raw.match(/ANGLE \((.+)\)/);
         if (angle) raw = angle[1];
         gpu = /or similar|SwiftShader|Generic|llvmpipe/i.test(raw)
-          ? 'redacted - your browser lies to fingerprinters (good)'
+          ? 'hidden by your browser'
           : raw.slice(0, 46);
       } catch {}
       const ua = navigator.userAgent;
-      const os = /Windows NT 10/.test(ua) ? 'Windows 10/11' : /Linux/.test(ua) ? 'Linux (respect)' : /Mac OS X/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : 'something exotic';
+      const os = /Windows NT 10/.test(ua) ? 'Windows 10/11' : /Linux/.test(ua) ? 'Linux' : /Mac OS X/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : 'unknown';
       const browser = /Firefox\//.test(ua) ? 'Firefox' : /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome-ish' : /Safari\//.test(ua) ? 'Safari' : '?';
       let batt = 'n/a';
       try {
@@ -123,11 +253,11 @@
       try { ip = (await (await fetch(`${API}/ip`)).json()).ip; } catch {}
       const conn = navigator.connection
         ? `${navigator.connection.effectiveType || '?'} · ~${navigator.connection.downlink || '?'} Mbps${navigator.connection.saveData ? ' · data-saver' : ''}`
-        : 'undisclosed';
+        : 'unknown';
       let quota = 'n/a';
       try {
         const est = await navigator.storage.estimate();
-        quota = `${(est.usage / 2 ** 20).toFixed(1)} MiB used of ~${(est.quota / 2 ** 30).toFixed(0)} GiB this site may hoard`;
+        quota = `${(est.usage / 2 ** 20).toFixed(1)} MiB used of ~${(est.quota / 2 ** 30).toFixed(0)} GiB`;
       } catch {}
       const dark = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       const pageUp = Math.round(performance.now() / 1000);
@@ -135,13 +265,13 @@
       const info = [
         `${(localStorage.getItem('vid') || 'visitor')}@your-machine`,
         '----------------------',
-        `IP: ${ip}  (as my server sees you)`,
+        `IP: ${ip}`,
         `OS: ${os}`,
         `Browser: ${browser}`,
         navigator.connection ? `Connection: ${conn}` : null,
         `Resolution: ${screen.width}x${screen.height} @ ${devicePixelRatio}x · ${screen.colorDepth}-bit`,
         navigator.hardwareConcurrency ? `CPU threads: ${navigator.hardwareConcurrency}` : null,
-        navigator.deviceMemory ? `RAM: ~${navigator.deviceMemory} GiB (browser-visible)` : null,
+        navigator.deviceMemory ? `RAM: ~${navigator.deviceMemory} GiB (browser reports)` : null,
         gpu ? `GPU: ${gpu}` : null,
         batt !== 'n/a' ? `Battery: ${batt}` : null,
         `Touch: ${navigator.maxTouchPoints ? navigator.maxTouchPoints + '-point' : 'no'} · OS prefers ${dark} mode`,
@@ -152,17 +282,17 @@
       art.forEach((a, i) => print(a.padEnd(20) + (info[i] || ''), 'term__accent'));
       info.slice(art.length).forEach((l) => print(' '.repeat(20) + l, 'term__accent'));
       print('');
-      print('(read by your own browser; only the IP line comes from my server - which already saw it anyway)', 'term__dim');
+      print('(all read in your browser, only the IP comes from my server)', 'term__dim');
     },
 
     theme(args) {
       const t = (args[0] || '').toLowerCase();
       if (t === 'lucky') {
-        // every theme has a chance. latte has exactly 0% chance. as requested.
+        // every theme has a chance except latte
         const pool = THEMES.filter((x) => x !== 'latte' && x !== (localStorage.getItem('theme') || DEFAULT_THEME));
         const pick = pool[(Math.random() * pool.length) | 0];
         setTheme(pick);
-        print(`🎲 lucky roll: ${pick}  (latte odds: 0.000%)`, 'term__accent');
+        print(`🎲 lucky roll: ${pick} (latte odds: 0%)`, 'term__accent');
         return;
       }
       if (!THEMES.includes(t)) {
@@ -170,7 +300,7 @@
         return;
       }
       setTheme(t);
-      print(`theme set: ${t} - the whole site, not just the shell. scroll around.`, 'term__accent');
+      print(`theme set: ${t} (whole site, not just the shell)`, 'term__accent');
     },
     color(args) { cmds.theme(args); },
 
@@ -178,43 +308,44 @@
       const all = args.includes('-a') || args.includes('-la');
       const names = Object.keys(fsAll()).filter((f) => all || !f.startsWith('.'));
       print(names.join('   '));
-      if (!all) print('(there is more. you know the flag.)', 'term__dim');
+      if (!all) print('(try ls -a)', 'term__dim');
     },
 
     cat(args) {
       const f = args[0];
       if (!f) return print('cat: missing operand');
       const fs = fsAll();
+      if (f === '.secret') unlock('secret');
       if (fs[f]) return fs[f].split('\n').forEach((l) => print(l));
       print(`cat: ${f}: No such file or directory`);
     },
 
     nano(args) {
       const f = args[0];
-      if (!f) return print('nano: which file? (new names are fine - saved in YOUR browser only)');
+      if (!f) return print('nano: which file? (new names are ok, saved only in your browser)');
       if (f === 'now.json' || f === 'status') return cmds.status();
       openEditor(f, fsAll()[f] || '', (txt) => { fsSave(f, txt); print(`wrote ${f}${baseFiles[f] ? ' (your local copy)' : ''}`); });
     },
 
     vim(args) {
-      print('opening vim…');
-      openEditor(args[0] || 'untitled', '~\n~\n~      VIM - Vi IMproved\n~\n~      you are now trapped.\n~      type :q! to leave.\n~', null, true);
+      print('opening vim...');
+      openEditor(args[0] || 'untitled', '~\n~\n~      VIM - Vi IMproved\n~\n~      you are stuck now.\n~      type :q! to leave.\n~', null, true);
     },
 
     async msg(args) {
       const text = args.join(' ').trim();
-      if (!text) return print('usage: msg <text> - lands on my phone via ntfy. be nice.');
+      if (!text) return print('usage: msg <text> (goes to my phone)');
       try {
         const r = await fetch(`${API}/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ vid: localStorage.getItem('vid'), text }),
         });
-        if (r.status === 429) return print('slow down - limit is 5 messages/hour.', 'term__err');
+        if (r.status === 429) return print('too many messages, limit is 5 per hour.', 'term__err');
         if (!r.ok) throw 0;
-        print('delivered. if it was funny, you might get a greeting next visit.', 'term__accent');
+        print('sent. if it is funny you might get a greeting next time.', 'term__accent');
       } catch {
-        print('msg: api unreachable - use mail instead.', 'term__err');
+        print('msg: api is down, use mail instead.', 'term__err');
       }
     },
     sendmessage(args) { cmds.msg(args); },
@@ -226,12 +357,16 @@
         const n = await (await fetch(`${API}/now`)).json();
         Object.entries(n).forEach(([k, v]) => print(`${k.padEnd(11)}: ${v}`));
       } catch {
-        print('working_on : this terminal, apparently');
+        print('working_on : this terminal');
       }
     },
 
-    projects() { printHTML('see the <a href="#rec-txt">;; TXT section</a>, or github.com/michalomegalul'); },
-    mail() { printHTML('dog560154@gmail.com - or scroll to <a href="#rec-mx">;; MX</a>'); },
+    projects() { printHTML('check the <a href="#rec-txt">;; TXT section</a> or github.com/michalomegalul'); },
+    cv() {
+      printHTML('cv → <a href="/cv.html" target="_blank" rel="noopener">/cv.html</a> · <a href="/cv.pdf" download>/cv.pdf</a>');
+      window.open('/cv.html', '_blank', 'noopener');
+    },
+    mail() { printHTML('<a href="mailto:michal@dobsinsky.dev">michal@dobsinsky.dev</a> (or scroll to <a href="#rec-mx">;; MX</a>)'); },
 
     async uptime() {
       try {
@@ -253,13 +388,13 @@
 
     fortune() {
       const f = [
-        'It works on my container.',
-        'DNS. It is always DNS.',
-        '"dočasné řešení" - permanent since 2024.',
-        'There is no cloud, just my Proxmox box.',
-        'A clean desk is a sign of a full /tmp.',
-        '99 little bugs in the code… 127 little bugs in the code.',
-        'sudo make me a sandwich - but grounded, per ČSN 33 2000.',
+        'works on my container',
+        'it is always DNS',
+        '"temporary fix" from 2024, still in prod',
+        'there is no cloud, only my proxmox box',
+        'my /tmp is full again',
+        '99 bugs in the code, fix one, 127 bugs in the code',
+        'sudo make me a sandwich (and ground it, ČSN 33 2000)',
       ];
       print(f[Math.floor(Math.random() * f.length)]);
     },
@@ -271,7 +406,7 @@
       const t = setInterval(() => {
         holder.textContent = train.map((l) => ' '.repeat(Math.max(0, x)) + l.slice(Math.max(0, -x))).join('\n');
         out.scrollTop = out.scrollHeight;
-        if (--x < -70) { clearInterval(t); holder.textContent += '\n(this is why you should not typo ls)'; }
+        if (--x < -70) { clearInterval(t); holder.textContent += '\n(you typed sl instead of ls)'; }
       }, 60);
     },
 
@@ -282,36 +417,38 @@
     exit() { closeTerm(); },
 
     sudo(args) {
+      unlock('sudo');
       if (args.join(' ').startsWith('rm -rf')) return cmds.rm(['-rf', '/']);
       print(`${state.trusted ? 'michal' : 'guest'} is not in the sudoers file. This incident will be reported.`);
-      print('(it actually was. check visitors.log.)', 'term__dim');
+      print('(reported, check visitors.log)', 'term__dim');
     },
 
     rm(args) {
       if (args[0] === '-rf' && (args[1] === '/' || args[1] === '/*')) {
+        unlock('rmrf');
         const doom = ['/bin', '/boot', '/etc', '/home', '/srv', '/var', '/proc/michal'];
         let i = 0;
         const t = setInterval(() => {
-          if (i < doom.length) return print(`removing ${doom[i++]} …`, 'term__err');
+          if (i < doom.length) return print(`removing ${doom[i++]} ...`, 'term__err');
           clearInterval(t);
           print('');
-          print('just kidding. this filesystem is read-only and so is my patience.', 'term__accent');
+          print('jk, the filesystem is read-only.', 'term__accent');
         }, 220);
         return;
       }
-      print('rm: permission denied (good try)');
+      print('rm: permission denied');
     },
 
     ssh() {
       state.ssh++;
       if (state.ssh === 1) return print('Permission denied (publickey).');
-      if (state.ssh === 2) return print('Permission denied (publickey, also: stop it).');
-      print('Connection closed by 100.64.0.1: fail2ban says hi.');
+      if (state.ssh === 2) return print('Permission denied (publickey). Stop it.');
+      print('Connection closed by 100.64.0.1 (fail2ban).');
     },
 
     ping(args) {
       print(`PING ${args[0] || 'reality'}: 56 data bytes`);
-      print('64 bytes: icmp_seq=0 ttl=42 time=0.001 ms (we are on the same machine)');
+      print('64 bytes: icmp_seq=0 ttl=42 time=0.001 ms (same machine)');
     },
 
     /* ---------- toys the people demanded ---------- */
@@ -322,7 +459,7 @@
       let tips = [{ x: W >> 1, y: H - 1, life: 11, trunk: true }];
       put(W >> 1, H - 1, '|', '#b8865a');
       runAnim((screen, stop) => {
-        if (!tips.length) { stop(); print('bonsai: growth complete. very zen.', 'term__dim'); return; }
+        if (!tips.length) { stop(); print('bonsai: done.', 'term__dim'); return; }
         const next = [];
         tips.forEach((t) => {
           if (t.life <= 0) {
@@ -399,7 +536,7 @@
         print('dobsinsky.dev.   300  IN  TXT   "v=human1 role=dev reg=cz"');
         print('dobsinsky.dev.   300  IN  PTR   .secret');
         print('');
-        print('but this dig is real: try  dig nic.cz MX  or  dig vse.cz AAAA', 'term__dim');
+        print('this dig is real, try: dig nic.cz MX', 'term__dim');
         return;
       }
       const TYPES = { 1: 'A', 2: 'NS', 5: 'CNAME', 6: 'SOA', 12: 'PTR', 15: 'MX', 16: 'TXT', 28: 'AAAA', 33: 'SRV', 257: 'CAA' };
@@ -415,16 +552,16 @@
           print(';; ANSWER SECTION:');
           d.Answer.forEach((a) => print(`${a.name.padEnd(30)} ${String(a.TTL).padStart(6)}  IN  ${(TYPES[a.type] || a.type + '').padEnd(6)} ${a.data}`));
         } else print(';; empty answer (no records of that type)');
-        print(';; real query via 1.1.1.1 DNS-over-HTTPS, straight from your browser', 'term__dim');
+        print(';; real query via 1.1.1.1 (DNS over HTTPS) from your browser', 'term__dim');
       } catch { print('dig: resolver unreachable', 'term__err'); }
     },
 
     wpm() {
       const S = [
-        'the proxmox host hums quietly while nineteen containers dream',
-        'it is not a bug it is an undocumented load bearing feature',
-        'always blame dns first and you will usually be right',
-        'a junior developer a student and an electrician walk into a bar and they are the same person',
+        'the proxmox box is fine it just runs a lot of containers',
+        'it is not a bug it is an undocumented feature',
+        'when something breaks blame dns first',
+        'my homelab has more uptime than my sleep schedule',
       ];
       state.wpm = { text: S[(Math.random() * S.length) | 0], start: null };
       print('type this, then Enter:', 'term__dim');
@@ -432,7 +569,7 @@
     },
 
     async gh() {
-      print('fetching live from api.github.com…', 'term__dim');
+      print('loading from github...', 'term__dim');
       try {
         let repos = JSON.parse(sessionStorage.getItem('ghrepos') || 'null');
         if (!repos) {
@@ -442,31 +579,32 @@
           repos = JSON.parse(sessionStorage.getItem('ghrepos'));
         }
         repos.slice(0, 15).forEach((r) => print(`${r.name.padEnd(42)} ${(r.language || '-').padEnd(11)} ${r.pushed_at.slice(0, 10)}`));
-        print(`… ${repos.length} repos total → github.com/michalomegalul`, 'term__dim');
-      } catch { print('gh: rate limited or offline - github.com/michalomegalul', 'term__err'); }
+        print(`${repos.length} repos total, github.com/michalomegalul`, 'term__dim');
+      } catch { print('gh: rate limited or offline, see github.com/michalomegalul', 'term__err'); }
     },
 
     tailscale() {
-      if (!state.trusted) return print('tailscale: permission denied - and you would only see my toys anyway', 'term__err');
-      print('fleet snapshot:', 'term__accent');
+      if (!state.trusted) return print('tailscale: permission denied', 'term__err');
+      print('my devices:', 'term__accent');
       [
-        ['pve', 'linux', 'the mothership - active'],
+        ['pve', 'linux', 'proxmox host'],
         ['mdobsinsky-ntb', 'linux', 'notebook'],
         ['michal-pc', 'linux', 'desktop'],
-        ['desktop-9mab56a', 'windows', 'the dual-boot regret'],
+        ['desktop-9mab56a', 'windows', 'dual boot, regret'],
         ['ai-host', 'linux', 'gpu things'],
-        ['zuzana-pc', 'linux', 'the better half, also on linux'],
+        ['zuzana-pc', 'linux', 'zuzana, also linux'],
         ['michal-tablet', 'android', ''],
-        ['pixel-8-pro', 'android', 'pocket terminal'],
-        ['pixel-9a', 'android', 'backup pocket terminal'],
+        ['pixel-8-pro', 'android', 'phone'],
+        ['pixel-9a', 'android', 'backup phone'],
       ].forEach(([n, os, note]) => print(`  ${n.padEnd(18)} ${os.padEnd(9)} ${note}`));
-      print('(static snapshot - not live, relax)', 'term__dim');
+      print('(static list, not live)', 'term__dim');
     },
     ts(a) { cmds.tailscale(a); },
 
     slots(args) {
       if ((args[0] || '') === 'pay' || (args[0] || '') === 'paytable') return cmds.paytable();
-      if (state.game) return print('one toy at a time.', 'term__dim');
+      if (state.game) return print('one thing at a time.', 'term__dim');
+      markPlayed('slots');
       const SYM =    ['🍒', '🍋', '🍀', '🔔', '💰', '💎', '7️⃣'];
       const WEIGHT = [24,   22,   18,   14,   11,   7,    4];
       const VALUE =  [1,    1,    2,    3,    5,    8,    15];
@@ -538,9 +676,10 @@
           if (win) {
             sub.textContent = hits.join(' · ');
             print(`win +${win} · credits: ${credits}` + (win >= 30 ? '  🎉 JACKPOT' : ''), 'term__accent');
+            if (win >= 30) unlock('jackpot');
           } else {
-            sub.textContent = 'no lines.';
-            print(`credits: ${credits}. the house (LXC 117) always wins.`, 'term__dim');
+            sub.textContent = 'no lines';
+            print(`no win, credits: ${credits}`, 'term__dim');
           }
           if (credits < COST) foreclose();
           else input.focus();
@@ -549,21 +688,21 @@
     },
 
     paytable() {
-      print('PAYTABLE - 5×5 · 22 paylines', 'term__accent');
-      print('3+ matching in a row on a line pays value × (length - 2). full line ×3.');
+      print('PAYTABLE (5×5, 22 lines)', 'term__accent');
+      print('3 or more in a row on a line pays value × (length - 2). A full line pays ×3.');
       print('');
       print('lines:  5 rows ───   5 cols │││   2 diag ╲╱   4 short diag ╲╱');
       print('        V ╲╱   Λ ╱╲   zigzag hi ╱╲╱╲   zigzag lo ╲╱╲╱');
       print('');
-      [['🍒 cherry', 1, 'common'], ['🍋 lemon', 1, 'common'], ['🍀 clover', 2, ''], ['🔔 bell', 3, ''], ['💰 treasure', 5, ''], ['💎 diamond', 8, 'rare'], ['7️⃣ seven', 15, 'jackpot tier']]
+      [['🍒 cherry', 1, 'common'], ['🍋 lemon', 1, 'common'], ['🍀 clover', 2, ''], ['🔔 bell', 3, ''], ['💰 treasure', 5, ''], ['💎 diamond', 8, 'rare'], ['7️⃣ seven', 15, 'top']]
         .forEach(([n, v, note]) => print(`  ${String(n).padEnd(12)} ${String(v).padStart(3)}/line   ${note}`));
       print('');
-      print('spin costs 3 credits. run out and the house forecloses on this website.', 'term__err');
+      print('a spin costs 3 credits. at 0 credits the site gets deleted (F5 brings it back).', 'term__err');
     },
 
     cube() {
-      if (!window.gsap) return print('cube: needs animations. your browser said no.', 'term__err');
-      print('su -c "fold --form=cube /" … granted. hold on.', 'term__accent');
+      if (!window.gsap) return print('cube: needs gsap, it did not load.', 'term__err');
+      print('su -c "fold --form=cube /" ... ok, hold on.', 'term__accent');
       setTimeout(() => {
         closeTerm();
         document.documentElement.style.perspective = '1400px';
@@ -583,16 +722,149 @@
       }, 600);
     },
 
+    /* ---------- small keyboard games ---------- */
+    hangman() {
+      if (state.game) return print('one thing at a time.', 'term__dim');
+      const WORDS = ['kernel', 'router', 'packet', 'docker', 'subnet', 'gateway', 'firewall', 'systemd', 'proxy', 'ethernet', 'hostname', 'bandwidth', 'daemon', 'nameserver', 'loopback', 'ansible', 'mailserver', 'wireguard', 'tailscale', 'nginx'];
+      const word = WORDS[(Math.random() * WORDS.length) | 0];
+      const tried = [];
+      let lives = 6;
+      const screen = print('', 'term__accent');
+      print('type letters · Esc to quit', 'term__dim');
+      const draw = () => {
+        const w = 6 - lives;
+        const p = [w > 0 ? 'O' : ' ', w > 1 ? '/' : ' ', w > 2 ? '|' : ' ', w > 3 ? '\\' : ' ', w > 4 ? '/' : ' ', w > 5 ? '\\' : ' '];
+        screen.textContent = [
+          ' +---+', ' |   |', ` ${p[0]}   |`, `${p[1]}${p[2]}${p[3]}  |`, `${p[4]} ${p[5]}  |`, '=====', '',
+          [...word].map((c) => (tried.includes(c) ? c : '_')).join(' '),
+          `wrong: ${tried.filter((c) => !word.includes(c)).join(' ')}`,
+        ].join('\n');
+        out.scrollTop = out.scrollHeight;
+      };
+      draw();
+      keyGame('hangman', false, (k, stop) => {
+        if (!/^[a-z]$/i.test(k) || tried.includes(k.toLowerCase())) return;
+        tried.push(k.toLowerCase());
+        if (!word.includes(k.toLowerCase())) lives--;
+        draw();
+        if ([...word].every((c) => tried.includes(c))) {
+          stop();
+          print(`solved, it was ${word}`, 'term__accent');
+          unlock('hangman');
+        } else if (!lives) {
+          stop();
+          print(`you lost, the word was ${word}`, 'term__err');
+        }
+      });
+    },
+
+    guess() {
+      if (state.game) return print('one thing at a time.', 'term__dim');
+      const secret = 1 + ((Math.random() * 100) | 0);
+      let left = 7, buf = '';
+      let line = print('', 'term__accent');
+      print('type a number, Enter to guess · q to quit', 'term__dim');
+      const render = () => { line.textContent = `1-100, ${left} tries left > ${buf}_`; out.scrollTop = out.scrollHeight; };
+      render();
+      keyGame('guess', true, (k, stop) => {
+        if (/^\d$/.test(k) && buf.length < 3) buf += k;
+        else if (k === 'Backspace') buf = buf.slice(0, -1);
+        else if (k === 'Enter' && buf) {
+          const n = parseInt(buf, 10);
+          buf = '';
+          if (n < 1 || n > 100) print('only 1 to 100', 'term__dim');
+          else {
+            left--;
+            if (n === secret) {
+              line.textContent = `${n}: correct, ${7 - left} tries`;
+              stop();
+              unlock('guess');
+              return;
+            }
+            line.textContent = `${n}: ${n < secret ? 'higher' : 'lower'}`;
+            if (!left) {
+              stop();
+              print(`out of tries, it was ${secret}`, 'term__err');
+              return;
+            }
+            line = print('', 'term__accent');
+          }
+        }
+        render();
+      });
+    },
+
+    reaction() {
+      if (state.game) return print('one thing at a time.', 'term__dim');
+      const times = [];
+      let phase = 'idle', timer = 0, t0 = 0, line = null;
+      print('3 rounds. press any key when it says GO · q to quit', 'term__dim');
+      const next = () => {
+        phase = 'wait';
+        line = print('wait for it...', 'term__dim');
+        timer = setTimeout(() => {
+          phase = 'go';
+          t0 = performance.now();
+          line.textContent = 'GO!';
+          line.className = 'term__line term__accent';
+          out.scrollTop = out.scrollHeight;
+        }, 1200 + Math.random() * 2800);
+      };
+      next();
+      keyGame('reaction', true, (k, stop) => {
+        if (phase === 'wait') {
+          clearTimeout(timer);
+          print('too early, again', 'term__err');
+          next();
+        } else if (phase === 'go') {
+          const ms = Math.round(performance.now() - t0);
+          times.push(ms);
+          print(`${ms} ms`);
+          if (times.length < 3) return next();
+          const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+          stop();
+          print(`average: ${avg} ms`, 'term__accent');
+          if (avg < 250) unlock('reaction');
+        }
+      }, () => clearTimeout(timer));
+    },
+
+    dog() {
+      DOG.forEach((l) => print(l, 'term__accent term__dog'));
+      print('sleeping chocolate lab. try: pet dog', 'term__dim');
+    },
+
+    pet(args) {
+      if (args[0] && args[0] !== 'dog') return print(`pet: ${args[0]}: not a dog`, 'term__dim');
+      const r = ['*tail thumps once*', '*ear twitches*', '*sleeps even harder*', '*opens one eye, closes it again*', '*deep sigh*'];
+      print(r[(Math.random() * r.length) | 0], 'term__accent');
+      unlock('pet');
+    },
+
+    xyzzy() {
+      print('nothing happens.');
+      unlock('hidden');
+    },
+
+    achievements() {
+      const d = achLoad();
+      const n = ACH.filter((a) => d.done[a[0]]).length;
+      ACH.forEach(([id, name, hint]) => print(d.done[id] ? `  [x] ${name.padEnd(16)} ${hint}` : `  [ ] ${'???'.padEnd(16)} ${hint}`, d.done[id] ? 'term__accent' : 'term__dim'));
+      print('');
+      print(`${n}/${ACH.length} unlocked`);
+    },
+    goals() { cmds.achievements(); },
+
     /* ---------- admin (trusted) ---------- */
     async status() {
-      if (!state.trusted) return print('status: permission denied - public net', 'term__err');
+      if (!state.trusted) return print('status: permission denied', 'term__err');
       let current = '{}';
       try { current = JSON.stringify(await (await fetch(`${API}/now`)).json(), null, 2); } catch {}
       openEditor('now.json (LIVE)', current, async (txt) => {
         try {
           JSON.parse(txt);
           const r = await fetch(`${API}/now`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: txt });
-          print(r.ok ? 'now.json updated - live immediately.' : 'save failed: ' + r.status, r.ok ? 'term__accent' : 'term__err');
+          print(r.ok ? 'now.json saved, it is live.' : 'save failed: ' + r.status, r.ok ? 'term__accent' : 'term__err');
           if (r.ok && window.__reloadNow) window.__reloadNow();
         } catch { print('not valid JSON, not saved.', 'term__err'); }
       });
@@ -614,7 +886,7 @@
       if (!state.trusted) return print('inbox: permission denied', 'term__err');
       try {
         const ms = await (await fetch(`${API}/messages`)).json();
-        if (!ms.length) return print('inbox empty. tell people about the msg command.');
+        if (!ms.length) return print('inbox is empty');
         ms.forEach((m) => print(`[${m.when}] ${m.name || m.vid}: ${m.text}`));
       } catch { print('inbox: api error', 'term__err'); }
     },
@@ -644,13 +916,13 @@
   /* ---------- foreclosure: gambling has consequences ---------- */
   function foreclose() {
     print('');
-    print('credits: 0. insufficient funds. the house forecloses on your session.', 'term__err');
+    print('credits: 0. game over, deleting the site.', 'term__err');
     const targets = [
-      ['#rec-mx', ';; MX - your way of contacting me'],
+      ['#rec-mx', ';; MX (contact)'],
       ['#rec-srv', ';; SRV'],
-      ['#rec-txt', ';; TXT - everything I made'],
-      ['#rec-a', ';; A - me'],
-      ['.sec--hero', 'the hero. the name. everything.'],
+      ['#rec-txt', ';; TXT (projects)'],
+      ['#rec-a', ';; A (about)'],
+      ['.sec--hero', 'the hero'],
       ['.statusbar', 'the status bar'],
     ];
     let i = 0;
@@ -665,13 +937,13 @@
         }
         setTimeout(step, 600);
       } else {
-        print('rm -rf /dev/pts/0   # yes, this terminal', 'term__err');
+        print('rm -rf /dev/pts/0   # this terminal too', 'term__err');
         setTimeout(() => {
           localStorage.setItem('slots', 15); // debt forgiveness, but they must reload to learn that
           overlay.remove();
           const end = document.createElement('div');
           end.className = 'wasted';
-          end.innerHTML = '<p>everything is gone.</p><p class="wasted__sub">you gambled away an entire website · debt cleared · F5 to respawn</p>';
+          end.innerHTML = '<p>everything is gone.</p><p class="wasted__sub">you lost the whole website · debt cleared · press F5</p>';
           document.body.appendChild(end);
         }, 1100);
       }
@@ -697,7 +969,7 @@
 
     const close = () => { wrap.remove(); state.editor = null; input.focus(); };
     area.addEventListener('input', () => {
-      if (vimMode && area.value.includes(':q!')) { close(); print('you escaped vim. put it on your CV.'); }
+      if (vimMode && area.value.includes(':q!')) { close(); print('you got out of vim. add it to your cv.'); }
     });
     area.addEventListener('keydown', (e) => {
       if (vimMode) { if (e.key === 'Escape') e.preventDefault(); return; } // not even esc helps
@@ -713,7 +985,7 @@
 
   /* ---------- animation runner (q quits) ---------- */
   function runAnim(stepFn, ms) {
-    if (state.game) return print('one toy at a time.', 'term__dim');
+    if (state.game) return print('one thing at a time.', 'term__dim');
     const screen = print('', 'term__accent');
     print('q to quit', 'term__dim');
     const onKey = (e) => { if (e.key.toLowerCase() === 'q') stop(); };
@@ -725,6 +997,7 @@
   /* ---------- snake ---------- */
   function startSnake() {
     if (state.game) return;
+    markPlayed('snake');
     const W = 26, H = 13;
     let snake = [[6, 6], [5, 6], [4, 6]], dir = [1, 0], nextDir = [1, 0], food = [14, 6], score = 0;
     const screen = print('', 'term__accent');
@@ -746,12 +1019,13 @@
       const head = [(snake[0][0] + dir[0] + W) % W, (snake[0][1] + dir[1] + H) % H];
       if (snake.some(([x, y]) => x === head[0] && y === head[1])) {
         stop();
-        print(`game over - score ${score}.` + (score > 9 ? ' respectable.' : ' the ◆ does not bite.'), 'term__err');
+        print(`game over, score ${score}` + (score > 9 ? ' (nice)' : ''), 'term__err');
         return;
       }
       snake.unshift(head);
       if (head[0] === food[0] && head[1] === food[1]) {
         score++;
+        if (score === 10) unlock('snake10');
         do { food = [Math.floor(Math.random() * W), Math.floor(Math.random() * H)]; }
         while (snake.some(([x, y]) => x === food[0] && y === food[1]));
       } else snake.pop();
@@ -761,7 +1035,7 @@
     const keys = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] };
     const onKey = (e) => {
       const k = e.key.toLowerCase();
-      if (k === 'q') { stop(); print('snake: quit. coward.', 'term__dim'); return; }
+      if (k === 'q') { stop(); print('snake: quit.', 'term__dim'); return; }
       const d = keys[k];
       if (d) { e.preventDefault(); if (d[0] !== -dir[0] || d[1] !== -dir[1]) nextDir = d; }
     };
@@ -782,18 +1056,19 @@
     const [cmd, ...args] = tokens;
     const fn = cmds[cmd.toLowerCase()];
     if (fn) return fn(args);
-    print(`${cmd}: command not found - try 'help'`);
+    print(`${cmd}: command not found (try help)`);
   }
 
   /* ---------- open/close ---------- */
   function openTerm() {
+    unlock('shell');
     document.body.classList.add('term-open');
     overlay.hidden = false;
     requestAnimationFrame(() => overlay.classList.add('term--open'));
     if (!out.dataset.booted) {
       out.dataset.booted = '1';
-      print('dobsinsky.dev pseudo-shell - unauthenticated session', 'term__dim');
-      print("type 'help'. everything you do is logged. probably.", 'term__dim');
+      print('dobsinsky.dev shell, guest session', 'term__dim');
+      print("type 'help' to see the commands.", 'term__dim');
       print('');
     }
     input.focus();
@@ -812,7 +1087,7 @@
    *
    * The old version only rewrote the input when there was exactly one match, so
    * typing `s` and pressing Tab printed "snake ssh sudo sl slots" and left the
-   * line untouched — which reads as broken. Now it always fills in as far as the
+   * line untouched - which reads as broken. Now it always fills in as far as the
    * candidates agree, and only lists them when it cannot get further. Pressing
    * Tab again after that does nothing new, same as bash. */
   function commonPrefix(list) {
@@ -882,8 +1157,10 @@
         const acc = Math.round((ok / target.length) * 100);
         const wpm = Math.round((typed.length / 5) / (secs / 60));
         print(`${PROMPT()} ${typed}`, 'term__prompt');
-        print(`${wpm} wpm · ${acc}% accuracy · ${secs.toFixed(1)}s` + (wpm > 80 ? ' - mechanical keyboard detected' : wpm < 25 ? ' - phone, right?' : ''), 'term__accent');
+        print(`${wpm} wpm · ${acc}% accuracy · ${secs.toFixed(1)}s` + (wpm > 80 ? ' (fast)' : wpm < 25 ? ' (phone?)' : ''), 'term__accent');
         state.wpm = null;
+        markPlayed('wpm');
+        if (wpm >= 60 && acc >= 90) unlock('wpm60');
         return;
       }
       run(input.value); input.value = '';

@@ -3,31 +3,31 @@
     {
       "name": "Endometriosis Survey Engine",
       "stack": "FLASK · POSTGRESQL · VANILLA JS · NGINX",
-      "desc": "Self-hosted replacement for Google Forms, built for a nursing-school thesis. Surveys are database rows, not code: two locales, an SVG body-pain map, autosave and resume, a graded awareness quiz whose answer key never reaches the browser, and CSV export keyed on stable question codes. Anonymous by construction - no IP or user-agent is ever stored next to a health answer.",
+      "desc": "Self-hosted replacement for Google Forms, made for a nursing-school thesis. Surveys are rows in the database, not code. It has two languages, an SVG body map for marking pain, and autosave with resume. The graded awareness quiz keeps its answer key on the server. CSV export uses stable question codes. No IP or user-agent is stored next to a health answer.",
       "url": "https://quiz.dobsinsky.dev/"
     },
     {
       "name": "Home Camera AI Detection",
       "stack": "PYTHON · OPENCV · YOLOV8 · OAK-D",
-      "desc": "Real-time monitoring with a Luxonis OAK-D LR depth camera. Detects people and vehicles, draws dynamic heatmaps, counts line crossings, watches zones like the property gate.",
-      "url": "https://github.com/michalomegalul"
+      "desc": "Real-time monitoring with a Luxonis OAK-D LR depth camera. It detects people and vehicles and draws heatmaps. It also counts line crossings and watches zones like the property gate.",
+      "url": "https://github.com/michalomegalul/Torch-luxonis"
     },
     {
       "name": "Steam CZ Behavior Analysis",
       "stack": "R · STATISTICS · STL · ANOVA",
-      "desc": "Semestral research project at VŠE: ten years of Czech Steam user behavior. Changepoint detection, cohort analysis, seasonal decomposition - with a paper and presentation to match.",
+      "desc": "Semestral project at VŠE about ten years of Czech Steam user behavior. Changepoint detection and cohort analysis, plus seasonal decomposition. Comes with a paper and a presentation.",
       "url": "https://github.com/michalomegalul/semestralwork-serhii_rusakov_michal_dobsinsky"
     },
     {
       "name": "Gemma - Discord Voice Bot",
       "stack": "PYTHON · WHISPER · PIPER TTS · OLLAMA",
-      "desc": "A bot that joins voice channels, listens with faster-whisper, thinks with a local LLM and answers out loud with Piper TTS. Fully self-hosted in an LXC container.",
-      "url": "https://github.com/michalomegalul"
+      "desc": "A bot that joins voice channels, listens with faster-whisper, asks a local LLM and answers out loud with Piper TTS. Self-hosted in an LXC container.",
+      "url": ""
     },
     {
       "name": "Full-stack E-shop",
       "stack": "FLASK · REACT · TAILWIND · STRIPE",
-      "desc": "E-commerce app with a Flask backend and React frontend. JWT auth, local cart, Stripe payments.",
+      "desc": "E-shop with a Flask backend and a React frontend. Has JWT auth, a local cart and Stripe payments.",
       "url": "https://github.com/michalomegalul/Eshop_MAP"
     }
   ],
@@ -35,19 +35,19 @@
     {
       "name": "Instagram Chat Analyzer",
       "stack": "PYTHON · PANDAS · MATPLOTLIB",
-      "desc": "Offline tool that turns exported Instagram DM JSON into statistics and plots. Nobody asked for it, I wanted it.",
-      "url": "https://github.com/michalomegalul"
+      "desc": "Offline tool that turns exported Instagram DM JSON into stats and plots. Made for myself.",
+      "url": ""
     },
     {
       "name": "Products REST API",
       "stack": "FLASK · GRAFANA · PYTEST · DOCKER",
-      "desc": "Token-authenticated product API with automated price/stock sync from an external service. Dockerized, tested, monitored.",
-      "url": "https://github.com/michalomegalul"
+      "desc": "Token-authenticated product API that syncs prices and stock from an external service. Runs in Docker, has tests, monitored with Grafana.",
+      "url": "https://github.com/michalomegalul/REST_API"
     },
     {
       "name": "AC Automation",
       "stack": "ESP8266 · MQTT · HOME ASSISTANT",
-      "desc": "HVAC control via ESP8266 and PWM DACs, wired into Home Assistant, in a 3D-printed enclosure. It still runs.",
+      "desc": "HVAC control with an ESP8266 and PWM DACs, hooked into Home Assistant, in a 3D-printed enclosure. It still runs.",
       "url": ""
     }
   ]

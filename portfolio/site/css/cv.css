@@ -1,0 +1,75 @@
+/* CV page. Fonts come from fonts.css. Screen: paper sheet on the site's
+   dark background. Print: plain black on white. */
+:root {
+  --ink: #0C0C0E;
+  --signal: #FFB000;
+  --dim: #555;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --display: 'Archivo Black', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--ink);
+  color: #111;
+}
+a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+
+.bar {
+  display: flex; justify-content: space-between; gap: 1rem;
+  max-width: 210mm; margin: 0 auto; padding: 0.75rem 16px;
+  font-size: 12px; letter-spacing: 0.04em;
+}
+.bar a { color: #EDEAE2; text-decoration: none; border-bottom: 1px solid currentColor; }
+.bar a:hover { background: var(--signal); color: var(--ink); }
+
+.sheet {
+  max-width: 210mm; margin: 0 auto 2rem;
+  background: #fff; padding: 12mm 12mm 10mm;
+}
+@media (max-width: 600px) { .sheet { padding: 20px 16px; margin-bottom: 0; } }
+
+h1 { font-family: var(--display); font-weight: 400; font-size: 2rem; line-height: 1.1; overflow-wrap: anywhere; }
+.role { font-weight: 700; margin-top: 0.25rem; }
+.contacts { list-style: none; display: flex; flex-wrap: wrap; gap: 0 1.1rem; margin-top: 0.5rem; font-size: 0.85em; }
+.contacts li { overflow-wrap: anywhere; }
+.head { padding-bottom: 0.6rem; border-bottom: 3px solid #111; }
+
+section { margin-top: 0.9rem; }
+h2 {
+  font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700;
+  border-bottom: 1px solid #111; padding-bottom: 0.15rem; margin-bottom: 0.45rem;
+}
+h3 { font-size: 1em; font-weight: 700; }
+.row { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-top: 0.3rem; }
+.when { white-space: nowrap; font-size: 0.9em; }
+.sub { color: var(--dim); font-size: 0.9em; }
+.item { margin-top: 0.55rem; break-inside: avoid; }
+.item:first-of-type { margin-top: 0; }
+.item .row { margin-top: 0; }
+ul { padding-left: 1.2em; margin-top: 0.15rem; }
+li { margin-top: 0.1rem; }
+.contacts, .projects { padding-left: 0; }
+.projects { list-style: none; }
+.skills { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.2rem 0.75rem; }
+.skills dt { font-weight: 700; }
+@media (max-width: 600px) {
+  .row { flex-direction: column; gap: 0; }
+  .skills { grid-template-columns: 1fr; gap: 0; }
+  .skills dd { margin-bottom: 0.4rem; }
+}
+
+@page { size: A4; margin: 11mm 12mm; }
+@media print {
+  body { background: #fff; font-size: 8.6pt; line-height: 1.38; }
+  .bar { display: none; }
+  .sheet { max-width: none; margin: 0; padding: 0; }
+  h1 { font-size: 22pt; }
+  section { margin-top: 0.6rem; }
+  a { text-decoration: none; }
+  section, .head { break-inside: avoid; }
+}
