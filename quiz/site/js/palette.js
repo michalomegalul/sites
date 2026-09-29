@@ -1,6 +1,6 @@
 /* Derives a whole palette from one accent colour.
  *
- * The editor gives the researcher a colour wheel — one choice, not eleven. That
+ * The editor gives the researcher a colour wheel - one choice, not eleven. That
  * is deliberate: the four hand-tuned palettes this replaces were each checked
  * against WCAG, and letting someone set `--ink` and `--bg` independently would
  * throw that away the first time anyone picked a pale yellow. So the wheel picks
@@ -9,12 +9,12 @@
  *
  * Contrast floors, verified over all 360 hues by tools/palette.test.js, against
  * BOTH bg and bg-raised (surface sits darker than bg in light mode, lighter in
- * dark mode — whichever direction, it's the tighter of the two backgrounds):
+ * dark mode - whichever direction, it's the tighter of the two backgrounds):
  *   ink       >= 7.0  (WCAG AAA body text)
- *   ink-soft  >= 4.5  (AA — help text, counters)
- *   accent    >= 4.5  (AA — links, the eyebrow, the progress fill)
+ *   ink-soft  >= 4.5  (AA - help text, counters)
+ *   accent    >= 4.5  (AA - links, the eyebrow, the progress fill)
  *
- * --line and --focus are NOT in the object this returns — style.css defines
+ * --line and --focus are NOT in the object this returns - style.css defines
  * them once as `color-mix(in srgb, var(--ink) N%, transparent)` / `var(--accent)`,
  * which tracks whatever ink/accent apply() writes without needing its own entry.
  *
@@ -81,7 +81,7 @@
   }
 
   /* Walk lightness in `step` until the colour clears `target` against the
-     background. Returns the first L that passes, or the end of the range —
+     background. Returns the first L that passes, or the end of the range -
      the caller's floor is a target, and running off the end means pure black or
      white, which passes anyway. */
   function fit(h, s, startL, step, target, bg) {
@@ -106,8 +106,8 @@
     // "Organic": a warm, visibly-tinted cream ground rather than a near-white
     // one, with card/surface areas a shade DARKER than the page (a filled
     // ground, not a lighter "elevated" panel). `lraised` is therefore always
-    // the tighter contrast constraint of the two — closer to ink's lightness
-    // than bg is — so every fit() below targets it: clearing it clears bg too.
+    // the tighter contrast constraint of the two - closer to ink's lightness
+    // than bg is - so every fit() below targets it: clearing it clears bg too.
     // palette.test.js checks both explicitly rather than assuming that.
     var lbg = { h: h, s: clamp(s * 0.95, 30, 60), l: 91 };
     var lraised = { h: h, s: clamp(s * 0.80, 26, 50), l: lbg.l - 6.5 };
@@ -127,7 +127,7 @@
 
     // ---- dark ----
     // Elevation keeps the conventional direction here (raised = lighter than
-    // the page) — the mock has no dark half to invert against, and inverting
+    // the page) - the mock has no dark half to invert against, and inverting
     // it would leave cards nearly invisible against an already-dark ground.
     var dbg = { h: h, s: Math.min(s * 0.28, 22), l: 9 };
     var draised = { h: h, s: Math.min(s * 0.30, 24), l: 14.5 };

@@ -1,4 +1,4 @@
--- 003: first tenant — endometriosis questionnaire (nursing thesis, 2026)
+-- 003: first tenant - endometriosis questionnaire (nursing thesis, 2026)
 --
 -- Idempotent-ish: re-running drops and recreates the survey. Because
 -- surveys.id cascades, THIS DELETES ITS RESPONSES. Do not run it again once
@@ -16,7 +16,7 @@ BEGIN
              JOIN surveys s ON s.id = r.survey_id
              WHERE s.slug = 'endo-2026') THEN
     RAISE EXCEPTION
-      'endo-2026 already has responses — refusing to reseed. '
+      'endo-2026 already has responses - refusing to reseed. '
       'Drop this file from the glob, or delete the responses deliberately first.';
   END IF;
 END $$;
@@ -32,7 +32,7 @@ INSERT INTO survey_i18n (survey_id, locale, title, intro_md, consent_md, thanks_
 SELECT id, 'cs',
 'Život s endometriózou',
 'Tento dotazník je součástí odborné práce na zdravotnické škole. Mapuje, jak
-endometrióza ovlivňuje každodenní život — bolest, její umístění, dopad na práci
+endometrióza ovlivňuje každodenní život - bolest, její umístění, dopad na práci
 a vztahy, a zkušenost se zdravotní péčí.
 
 Vyplnění trvá **přibližně 10 minut**. Odpovědi se ukládají průběžně, takže
@@ -63,7 +63,7 @@ INSERT INTO survey_i18n (survey_id, locale, title, intro_md, consent_md, thanks_
 SELECT id, 'en',
 'Living with endometriosis',
 'This questionnaire is part of a nursing-school thesis. It looks at how
-endometriosis affects daily life — pain and where it sits, the impact on work
+endometriosis affects daily life - pain and where it sits, the impact on work
 and relationships, and your experience of healthcare.
 
 It takes **about 10 minutes**. Answers save as you go, so you can stop and come
@@ -248,10 +248,10 @@ INSERT INTO q_seed VALUES
 (180, 'free_hcp', 'textarea', false,
  '{"maxlen":600}',
  'Co by podle Vás měli zdravotníci o endometrióze vědět?',
- 'Nepovinné. Prosím neuvádějte jména, místa ani nemocnice — podle nich by Vás šlo poznat.',
+ 'Nepovinné. Prosím neuvádějte jména, místa ani nemocnice - podle nich by Vás šlo poznat.',
  '{}',
  'What do you think healthcare staff should know about endometriosis?',
- 'Optional. Please do not include names, places, or hospitals — they would make you recognisable.',
+ 'Optional. Please do not include names, places, or hospitals - they would make you recognisable.',
  '{}'),
 
 (190, 'free_advice', 'textarea', false,

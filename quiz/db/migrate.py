@@ -2,14 +2,14 @@
 """Apply any db/*.sql that has not been applied yet.
 
 Run by deploy.sh before the service restarts, so schema and code never move
-separately — the failure that motivates this was deploying code which selected
+separately - the failure that motivates this was deploying code which selected
 `surveys.mode` before the column existed, which 500s every request.
 
     python3 db/migrate.py [--dry-run]
 
 Connection comes from quiz/api/.env:
 
-    MIGRATE_DATABASE_URL   used if set — needs rights to CREATE/ALTER
+    MIGRATE_DATABASE_URL   used if set - needs rights to CREATE/ALTER
     DATABASE_URL           fallback (the app role, often not enough for DDL)
 
 Rules:
@@ -37,7 +37,7 @@ DRY = "--dry-run" in sys.argv
 
 # Migrations that predate this runner. On a database that already has tables
 # but no schema_migrations, these are recorded as applied instead of being run
-# again — 001 is not idempotent and 003 would refuse anyway. On an empty
+# again - 001 is not idempotent and 003 would refuse anyway. On an empty
 # database they are applied normally like everything else.
 BASELINE = ["001_init.sql", "002_analytics.sql", "003_seed_endo_2026.sql"]
 
@@ -55,7 +55,7 @@ def grant_app_privileges(conn):
     Nine views have been added by migrations and not one of them carried a
     GRANT. Whether the app could read them depended entirely on
     ALTER DEFAULT PRIVILEGES having been configured for whichever role happened
-    to run the migration — and when it had not been, the failure surfaced a long
+    to run the migration - and when it had not been, the failure surfaced a long
     way from the cause: `permission denied for view v_quiz_stats`, as a 500 on
     the dashboard, discovered weeks after the migration that introduced it.
 
@@ -73,7 +73,7 @@ def grant_app_privileges(conn):
     if not ROLE_RE.match(APP_ROLE):
         # Identifiers cannot be parameterised, so this is validated rather than
         # escaped. APP_DB_ROLE comes from .env, but a typo should not become SQL.
-        print("migrate: WARNING ignoring APP_DB_ROLE=%r — not a plain identifier" % APP_ROLE)
+        print("migrate: WARNING ignoring APP_DB_ROLE=%r - not a plain identifier" % APP_ROLE)
         return
 
     role = '"%s"' % APP_ROLE
@@ -170,4 +170,4 @@ if __name__ == "__main__":
     except psycopg.Error as e:
         # Print the failing file's error plainly; the traceback is noise in a
         # CI log and the message is what tells you what to fix.
-        sys.exit("migrate: FAILED — %s" % str(e).strip())
+        sys.exit("migrate: FAILED - %s" % str(e).strip())

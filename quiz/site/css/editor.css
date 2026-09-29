@@ -138,8 +138,8 @@
 /* ---------- accent picker ---------- */
 /* The preview renders the derived light and dark palettes with their measured
    contrast ratios. Showing the numbers is deliberate: the derived accent is
-   often not the colour that was picked — lightness is clamped until it clears
-   4.5:1 — and that is confusing unless you can see it happening. */
+   often not the colour that was picked - lightness is clamped until it clears
+   4.5:1 - and that is confusing unless you can see it happening. */
 
 .ed-accent { margin-top: 1.25rem; }
 .ed-accent-row {

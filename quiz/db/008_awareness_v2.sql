@@ -1,11 +1,11 @@
--- 008: awareness quiz v2 — the final question list from the thesis author
+-- 008: awareness quiz v2 - the final question list from the thesis author
 --
 -- Replaces the questions of endo-znalosti in place, so the links already
 -- handed out (…/s/endo-znalosti?src=…) keep working. The 3 responses that
 -- existed at the time were tests and are deleted with the old questions.
 --
 -- Guard: refuse if more than those 3 *completed* responses exist by the time
--- this deploys — anything beyond them would be a real respondent, and deleting
+-- this deploys - anything beyond them would be a real respondent, and deleting
 -- real answers must be a deliberate decision, not a side effect of a deploy.
 -- Unfinished responses are not counted: they answered questions this file
 -- removes, so they cannot carry over either way (at the time: 9, all from the
@@ -23,7 +23,7 @@ BEGIN
         JOIN surveys s ON s.id = r.survey_id
        WHERE s.slug = 'endo-znalosti' AND r.submitted_at IS NOT NULL) > 3 THEN
     RAISE EXCEPTION
-      'endo-znalosti has more than the 3 known completed test responses — refusing to replace its questions.';
+      'endo-znalosti has more than the 3 known completed test responses - refusing to replace its questions.';
   END IF;
 END $$;
 
@@ -33,7 +33,7 @@ DELETE FROM questions
  WHERE survey_id = (SELECT id FROM surveys WHERE slug = 'endo-znalosti');
 
 UPDATE survey_i18n SET intro_md =
-'Krátký dotazník o nemoci, kterou má přibližně **každá desátá žena** — a o které
+'Krátký dotazník o nemoci, kterou má přibližně **každá desátá žena** - a o které
 se skoro nemluví.
 
 Sedmnáct otázek, **asi 7 minut**. U otázek na znalosti se po odpovědi dozvíte,
@@ -43,7 +43,7 @@ jak to je. Nevadí, když něco nevíte; právě to je smyslem této práce zjis
 
 UPDATE survey_i18n SET intro_md =
 'A short questionnaire about a condition that affects roughly **one in ten
-women** — and that is barely talked about.
+women** - and that is barely talked about.
 
 Seventeen questions, **about 7 minutes**. For the knowledge questions you will
 see how it actually is after you answer. It is fine not to know; finding that
@@ -93,10 +93,10 @@ INSERT INTO aq VALUES
  '{"options":["ten","hundred","thousand","million"],"correct":["ten"]}',
  'Kolika žen se podle Vás endometrióza přibližně týká?', NULL,
  '{"ten":"1 z 10","hundred":"1 ze 100","thousand":"1 z 1 000","million":"1 z 1 000 000"}',
- 'Podle Světové zdravotnické organizace se endometrióza týká přibližně **10 % žen a dívek v reprodukčním věku** — celosvětově asi 190 milionů. Je tedy zhruba stejně častá jako astma nebo cukrovka. Není to vzácné onemocnění, jen málo viditelné.',
+ 'Podle Světové zdravotnické organizace se endometrióza týká přibližně **10 % žen a dívek v reprodukčním věku** - celosvětově asi 190 milionů. Je tedy zhruba stejně častá jako astma nebo cukrovka. Není to vzácné onemocnění, jen málo viditelné.',
  'Roughly how many women do you think endometriosis affects?', NULL,
  '{"ten":"1 in 10","hundred":"1 in 100","thousand":"1 in 1,000","million":"1 in 1,000,000"}',
- 'The World Health Organization puts it at roughly **10% of women and girls of reproductive age** — around 190 million worldwide. That makes it about as common as asthma or diabetes. It is not rare, just not very visible.'),
+ 'The World Health Organization puts it at roughly **10% of women and girls of reproductive age** - around 190 million worldwide. That makes it about as common as asthma or diabetes. It is not rare, just not very visible.'),
 
 (60, 'k_type', 'single', true,
  '{"options":["thyroid","lymph","gyn","sti"],"correct":["gyn"]}',
@@ -111,10 +111,10 @@ INSERT INTO aq VALUES
  '{"options":["outside","overgrowth","infection","dunno"],"correct":["outside"]}',
  'Co je pro endometriózu charakteristické?', NULL,
  '{"outside":"výskyt tkáně podobné děložní sliznici mimo děložní dutinu","overgrowth":"nadměrné zmnožení děložní sliznice v děloze","infection":"bakteriální zánět dělohy","dunno":"nevím"}',
- 'Při endometrióze roste tkáň **podobná** děložní sliznici **mimo dělohu** — nejčastěji na pobřišnici, vaječnících a v pánvi. Nadměrné zmnožení sliznice přímo v děloze je jiné onemocnění a nejde ani o bakteriální zánět. Tato tkáň reaguje na hormonální cyklus, krvácí a dráždí okolí, což vede k zánětu, srůstům a bolesti.',
+ 'Při endometrióze roste tkáň **podobná** děložní sliznici **mimo dělohu** - nejčastěji na pobřišnici, vaječnících a v pánvi. Nadměrné zmnožení sliznice přímo v děloze je jiné onemocnění a nejde ani o bakteriální zánět. Tato tkáň reaguje na hormonální cyklus, krvácí a dráždí okolí, což vede k zánětu, srůstům a bolesti.',
  'What is characteristic of endometriosis?', NULL,
  '{"outside":"Tissue similar to the womb lining occurring outside the uterine cavity","overgrowth":"Excessive thickening of the lining inside the uterus","infection":"A bacterial infection of the uterus","dunno":"I do not know"}',
- 'In endometriosis, tissue **similar to** the lining of the womb grows **outside the uterus** — most often on the peritoneum, ovaries and pelvis. Thickening of the lining inside the uterus is a different condition, and it is not a bacterial infection either. The tissue responds to the hormonal cycle, bleeds, and irritates what is around it, causing inflammation, adhesions and pain.'),
+ 'In endometriosis, tissue **similar to** the lining of the womb grows **outside the uterus** - most often on the peritoneum, ovaries and pelvis. Thickening of the lining inside the uterus is a different condition, and it is not a bacterial infection either. The tissue responds to the hormonal cycle, bleeds, and irritates what is around it, causing inflammation, adhesions and pain.'),
 
 (80, 'k_symptoms', 'multi', true,
  '{"options":["period_pain","teeth","leg_pain","dizziness","bowel_pain","hair","dunno"],"correct":["period_pain","leg_pain","bowel_pain"],"exclusive":["dunno"]}',
@@ -130,7 +130,7 @@ INSERT INTO aq VALUES
  'Kde si myslíte, že bývá bolest při endometrióze nejčastěji?',
  'Klepnutím vyberte všechny oblasti, o kterých si myslíte, že bývají postižené, pak zkontrolujte odpověď.',
  '{"shoulder-l":"Levé rameno","shoulder-r":"Pravé rameno","abdomen-upper":"Horní část břicha","abdomen-lower-l":"Podbřišek vlevo","abdomen-lower-r":"Podbřišek vpravo","pelvis-suprapubic":"Nad stydkou kostí","thigh-l":"Levé stehno","thigh-r":"Pravé stehno"}',
- 'Typický vzorec je podbřišek, oblast nad stydkou kostí a stehna — bolest tam často vystřeluje. Bolest v rameni se objevuje jen vzácně, a to tehdy, když ložiska zasahují až k bránici.',
+ 'Typický vzorec je podbřišek, oblast nad stydkou kostí a stehna - bolest tam často vystřeluje. Bolest v rameni se objevuje jen vzácně, a to tehdy, když ložiska zasahují až k bránici.',
  'Where do you think endometriosis pain is most commonly felt?',
  'Tap every area you think is commonly affected, then check your answer.',
  '{"shoulder-l":"Left shoulder","shoulder-r":"Right shoulder","abdomen-upper":"Upper abdomen","abdomen-lower-l":"Lower abdomen, left","abdomen-lower-r":"Lower abdomen, right","pelvis-suprapubic":"Above the pubic bone","thigh-l":"Left thigh","thigh-r":"Right thigh"}',
@@ -140,28 +140,28 @@ INSERT INTO aq VALUES
  '{"options":["before_first","reproductive","menopause","dunno"],"correct":["reproductive"]}',
  'V jakém stadiu života ženy se začne endometrióza projevovat?', NULL,
  '{"before_first":"před první menstruací","reproductive":"v reprodukčním věku","menopause":"v menopauze","dunno":"nevím"}',
- 'Endometrióza se projevuje **v reprodukčním věku** — příznaky mohou začít už s první menstruací v dospívání. U dospívajících se bolest ale často bagatelizuje („to přejde“, „to má každá“), a právě to prodlužuje cestu k diagnóze o roky.',
+ 'Endometrióza se projevuje **v reprodukčním věku** - příznaky mohou začít už s první menstruací v dospívání. U dospívajících se bolest ale často bagatelizuje („to přejde“, „to má každá“), a právě to prodlužuje cestu k diagnóze o roky.',
  'At what stage of a woman''s life does endometriosis start to show?', NULL,
  '{"before_first":"Before the first period","reproductive":"During the reproductive years","menopause":"At menopause","dunno":"I do not know"}',
- 'Endometriosis shows **during the reproductive years** — symptoms can begin with the very first period in adolescence. In teenagers the pain is often dismissed ("it will pass", "everyone gets that"), and that is exactly what adds years to the path to diagnosis.'),
+ 'Endometriosis shows **during the reproductive years** - symptoms can begin with the very first period in adolescence. In teenagers the pain is often dismissed ("it will pass", "everyone gets that"), and that is exactly what adds years to the path to diagnosis.'),
 
 (110, 'k_fertility', 'single', true,
  '{"options":["harder","no_effect","dunno"],"correct":["harder"]}',
  'Může endometrióza ovlivnit plodnost ženy?', NULL,
  '{"harder":"ano, může ztížit otěhotnění","no_effect":"ne, plodnost neovlivňuje","dunno":"nevím"}',
- 'Ano. Potíže s otěhotněním se odhadují zhruba u **30–50 %** žen s endometriózou. Neznamená to ale automaticky neplodnost — mnoho žen s endometriózou otěhotní přirozeně nebo s pomocí léčby.',
+ 'Ano. Potíže s otěhotněním se odhadují zhruba u **30–50 %** žen s endometriózou. Neznamená to ale automaticky neplodnost - mnoho žen s endometriózou otěhotní přirozeně nebo s pomocí léčby.',
  'Can endometriosis affect a woman''s fertility?', NULL,
  '{"harder":"Yes, it can make it harder to get pregnant","no_effect":"No, it does not affect fertility","dunno":"I do not know"}',
- 'Yes. Difficulty conceiving is estimated in roughly **30–50%** of women with endometriosis. It does not automatically mean infertility, though — many women with endometriosis conceive naturally or with treatment.'),
+ 'Yes. Difficulty conceiving is estimated in roughly **30–50%** of women with endometriosis. It does not automatically mean infertility, though - many women with endometriosis conceive naturally or with treatment.'),
 
 (120, 'k_delay', 'single', true,
  '{"options":["yes","no","dunno"],"correct":["yes"]}',
  'Myslíte si, že může od prvních příznaků do stanovení diagnózy endometriózy uplynout několik let?', NULL,
  '{"yes":"ano","no":"ne","dunno":"nevím"}',
- 'Ano. Studie z různých zemí uvádějí průměrné zpoždění **7 až 10 let** od prvních příznaků ke stanovení diagnózy. Hlavním důvodem je, že se silná menstruační bolest považuje za normální — okolím, lékaři i samotnými pacientkami.',
+ 'Ano. Studie z různých zemí uvádějí průměrné zpoždění **7 až 10 let** od prvních příznaků ke stanovení diagnózy. Hlavním důvodem je, že se silná menstruační bolest považuje za normální - okolím, lékaři i samotnými pacientkami.',
  'Do you think several years can pass between the first symptoms and a diagnosis of endometriosis?', NULL,
  '{"yes":"Yes","no":"No","dunno":"I do not know"}',
- 'Yes. Studies across countries report an average delay of **7 to 10 years** from first symptoms to diagnosis. The main reason is that severe period pain gets treated as normal — by those around the patient, by clinicians, and by patients themselves.'),
+ 'Yes. Studies across countries report an average delay of **7 to 10 years** from first symptoms to diagnosis. The main reason is that severe period pain gets treated as normal - by those around the patient, by clinicians, and by patients themselves.'),
 
 (130, 'k_cure', 'single', true,
  '{"options":["surgery","hormones","no_cure"],"correct":["no_cure"]}',

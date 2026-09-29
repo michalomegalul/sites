@@ -1,4 +1,4 @@
-/* Interactive body map — the centrepiece question.
+/* Interactive body map - the centrepiece question.
  *
  * SPEC: named anatomical regions, never freehand coordinates, because the
  * thesis needs tables and charts and coordinates cannot be tabulated. Tapping a
@@ -10,7 +10,7 @@
  *
  * Sides are named from the RESPONDENT's point of view. In the front view the
  * respondent's left is on the viewer's right; in the back view it is on the
- * viewer's left. The coordinates below already account for that — check it
+ * viewer's left. The coordinates below already account for that - check it
  * before moving anything.
  */
 (function () {
@@ -101,7 +101,7 @@
     // A graded quiz question (spec `levels: 1`) is tap-to-select, not
     // tap-to-cycle-intensity: a region is either the answer or it is not.
     // Distinct from the survey's pain map, which is data ("how bad, where")
-    // rather than a right/wrong answer — see 007_quiz_pain_location.sql.
+    // rather than a right/wrong answer - see 007_quiz_pain_location.sql.
     var selectMode = levels === 1;
     var levelNames = selectMode
       ? [t.bodyNotSelected, t.bodySelected]
@@ -115,8 +115,8 @@
     stage.appendChild(frontSvg);
 
     // A question restricted to front-only regions (every graded quiz map so
-    // far) has nothing to show on the back view, so the toggle — and the
-    // view it would switch to — is simply not built rather than built empty.
+    // far) has nothing to show on the back view, so the toggle - and the
+    // view it would switch to - is simply not built rather than built empty.
     var backCodes = BACK.map(function (r) { return r[0]; });
     var hasBack = !opts.regions || opts.regions.some(function (code) {
       return backCodes.indexOf(code) !== -1;
@@ -135,6 +135,10 @@
       stage.appendChild(backSvg);
     }
 
+    var hint = document.createElement('p');
+    hint.className = 'bodymap-hint';
+    hint.textContent = selectMode ? t.bodyHintSelect : t.bodyHint;
+
     var legend = null;
     if (!selectMode) {
       legend = document.createElement('div');
@@ -152,7 +156,7 @@
     live.setAttribute('aria-live', 'polite');
     live.className = 'hp';
 
-    // "No pain in any of these areas" — without this a required body map is a
+    // "No pain in any of these areas" - without this a required body map is a
     // dead end for anyone with nothing to mark, and an empty map is otherwise
     // indistinguishable from an unanswered one. Only meaningful for the
     // intensity map: a graded select question has a right answer, not a "no
@@ -179,7 +183,7 @@
       });
     }
 
-    [toggle, stage, legend, picked, noneLabel, live].forEach(function (node) {
+    [toggle, hint, stage, legend, picked, noneLabel, live].forEach(function (node) {
       if (node) wrap.appendChild(node);
     });
 
@@ -260,9 +264,9 @@
     return wrap;
   }
 
-  /* Static, unfilled, both views side by side — the printable appendix.
+  /* Static, unfilled, both views side by side - the printable appendix.
    * Skips the back view entirely when the question's regions are all
-   * front-facing, same as create() — an empty second silhouette in a print
+   * front-facing, same as create() - an empty second silhouette in a print
    * appendix is confusing, not neutral. */
   function createPrint(opts) {
     var wrap = document.createElement('div');
@@ -289,7 +293,7 @@
 
   /* Researcher heat map. Both views at once, no interaction beyond hover.
    *
-   * Colour encodes ONE thing — how many respondents marked the region — on a
+   * Colour encodes ONE thing - how many respondents marked the region - on a
    * single-hue sequential ramp (see admin.css). Mean intensity is a second
    * measure and is written as text rather than folded into the same colour,
    * because two measures on one scale cannot be read back apart.
@@ -317,7 +321,7 @@
         // Five buckets: 0 recedes to the surface, 1–4 climb the ramp.
         var step = (!n || !max) ? 0 : Math.max(1, Math.ceil((n / max) * 4));
         node.setAttribute('data-heat', String(step));
-        var text = (labels[code] || code) + ' — ' + n +
+        var text = (labels[code] || code) + ' - ' + n +
           (d ? ' (⌀ ' + d.mean_intensity + ')' : '');
         node.querySelector('title').textContent = text;
         node.setAttribute('aria-label', text);

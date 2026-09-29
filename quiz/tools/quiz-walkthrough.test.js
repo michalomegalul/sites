@@ -4,8 +4,8 @@
  * THE BUG: renderGraded() relabelled its button to "Continue" and also assigned
  * btn.onclick, while an addEventListener for the same click was already
  * attached. Once feedback existed both handlers ran `state.index++` in the same
- * dispatch — detaching a node mid-dispatch does not cancel the remaining
- * listeners on it — so the index advanced by two and the next question was never
+ * dispatch - detaching a node mid-dispatch does not cancel the remaining
+ * listeners on it - so the index advanced by two and the next question was never
  * shown. Those questions then had no answer, so submit ended in
  * missing_required. It read as intermittent because endo-znalosti interleaves 12
  * graded questions with 4 ungraded ones.
@@ -17,7 +17,7 @@
  *       node quiz/tools/quiz-walkthrough.test.js
  *
  * jsdom is a dev-only dependency in a gitignored directory. The site itself
- * still has no build step and the deploy still has no npm stage — SPEC.
+ * still has no build step and the deploy still has no npm stage - SPEC.
  */
 'use strict';
 
@@ -35,7 +35,7 @@ try {
 
 // ---------------------------------------------------------------- fake survey
 // Mirrors endo-znalosti's shape: graded questions interleaved with ungraded
-// context ones. The interleaving is the point — a bug that eats "the next
+// context ones. The interleaving is the point - a bug that eats "the next
 // question" behaves differently depending on what follows.
 const QUESTIONS = [
   { code: 'heard_before', kind: 'single', graded: false, required: true,
@@ -77,7 +77,7 @@ const server = {
       for (const [code, value] of Object.entries(body)) {
         this.answers[code] = value;
         saved.push(code);
-        // Grading happens only for questions that have a key — same as the API.
+        // Grading happens only for questions that have a key - same as the API.
         if (CORRECT[code]) {
           const want = CORRECT[code];
           const ok = Array.isArray(value)
@@ -124,7 +124,7 @@ window.fetch = (url, opts = {}) => {
 window.requestAnimationFrame = (fn) => setTimeout(fn, 0);
 window.scrollTo = () => {};
 
-// Same order as index.html — palette.js before theme.js, because theme.js
+// Same order as index.html - palette.js before theme.js, because theme.js
 // applies a cached accent through it.
 for (const f of ['js/palette.js', 'js/theme.js', 'js/config.js', 'js/i18n.js',
                  'js/bodymap.js', 'js/app.js']) {
@@ -185,7 +185,7 @@ function check(cond, msg) {
     btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await tick(); await tick();
 
-    // If a verdict appeared, the same button now says Pokračovat — press on.
+    // If a verdict appeared, the same button now says Pokračovat - press on.
     if (doc.querySelector('.verdict')) {
       // q_multi was answered with only its first option, so the verdict must
       // name what was missed (B) up front, and report nothing extra.
@@ -206,7 +206,7 @@ function check(cond, msg) {
   console.log('  shown:    ' + seen.join(' | '));
   console.log('  expected: ' + expected.join(' | '));
   check(seen.length === expected.length,
-    `every question was shown (${seen.length}/${expected.length}) — this is the double-advance regression`);
+    `every question was shown (${seen.length}/${expected.length}) - this is the double-advance regression`);
   check(JSON.stringify(seen) === JSON.stringify(expected), 'shown in the right order, none skipped');
 
   console.log('\nsubmitting');
@@ -226,7 +226,7 @@ function check(cond, msg) {
 
   console.log('\nbody map front/back toggle');
   // Shoulders exist in both views, so this map builds the toggle. The views
-  // are SVGs, where `.hidden =` is inert — the attribute is what must change.
+  // are SVGs, where `.hidden =` is inert - the attribute is what must change.
   const map = window.BodyMap.create({
     regions: ['shoulder-l', 'abdomen-lower-l'], levels: 1, t: window.I18N ? window.I18N.cs : {},
   });

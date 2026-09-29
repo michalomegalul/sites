@@ -1,4 +1,4 @@
-# quiz.dobsinsky.dev — survey engine
+# quiz.dobsinsky.dev - survey engine
 
 Handoff spec. Everything below is decided; treat open questions as the only
 things to ask about.
@@ -7,7 +7,7 @@ things to ask about.
 
 A self-hosted survey engine replacing Google Forms. First tenant is a
 questionnaire for a Czech nursing-school thesis (*odborná práce*) on
-endometriosis. The engine is generic — surveys are rows, not code — but the
+endometriosis. The engine is generic - surveys are rows, not code - but the
 first survey's needs drive the feature set.
 
 Lives in the `sites` monorepo alongside the existing portfolio.
@@ -18,7 +18,7 @@ These are not negotiable; they came out of GDPR analysis and the school's
 methodology requirements.
 
 1. **Responses are anonymous.** No names, no emails, no IP addresses stored on
-   or joinable to a response. Respondents disclose symptoms and diagnoses —
+   or joinable to a response. Respondents disclose symptoms and diagnoses -
    that is Article 9 special-category data under GDPR.
 2. **Answers store language-neutral codes, never display text.** A Czech
    respondent choosing "Ano" and an English one choosing "Yes" must land in the
@@ -51,7 +51,7 @@ Prefer closed questions; keep free-text few and narrow.
   cannot be used to spoof into it.
 - Postgres 18 on a separate LXC (192.168.4.32). Connection string in
   `quiz/api/.env` as `DATABASE_URL`, file mode `640 root:www-data`.
-  The app must also call `load_dotenv()` itself — see "Known traps".
+  The app must also call `load_dotenv()` itself - see "Known traps".
 
 ## Layout
 
@@ -67,17 +67,17 @@ quiz/
 
 Already applied; see `quiz/db/001_init.sql`. Summary:
 
-- `surveys` — slug, `default_locale`, `locales[]`, `consent_ver`, `is_open`
-- `survey_i18n` — (survey_id, locale) → title, intro_md, consent_md, thanks_md
-- `questions` — survey_id, position, **code** (stable export key), kind,
+- `surveys` - slug, `default_locale`, `locales[]`, `consent_ver`, `is_open`
+- `survey_i18n` - (survey_id, locale) → title, intro_md, consent_md, thanks_md
+- `questions` - survey_id, position, **code** (stable export key), kind,
   required, `spec` JSONB (option codes, scale bounds, bodymap regions)
-- `question_i18n` — (question_id, locale) → prompt, help, `labels` JSONB
+- `question_i18n` - (question_id, locale) → prompt, help, `labels` JSONB
   mapping option code → display text
-- `sources` — per-survey link codes for attribution
-- `responses` — survey_id, source_id, locale, started_at, submitted_at,
+- `sources` - per-survey link codes for attribution
+- `responses` - survey_id, source_id, locale, started_at, submitted_at,
   consent_ver, ua_family
-- `answers` — (response_id, question_id) → value JSONB
-- `followups` — opt-in emails, deliberately unlinked
+- `answers` - (response_id, question_id) → value JSONB
+- `followups` - opt-in emails, deliberately unlinked
 - Views: `v_source_stats`, `v_answers_long`
 
 Migrations are numbered SQL files applied manually. No ORM migration tool.
@@ -94,7 +94,7 @@ e.g. `/cs/s/endo-2026?src=insta`, `/en/s/endo-2026?src=insta`
   itself determines language so a Czech link pasted in a Czech group cannot
   land someone in English.
 - The language switcher rewrites the path segment and preserves `?src`.
-- `src` resolves against `sources` server-side. Unknown values store `NULL` —
+- `src` resolves against `sources` server-side. Unknown values store `NULL` -
   never auto-create rows, or the stats can be polluted from the query string.
 - `/` redirects to the survey's `default_locale`.
 
@@ -141,7 +141,7 @@ GROUP BY k ORDER BY respondents DESC;
 
 Region set must include referral sites, not just the obvious ones: lower
 abdomen (L/R), suprapubic pelvis, groin, thighs, lower back, sacrum/coccyx,
-buttocks, rectal/deep pelvic, under-ribs, and **shoulders** — diaphragmatic
+buttocks, rectal/deep pelvic, under-ribs, and **shoulders** - diaphragmatic
 lesions refer pain to the shoulder, and a plain checkbox list never catches it.
 
 ## Frontend
@@ -156,7 +156,7 @@ often lying down, often by someone who feels awful.
   state that the researcher will see the answers and, given the small sample,
   may be able to tell who wrote what.
 - The body map gets the whole screen; everything else gets out of its way.
-- Prefer vanilla JS or a single-file framework over a build pipeline — the
+- Prefer vanilla JS or a single-file framework over a build pipeline - the
   deploy script has no `npm` step and shouldn't need one.
 - Full CZ and EN parity. Czech diacritics and typography must be correct.
 
@@ -164,19 +164,19 @@ often lying down, often by someone who feels awful.
 
 Behind Tailscale/LAN only, never public:
 
-- `GET /api/admin/{slug}/export.csv` — long format from `v_answers_long`,
+- `GET /api/admin/{slug}/export.csv` - long format from `v_answers_long`,
   plus a wide format keyed on `questions.code`, which is what she'll actually
   load into a spreadsheet.
 - Aggregate view: per-question tallies, source funnel from `v_source_stats`,
   body-map heat map.
-- `GET /{locale}/s/{slug}/print` — the blank questionnaire, print-stylesheet
+- `GET /{locale}/s/{slug}/print` - the blank questionnaire, print-stylesheet
   clean, all regions unfilled and labelled. **Required as a thesis appendix.**
 
 ## Non-goals
 
 - No respondent accounts or logins.
 - No scoring, branching logic, or personality typing. It collects answers.
-- No admin CRUD UI for authoring questions in v1 — seed SQL is fine.
+- No admin CRUD UI for authoring questions in v1 - seed SQL is fine.
 - No analytics, no third-party scripts, no fonts from outside the origin.
 
 ## Known traps
@@ -185,7 +185,7 @@ Behind Tailscale/LAN only, never public:
   If the checkout moves, delete the venv and let the deploy rebuild it.
 - `EnvironmentFile=` is read by systemd as root, but the app also calls
   `load_dotenv()` as `www-data`. python-dotenv raises on an unreadable file
-  rather than skipping it, so `.env` must be `640 root:www-data` — not `600`.
+  rather than skipping it, so `.env` must be `640 root:www-data` - not `600`.
 - `pg_hba.conf` is first-match-wins. A permissive catch-all above a specific
   rule silently defeats it.
 - nginx `sites-enabled/` entries here must be symlinks. A regular file there

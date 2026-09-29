@@ -1,4 +1,4 @@
-"""quiz.dobsinsky.dev — survey engine API.
+"""quiz.dobsinsky.dev - survey engine API.
 
 Surveys are rows, not code. See ../SPEC.md for the constraints this file exists
 to enforce; the ones that bite are:
@@ -28,7 +28,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 # systemd reads EnvironmentFile= as root; we also load it as www-data. See
-# SPEC "Known traps" — .env must be 640 root:www-data or python-dotenv raises.
+# SPEC "Known traps" - .env must be 640 root:www-data or python-dotenv raises.
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -43,6 +43,13 @@ TRUSTED_NETS = [
 START_LIMIT = int(os.getenv("START_LIMIT_PER_HOUR", "20"))
 FOLLOWUP_LIMIT = int(os.getenv("FOLLOWUP_LIMIT_PER_HOUR", "5"))
 MIN_FILL_SECONDS = int(os.getenv("MIN_FILL_SECONDS", "15"))
+# "How others answered" is shown only once this many completed responses have
+# answered the question. Below it the share is noise, and on a small convenience
+# sample it would come close to identifying individual respondents.
+PEER_STAT_MIN_ANSWERS = 20
+# The public response count is floored to this step, and withheld below it.
+PUBLIC_COUNT_STEP = 10
+PUBLIC_COUNT_TTL = 600  # seconds
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
@@ -76,7 +83,7 @@ def _close_db(exc):
 
 
 def client_ip():
-    """Transient only — used for rate limiting and never written to a row.
+    """Transient only - used for rate limiting and never written to a row.
 
     nginx overwrites X-Real-IP from CF-Connecting-IP on the public block, so
     this cannot be spoofed by sending the header. See portfolio/nginx.conf.
@@ -143,7 +150,7 @@ UA_PLATFORMS = [
 
 
 def ua_family():
-    """Coarse family only. The full string is near-unique — SPEC constraint #5."""
+    """Coarse family only. The full string is near-unique - SPEC constraint #5."""
     ua = request.headers.get("User-Agent", "")
     browser = next((n for t, n in UA_BROWSERS if t in ua), "Other")
     platform = next((n for t, n in UA_PLATFORMS if t in ua), "Other")
@@ -177,7 +184,7 @@ def public_surveys():
     This returns only what a respondent needs in order to pick a questionnaire.
 
     A closed survey is listed only to a trusted client. Publicly it is not
-    mentioned at all — its existence is not a fact the internet needs, and a
+    mentioned at all - its existence is not a fact the internet needs, and a
     dead card is worse than no card.
 
     `trusted` rides along so the page can render the admin shortcuts in the same
@@ -205,6 +212,38 @@ def public_surveys():
     return jsonify(surveys=surveys, trusted=trusted)
 
 
+_public_count = {"at": 0.0, "value": None}
+_public_count_lock = Lock()
+
+
+@app.get("/api/public/count")
+def public_count():
+    """Completed responses across every open survey, for the portfolio site.
+
+    /api/surveys refuses to publish per-survey counts - they are nobody's
+    business from the internet. This is the deliberate compromise: one total
+    across all surveys, floored to the nearest 10 and `null` below 10, so it
+    is a "the project has real participants" line and not a live tally of any
+    one survey. Cached in process for PUBLIC_COUNT_TTL seconds.
+    """
+    now = time.monotonic()
+    with _public_count_lock:
+        fresh = _public_count["at"] and now - _public_count["at"] < PUBLIC_COUNT_TTL
+        if not fresh:
+            with db().cursor() as cur:
+                cur.execute(
+                    "SELECT count(*) AS n FROM responses r"
+                    " JOIN surveys s ON s.id = r.survey_id"
+                    " WHERE s.is_open AND r.submitted_at IS NOT NULL"
+                )
+                n = cur.fetchone()["n"]
+            floored = n // PUBLIC_COUNT_STEP * PUBLIC_COUNT_STEP
+            _public_count["value"] = floored or None
+            _public_count["at"] = now
+        value = _public_count["value"]
+    return jsonify(responses=value)
+
+
 @app.get("/api/s/<slug>")
 def get_survey(slug):
     if not SLUG_RE.match(slug):
@@ -217,7 +256,7 @@ def get_survey(slug):
             return jsonify(error="not_found"), 404
 
         cur.execute(
-            "SELECT title, intro_md, consent_md, thanks_md FROM survey_i18n"
+            "SELECT title, intro_md, consent_md, thanks_md, sources_md FROM survey_i18n"
             " WHERE survey_id = %s AND locale = %s",
             (survey["id"], locale),
         )
@@ -234,7 +273,7 @@ def get_survey(slug):
         questions = cur.fetchall()
 
     # Never ship the answer key. In quiz mode the correct options and the
-    # explanation come back from PATCH, once the answer is already recorded —
+    # explanation come back from PATCH, once the answer is already recorded -
     # otherwise the survey measures who thought to open devtools.
     for q in questions:
         spec = q.get("spec") or {}
@@ -252,7 +291,7 @@ def get_survey(slug):
         consent_ver=survey["consent_ver"],
         mode=survey["mode"],
         # NULL means the built-in palette. The browser derives the rest of the
-        # colours from this one value — see site/js/palette.js.
+        # colours from this one value - see site/js/palette.js.
         accent=survey["accent"],
         **text,
         questions=questions,
@@ -279,7 +318,7 @@ def start(slug):
         if not survey["is_open"]:
             return jsonify(error="closed"), 403
 
-        # Unknown src stores NULL. Never auto-create — SPEC: the query string
+        # Unknown src stores NULL. Never auto-create - SPEC: the query string
         # must not be able to pollute source stats.
         source_id = None
         src = body.get("src")
@@ -303,7 +342,7 @@ def start(slug):
 
 
 def validate(kind, spec, value):
-    """Return (ok, cleaned). Never trust the client — SPEC.
+    """Return (ok, cleaned). Never trust the client - SPEC.
 
     A `None` value means "clear this answer" and is always allowed.
     """
@@ -363,7 +402,7 @@ def validate(kind, spec, value):
 def grade(kind, spec, value):
     """True/False for a gradable question, None if it is not graded.
 
-    Kept identical to the SQL in db/004_quiz_mode.sql — a multi must match the
+    Kept identical to the SQL in db/004_quiz_mode.sql - a multi must match the
     correct set exactly, so ticking everything scores nothing.
     """
     correct = spec.get("correct")
@@ -374,6 +413,25 @@ def grade(kind, spec, value):
     if kind == "bodymap":
         return sorted((value or {}).keys()) == sorted(correct)
     return value in correct
+
+
+def peer_correct_shares(cur, survey_id, codes):
+    """{question code: whole-percent correct} for the graded `codes`.
+
+    Reads v_quiz_stats, which is built on v_quiz_answers and counts completed
+    responses only, so this cannot disagree with `grade()` or with the
+    researcher's dashboard. A question with fewer than PEER_STAT_MIN_ANSWERS
+    answers is left out of the result rather than reported as noise.
+    """
+    if not codes:
+        return {}
+    cur.execute(
+        "SELECT question, answered, correct FROM v_quiz_stats"
+        " WHERE survey_id = %s AND question = ANY(%s) AND answered >= %s",
+        (survey_id, list(codes), PEER_STAT_MIN_ANSWERS),
+    )
+    return {r["question"]: round(100 * r["correct"] / r["answered"])
+            for r in cur.fetchall()}
 
 
 def open_response(cur, response_id):
@@ -452,8 +510,8 @@ def patch_response(response_id):
             if not ok:
                 rejected.append(code)
                 continue
-            # An empty body map is a real answer — "no pain in any of these
-            # areas" — and must be stored, or a respondent with nothing to mark
+            # An empty body map is a real answer - "no pain in any of these
+            # areas" - and must be stored, or a respondent with nothing to mark
             # can never satisfy a required body-map question. Every other kind
             # treats empty as "clear this answer". Send null to clear a bodymap.
             blank = cleaned is None or cleaned == "" or cleaned == []
@@ -485,6 +543,12 @@ def patch_response(response_id):
                     "correct_options": q["spec"].get("correct", []),
                     "explain_md": q["explain_md"],
                 }
+        # One query for every verdict in this request, after the answers are
+        # written. The share comes back with the verdict, never with the
+        # survey, so it reveals nothing the respondent has not just answered.
+        shares = peer_correct_shares(cur, resp["survey_id"], feedback)
+        for code, pct in shares.items():
+            feedback[code]["peer_pct"] = pct
         db().commit()
 
     status = 200 if saved else 400
@@ -568,7 +632,7 @@ def followup(slug):
 
     Note what this endpoint does NOT accept: a response_id. Not as a body field,
     not as a query parameter. It cannot link an email to answers because it is
-    never told which response the browser holds — SPEC constraint #3.
+    never told which response the browser holds - SPEC constraint #3.
     """
     if not SLUG_RE.match(slug):
         return jsonify(error="bad_slug"), 400
@@ -639,7 +703,7 @@ def admin_stats(slug):
             " JOIN questions q ON q.id = a.question_id"
             # A multi answer is already a JSON array; everything else is wrapped
             # into a one-element array so both shapes expand the same way.
-            # (The CASE cannot contain the expansion itself — Postgres does not
+            # (The CASE cannot contain the expansion itself - Postgres does not
             # allow a set-returning function inside CASE.)
             " CROSS JOIN LATERAL jsonb_array_elements_text("
             "   CASE WHEN q.kind = 'multi' THEN a.value"
@@ -775,14 +839,14 @@ def flatten(kind, value):
 # ------------------------------------------------------------------ editor API
 # Authoring, trusted networks only. Writes here change a live instrument, so the
 # rules that protect collected data are enforced server-side, not in the UI:
-#   * a question's `code` is the export key — it cannot change once answers exist
+#   * a question's `code` is the export key - it cannot change once answers exist
 #   * deleting a question cascades to its answers, so that needs ?force=1
 #   * option codes may not be removed while answers reference them
 
 # A question code becomes a column header in the CSV export, so it stays a
 # conservative identifier. Option codes are only ever map keys and the seeded
 # ones already start with digits ("25_34") or contain hyphens ("shoulder-l"),
-# so they get the looser rule — a validator stricter than the existing data
+# so they get the looser rule - a validator stricter than the existing data
 # would make those questions uneditable.
 ACCENT_RE = re.compile(r"^#[0-9a-f]{6}$")
 CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
@@ -859,7 +923,7 @@ def admin_source_create(slug):
         if survey is None:
             return jsonify(error="not_found"), 404
         # Re-sharing an existing tag is normal (a second Instagram post), so a
-        # duplicate is not an error — it returns the same row.
+        # duplicate is not an error - it returns the same row.
         cur.execute(
             "INSERT INTO sources (survey_id, code, label) VALUES (%s, %s, %s)"
             " ON CONFLICT (survey_id, code) DO UPDATE SET label = sources.label"
@@ -875,7 +939,7 @@ def admin_source_create(slug):
 @trusted_only
 def admin_edit_get(slug):
     """Full authoring view. Unlike the public endpoint this DOES include correct
-    answers and explanations — it is only reachable from a trusted network."""
+    answers and explanations - it is only reachable from a trusted network."""
     if not SLUG_RE.match(slug):
         return jsonify(error="bad_slug"), 400
 
@@ -885,7 +949,7 @@ def admin_edit_get(slug):
             return jsonify(error="not_found"), 404
 
         cur.execute(
-            "SELECT locale, title, intro_md, consent_md, thanks_md"
+            "SELECT locale, title, intro_md, consent_md, thanks_md, sources_md"
             " FROM survey_i18n WHERE survey_id = %s",
             (survey["id"],),
         )
@@ -961,20 +1025,25 @@ def admin_edit_survey(slug):
                 continue
             cur.execute(
                 "INSERT INTO survey_i18n"
-                " (survey_id, locale, title, intro_md, consent_md, thanks_md)"
-                " VALUES (%s, %s, %s, %s, %s, %s)"
+                " (survey_id, locale, title, intro_md, consent_md, thanks_md, sources_md)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s)"
                 " ON CONFLICT (survey_id, locale) DO UPDATE SET"
                 "   title = EXCLUDED.title, intro_md = EXCLUDED.intro_md,"
-                "   consent_md = EXCLUDED.consent_md, thanks_md = EXCLUDED.thanks_md",
+                "   consent_md = EXCLUDED.consent_md, thanks_md = EXCLUDED.thanks_md,"
+                # A client that does not send sources_md (a cached older editor)
+                # must not wipe it.
+                "   sources_md = CASE WHEN %s THEN EXCLUDED.sources_md"
+                "                     ELSE survey_i18n.sources_md END",
                 (survey["id"], locale, (text.get("title") or "").strip() or slug,
-                 text.get("intro_md"), text.get("consent_md"), text.get("thanks_md")),
+                 text.get("intro_md"), text.get("consent_md"), text.get("thanks_md"),
+                 text.get("sources_md"), "sources_md" in text),
             )
         db().commit()
     return jsonify(ok=True)
 
 
 def validate_question_body(body, survey, existing_code=None):
-    """Returns (error_message, cleaned) — cleaned is ready to write."""
+    """Returns (error_message, cleaned) - cleaned is ready to write."""
     code = (body.get("code") or "").strip()
     if not CODE_RE.match(code):
         return "code must be lowercase letters, digits and underscores", None

@@ -1,4 +1,4 @@
--- 004: quiz mode — surveys that grade answers and explain them
+-- 004: quiz mode - surveys that grade answers and explain them
 --
 -- The engine stays generic. A survey is either a plain questionnaire (default)
 -- or a quiz, and a question becomes gradable purely by carrying a "correct"
@@ -15,7 +15,7 @@ ALTER TABLE question_i18n
 
 -- Correct answers live in questions.spec as option CODES:
 --     {"options": ["a","b","c"], "correct": ["b"]}
--- Language-neutral, exactly like the answers themselves — a Czech and an
+-- Language-neutral, exactly like the answers themselves - a Czech and an
 -- English respondent picking the same option are graded identically.
 
 -- --------------------------------------------------------------- grading view
@@ -63,7 +63,7 @@ FROM v_quiz_answers
 WHERE gradable AND submitted_at IS NOT NULL
 GROUP BY 1, 2, 3;
 
--- Score distribution — how many people got 0, 1, 2 … right.
+-- Score distribution - how many people got 0, 1, 2 … right.
 CREATE VIEW v_quiz_scores AS
 SELECT survey_id,
        response_id,

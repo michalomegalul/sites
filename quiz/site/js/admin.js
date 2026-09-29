@@ -5,7 +5,7 @@
  *
  * Charting rules applied here (see admin.css for the palette):
  *  - every chart shows one measure, so every chart uses one hue;
- *  - nothing is coloured by rank — a filter cannot repaint the survivors;
+ *  - nothing is coloured by rank - a filter cannot repaint the survivors;
  *  - no chart has two scales;
  *  - every chart has a table view, and values are labelled directly.
  */
@@ -52,7 +52,7 @@
     });
     wrap.appendChild(bars);
 
-    // Table view — required so the numbers are never colour-only.
+    // Table view - required so the numbers are never colour-only.
     var table = h('div', 'scroller');
     table.hidden = true;
     var t = h('table');
@@ -172,7 +172,7 @@
 
     // ---- body map
     // A graded "select the affected regions" question (spec.levels === 1,
-    // added for the quiz — see 007_quiz_pain_location.sql) has no intensity
+    // added for the quiz - see 007_quiz_pain_location.sql) has no intensity
     // to average, so it is excluded here: this panel's "mean intensity 0–3"
     // framing is specific to the survey's tap-to-cycle pain map.
     var bodyQ = (survey.questions || []).filter(function (q) {
@@ -181,7 +181,7 @@
     if (bodyQ) {
       var s4 = section('Pain map',
         'Shade shows how many respondents marked the region. Mean intensity (0–3) is written out ' +
-        'rather than folded into the same shade — two measures on one scale cannot be read apart.');
+        'rather than folded into the same shade - two measures on one scale cannot be read apart.');
       var byRegion = {};
       (stats.bodymap || []).forEach(function (b) {
         byRegion[b.region] = { respondents: Number(b.respondents), mean_intensity: b.mean_intensity };
@@ -193,7 +193,7 @@
         data: byRegion,
         onHover: function (code, d) {
           readout.textContent = code
-            ? (bodyQ.labels[code] || code) + ' — ' +
+            ? (bodyQ.labels[code] || code) + ' - ' +
               (d ? d.respondents + ' respondents, mean intensity ' + d.mean_intensity : 'nobody')
             : ' ';
         }
@@ -216,7 +216,7 @@
     if ((stats.knowledge || []).length) {
       var s4b = section('What people knew',
         'Share of completed responses answering each question correctly. ' +
-        'A low bar is not a failure — it is the finding.');
+        'A low bar is not a failure - it is the finding.');
       s4b.appendChild(barChart(stats.knowledge.map(function (k) {
         return { label: promptOf[k.question] || k.question,
                  value: Number(k.pct_correct),
@@ -229,7 +229,7 @@
         var outOf = Number(hist[0].out_of);
         var s4c = section('Score distribution',
           'How many correct answers each respondent got, out of ' + outOf + '.');
-        // Every possible score gets a row, including the empty ones — gaps in
+        // Every possible score gets a row, including the empty ones - gaps in
         // the distribution are part of its shape.
         var byScore = {};
         hist.forEach(function (r) { byScore[Number(r.score)] = Number(r.n); });
@@ -289,7 +289,7 @@
   }
 
   // navigator.clipboard needs a secure context, and the dashboard is served
-  // over plain http on the internal hostname — fall back to a selection copy.
+  // over plain http on the internal hostname - fall back to a selection copy.
   function copy(text, btn) {
     var done = function () {
       var was = btn.textContent;
@@ -429,7 +429,7 @@
   }).catch(function (e) {
     root.appendChild(h('div', 'warn',
       e.message === '404'
-        ? 'Not available from this network. The dashboard answers only on LAN or Tailscale — ' +
+        ? 'Not available from this network. The dashboard answers only on LAN or Tailscale - ' +
           'open it via the internal hostname, not through the public domain.'
         : 'Could not load results (' + e.message + ').'));
   });

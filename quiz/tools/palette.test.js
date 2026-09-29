@@ -36,7 +36,7 @@ function check(seed) {
   for (const mode of ['light', 'dark']) {
     const pal = p[mode];
     // Text and the accent sit on cards (`bg-raised`) as often as on the page
-    // itself — the verdict panel, the scorecard, every option row — so both
+    // itself - the verdict panel, the scorecard, every option row - so both
     // backgrounds are checked, not just `bg`.
     for (const bgKey of ['bg', 'bg-raised']) {
       for (const key of Object.keys(FLOORS)) {
@@ -69,13 +69,13 @@ for (let h = 0; h < 360; h += 5) {
 
 // The ones that break naive derivation.
 const NASTY = {
-  '#ffff00': 'pure yellow — max lightness at max saturation',
-  '#00ffff': 'neon cyan — very light despite full saturation',
-  '#ffffff': 'white — no hue, no saturation',
-  '#000000': 'black — no hue, no saturation',
-  '#808080': 'mid grey — zero saturation',
-  '#f5f5dc': 'beige — pale and desaturated',
-  '#0000ff': 'pure blue — very dark at full saturation',
+  '#ffff00': 'pure yellow - max lightness at max saturation',
+  '#00ffff': 'neon cyan - very light despite full saturation',
+  '#ffffff': 'white - no hue, no saturation',
+  '#000000': 'black - no hue, no saturation',
+  '#808080': 'mid grey - zero saturation',
+  '#f5f5dc': 'beige - pale and desaturated',
+  '#0000ff': 'pure blue - very dark at full saturation',
   '#8d3f66': 'the current rose, as a regression check',
 };
 for (const seed of Object.keys(NASTY)) check(seed);

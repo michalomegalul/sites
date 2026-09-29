@@ -1,4 +1,4 @@
-/* quiz.dobsinsky.dev — survey runner.
+/* quiz.dobsinsky.dev - survey runner.
  *
  * Vanilla, no build step: the deploy script has no npm stage and shouldn't
  * need one (SPEC). Screens are rendered one question at a time; every answer
@@ -129,7 +129,7 @@
   }
 
   /* Light/dark switch. Bound once (the handler itself never changes), then
-     just re-labelled whenever the locale is known — same pattern as the brand
+     just re-labelled whenever the locale is known - same pattern as the brand
      link and the language nav, which are also re-rendered rather than kept in
      sync incrementally. */
   var themeToggleBound = false;
@@ -148,7 +148,7 @@
     }
   }
 
-  /* Shown on the chooser, consent and thanks screens — not while answering.
+  /* Shown on the chooser, consent and thanks screens - not while answering.
      A question screen is supposed to hold one question and nothing competing
      with it, and an "all questionnaires" link mid-survey is an accidental exit
      waiting to happen. */
@@ -210,10 +210,20 @@
     return into;
   }
 
+  // [text](https://...) links are the one addition, for the sources block.
+  // Only http(s) targets match, so a stored text cannot smuggle in javascript:.
   function inline(text, into) {
-    text.split(/(\*\*[^*]+\*\*)/).forEach(function (part) {
+    text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/).forEach(function (part) {
       if (!part) return;
-      if (part.slice(0, 2) === '**' && part.slice(-2) === '**') {
+      var link = /^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/.exec(part);
+      if (link) {
+        var a = document.createElement('a');
+        a.textContent = link[1];
+        a.href = link[2];
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        into.appendChild(a);
+      } else if (part.slice(0, 2) === '**' && part.slice(-2) === '**') {
         var b = document.createElement('strong');
         b.textContent = part.slice(2, -2);
         into.appendChild(b);
@@ -326,7 +336,7 @@
 
   // ------------------------------------------------------------- home screen
   // The chooser at `/`. It also carries the admin shortcuts, but only when the
-  // API says this client is trusted — the same gate as every other admin
+  // API says this client is trusted - the same gate as every other admin
   // surface here, decided server-side and never by the browser.
 
   function renderHome() {
@@ -389,7 +399,7 @@
     var block = (md.split(/\n{2,}/)[0] || '')
       .split('\n').map(function (l) { return l.trim(); }).join(' ')
       .replace(/\*\*/g, '').trim();
-    return block.length > 165 ? block.slice(0, 165).replace(/\s+\S*$/, '') + '…' : block;
+    return block.length > 165 ? block.slice(0, 165).replace(/\s+\S*$/, '') + '...' : block;
   }
 
   function adminPanel(surveys) {
@@ -448,7 +458,7 @@
     renderMarkdown(state.survey.consent_md, box.appendChild(h('div', 'prose')));
     wrap.appendChild(box);
 
-    // Unticked by default — SPEC. Consent has to be an action, not a default.
+    // Unticked by default - SPEC. Consent has to be an action, not a default.
     var agree = checkbox(t.consentAgree, t.consentAgreeSub);
     wrap.appendChild(agree.label);
 
@@ -597,8 +607,8 @@
 
     /* Relabels the button; it must NOT attach its own click handler. The
      * listener below already advances once `state.feedback` is set, and a
-     * second handler on the same button fires in the same dispatch — detaching
-     * the node mid-dispatch does not cancel it — so the index moved by two and
+     * second handler on the same button fires in the same dispatch - detaching
+     * the node mid-dispatch does not cancel it - so the index moved by two and
      * the next question was skipped entirely. That skipped question then had no
      * answer, which is what made `submit` report missing required questions at
      * the very end.
@@ -720,6 +730,8 @@
       }
     }
     if (fb.explain_md) renderMarkdown(fb.explain_md, box.appendChild(h('div', 'prose')));
+    // Absent when too few completed responses have answered this question.
+    if (fb.peer_pct != null) box.appendChild(h('p', 'verdict-peers', t.peerCorrect(fb.peer_pct)));
     return box;
   }
 
@@ -896,7 +908,7 @@
           if (data.error === 'missing_required') {
             // Every missing question gets its own jump button. Offering only
             // the first one meant fixing it, submitting again, and being told
-            // about the next — once per missing answer.
+            // about the next - once per missing answer.
             var codes = data.questions || [];
             var missing = [];
             qs.forEach(function (q, i) {
@@ -943,6 +955,7 @@
     renderMarkdown(state.survey.thanks_md, wrap.appendChild(h('div', 'prose')));
     if (result.out_of) {
       wrap.appendChild(recap(result));
+      if (state.survey.sources_md) wrap.appendChild(sourcesBlock(state.survey.sources_md));
       wrap.appendChild(shareBox());
     }
 
@@ -1028,6 +1041,13 @@
       box.appendChild(row);
     });
     return box;
+  }
+
+  function sourcesBlock(md) {
+    var row = h('details', 'sources');
+    row.appendChild(h('summary', null, t.sourcesHead));
+    renderMarkdown(md, row.appendChild(h('div', 'prose')));
+    return row;
   }
 
   function shareBox() {

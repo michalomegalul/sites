@@ -4,7 +4,7 @@
  * someone who feels awful. So: one question per screen, nothing below 56px
  * that has to be tapped, no animation that moves the thing you are aiming at.
  *
- * Palette anchor: endometriosis-awareness yellow — the condition's own ribbon
+ * Palette anchor: endometriosis-awareness yellow - the condition's own ribbon
  * colour, chosen so a link shared in a DM reads as a cause rather than a
  * generic product. Because bright yellow cannot carry text on a near-white
  * ground, the identity is split: --accent is a text-safe deep gold, and
@@ -16,20 +16,20 @@
  * A researcher may still override per survey via the editor's colour wheel;
  * js/palette.js derives the rest from that one hue, clamping lightness until
  * the contrast floors hold (tools/palette.test.js proves this over 1,448 seed
- * hues). The :root values below are the NULL-accent default — what a survey
- * that has picked no colour uses — expressed literally here rather than derived.
+ * hues). The :root values below are the NULL-accent default - what a survey
+ * that has picked no colour uses - expressed literally here rather than derived.
  *
  * Body face is still Figtree (full Czech coverage; Caprasimo was dropped for
- * missing diacritics — see the @font-face comment). A grotesque display face
+ * missing diacritics - see the @font-face comment). A grotesque display face
  * with verified ě ů ž č ř ď ť ň coverage is a deliberate next step, not done
  * here, precisely so it does not repeat the broken-glyph regression.
  */
 
 /* Caprasimo (the mock's display face) was tried and dropped: its latin-ext
-   file is missing the glyphs for ě ů ž č ř ď ť ň — only š is actually drawn,
+   file is missing the glyphs for ě ů ž č ř ď ť ň - only š is actually drawn,
    despite Google's declared unicode-range claiming the whole block. Since
    headings render database-authored Czech prompt text (SPEC: full CZ/EN
-   parity is a hard constraint), that is not a style call, it is broken text —
+   parity is a hard constraint), that is not a style call, it is broken text -
    a fallback font silently substituted per-glyph mid-word, which is worse
    than not trying at all. Figtree, which does have full Czech coverage,
    carries both roles now: body at 400, headings at 700. */
@@ -55,7 +55,7 @@
   --bg-raised: #f3f1ea;
   --ink:       #1c1b19;
   --ink-soft:  #5c5852;
-  /* Endometriosis-awareness yellow is the anchor — the disease's own ribbon
+  /* Endometriosis-awareness yellow is the anchor - the disease's own ribbon
      colour, not a decorative accent. It cannot be a text colour on a near-white
      ground (bright ribbon yellow fails the AA floor palette.js enforces), so it
      lives in two roles: --accent is a text-safe deep gold used everywhere the
@@ -87,7 +87,7 @@
      has to stay a different hue family from whatever accent a researcher
      picks or a selected region starts reading as "the accent", not "painful".
      Terracotta (~H24) and the old formula's orange-leaning pain-2 (~H16) sat
-     only ~8° apart — this ramp sits at ~H350, a safe ~35°+ from any warm
+     only ~8° apart - this ramp sits at ~H350, a safe ~35°+ from any warm
      accent a colour wheel is likely to produce. */
   --pain-1:    #f4c3cb;
   --pain-2:    #d65c70;
@@ -98,7 +98,7 @@
    of OS setting, and dark is opt-in via the switch in the site bar. theme.js
    sets data-theme on <html> before first paint (same file that already
    replays the cached survey accent), reading a stored choice or "light" if
-   none exists yet — so a first-time visitor never sees an unrequested dark
+   none exists yet - so a first-time visitor never sees an unrequested dark
    flash even on a dark-mode OS. */
 :root[data-theme="dark"] {
   --bg:        #17150f;
@@ -146,7 +146,7 @@ body {
 }
 /* app.js moves keyboard focus to #screen (a tabindex="-1" <main>) after every
    screen change, so assistive tech and keyboard users land on the new content
-   without tabbing through the whole page again — that focus move is the
+   without tabbing through the whole page again - that focus move is the
    point. The ring the rule above draws around it is not: it boxes the entire
    question, appears the instant the screen loads, and vanishes the moment
    focus moves anywhere else, which reads as a rendering glitch rather than a
@@ -156,7 +156,7 @@ body {
 
 /* ---------------------------------------------------------------- site bar */
 /* Brand and language. The palette picker that used to live here moved into the
-   editor and became a property of the survey — respondents get the colours the
+   editor and became a property of the survey - respondents get the colours the
    researcher chose, not their own.
 
    Deliberately NOT sticky: #bar below it is,
@@ -181,7 +181,7 @@ body {
 /* ------------------------------------------------------------------ footer */
 
 /* Same trap as .consent on the portfolio: an author `display` outranks the UA
-   [hidden] rule, so without this the footer appeared on question screens too —
+   [hidden] rule, so without this the footer appeared on question screens too -
    exactly where renderFooter() is meant to suppress it. */
 .sitefoot[hidden] { display: none; }
 .sitefoot {
@@ -393,7 +393,7 @@ input[type="range"]::-moz-range-thumb {
 .bodymap svg { display: block; width: 100%; max-width: 340px; margin: 0 auto; height: auto; touch-action: manipulation; }
 /* Same trap as .sitefoot[hidden] above: an author `display` always outranks
    the UA [hidden] rule regardless of specificity, so without this override
-   the front/back toggle set the attribute correctly and nothing happened —
+   the front/back toggle set the attribute correctly and nothing happened -
    both views stayed visible, stacked. Pre-existing in the original file;
    the new quiz body-map question is what first exercised this toggle. */
 .bodymap svg[hidden] { display: none; }
@@ -402,19 +402,35 @@ input[type="range"]::-moz-range-thumb {
   fill: var(--bg-raised); stroke: var(--line); stroke-width: 1.5;
   cursor: pointer; transition: fill .18s, stroke .18s;
 }
+/* An untouched tappable region used to be drawn exactly like the silhouette
+   under it (same fill, same stroke), so nothing said where to tap. Scoped to
+   role="button" so the print appendix and the admin heat map keep their look. */
+.region[role="button"][data-level="0"] {
+  fill: color-mix(in srgb, var(--accent) 16%, var(--bg-raised));
+  stroke: var(--accent); stroke-dasharray: 4 3;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* A slow pulse until the first region is marked, then the map goes still. */
+  .bodymap:not(:has(.region:not([data-level="0"]))) .region[role="button"] {
+    animation: region-hint 2.4s ease-in-out infinite;
+  }
+}
+@keyframes region-hint { 50% { fill-opacity: .45; } }
 .region:hover { stroke: var(--accent); stroke-width: 2.5; }
 .region:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .region[data-level="1"] { fill: var(--pain-1); stroke: var(--pain-1); }
 .region[data-level="2"] { fill: var(--pain-2); stroke: var(--pain-2); }
 .region[data-level="3"] { fill: var(--pain-3); stroke: var(--pain-3); }
 
-/* Graded "select the areas" question (spec levels:1 — see bodymap.js and
+/* Graded "select the areas" question (spec levels:1 - see bodymap.js and
    007_quiz_pain_location.sql): a tap is right-or-wrong, not an intensity, so
    a selected region takes the accent rather than a point on the pain ramp. */
 .bodymap--select .region[data-level="1"] {
   fill: var(--accent);
   stroke: color-mix(in srgb, var(--accent) 70%, black);
 }
+
+.bodymap-hint { text-align: center; font-size: .85rem; color: var(--ink-soft); margin: 0 0 .75rem; }
 
 .legend { display: flex; flex-wrap: wrap; gap: .5rem .9rem; justify-content: center; font-size: .8rem; color: var(--ink-soft); margin-bottom: 1rem; }
 .legend span { display: inline-flex; align-items: center; gap: .4rem; }
@@ -533,7 +549,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* --------------------------------------------------------------- quiz mode */
 /* Feedback shown after a graded answer is committed. Right and wrong are
- * distinguished by mark and wording as well as colour — never colour alone.
+ * distinguished by mark and wording as well as colour - never colour alone.
  * The mock uses one accent-coloured badge for both outcomes; this keeps a
  * second, deliberately different hue for "correct" as an extra channel on
  * top of the glyph and label, not instead of them. */
@@ -572,6 +588,11 @@ input[type="range"]::-moz-range-thumb {
 .verdict-answer { font-size: .93rem; margin-bottom: .6rem; }
 .verdict .prose { font-size: .93rem; }
 .verdict .prose p:last-child { margin-bottom: 0; }
+.verdict-peers {
+  margin: .75rem 0 0; padding-top: .6rem;
+  border-top: 1px solid var(--line);
+  font-size: .85rem; color: var(--ink-soft);
+}
 
 /* score card */
 .scorecard {
@@ -597,7 +618,7 @@ input[type="range"]::-moz-range-thumb {
   transition: width .6s cubic-bezier(.4, 0, .2, 1);
 }
 
-/* recap — collapsed by default so the screen is not a wall of text */
+/* recap - collapsed by default so the screen is not a wall of text */
 .recap {
   border: 1.5px solid var(--line); border-left-width: 3px;
   border-radius: var(--radius-md); padding: .85rem 1rem; margin-bottom: .5rem;
@@ -615,9 +636,18 @@ input[type="range"]::-moz-range-thumb {
 .recap .prose { font-size: .9rem; }
 .recap .prose p:last-child { margin-bottom: 0; }
 
+/* sources - collapsed, and quieter than the recap rows above it */
+.sources { margin: 0 0 1.5rem; font-size: .9rem; }
+.sources summary {
+  cursor: pointer; padding: .4rem 0;
+  font-weight: 600; color: var(--ink-soft);
+}
+.sources .prose { font-size: .85rem; }
+.sources .prose a { color: var(--accent); overflow-wrap: anywhere; }
+
 /* ------------------------------------------------------------- home screen */
 /* The chooser at `/`. Cards are whole-area links, not a title link with text
-   beside it — on a phone the tap target should be the card. */
+   beside it - on a phone the tap target should be the card. */
 
 .cards { display: grid; gap: .9rem; margin: 1.75rem 0; }
 
@@ -681,7 +711,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* -------------------------------------------------------------- print view */
 /* SPEC: the blank questionnaire is a required thesis appendix. Plain system
-   fonts and a flat black-on-white palette regardless of the survey's accent —
+   fonts and a flat black-on-white palette regardless of the survey's accent -
    a display face and a warm cream ground are for the screen, not for a form
    someone photocopies. */
 

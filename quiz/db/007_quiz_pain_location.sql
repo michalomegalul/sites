@@ -3,8 +3,8 @@
 -- The other graded questions ask what respondents know in words. This one
 -- asks it spatially: tap every region you think is commonly affected, then
 -- see the classic pattern. It reuses the same BodyMap component and region
--- vocabulary as endo-2026's `pain_map` (003) — same codes, same labels where
--- they overlap — but in "select" mode rather than intensity mode: a region is
+-- vocabulary as endo-2026's `pain_map` (003) - same codes, same labels where
+-- they overlap - but in "select" mode rather than intensity mode: a region is
 -- either tapped or not, `levels: 1` in the spec caps it at 0/1, so grading is
 -- a set comparison exactly like a `multi` question, not an intensity read.
 --
@@ -15,7 +15,7 @@
 -- in position order, same as any other survey edit.
 --
 -- Grading needs both sides updated together (CLAUDE.md: SQL view and Python
--- grader must agree) — see the new WHEN branch in v_quiz_answers below and
+-- grader must agree) - see the new WHEN branch in v_quiz_answers below and
 -- the matching branch in api/app.py's grade().
 
 -- Not required, unlike the other graded questions: a respondent already
@@ -35,7 +35,7 @@ SELECT q.id, 'cs',
   'Kde bývá bolest při endometrióze nejčastěji?',
   'Klepnutím vyberte všechny oblasti, o kterých si myslíte, že bývají postižené, pak zkontrolujte odpověď.',
   '{"shoulder-l":"Levé rameno","shoulder-r":"Pravé rameno","abdomen-upper":"Horní část břicha","abdomen-lower-l":"Podbřišek vlevo","abdomen-lower-r":"Podbřišek vpravo","pelvis-suprapubic":"Nad stydkou kostí","thigh-l":"Levé stehno","thigh-r":"Pravé stehno"}'::jsonb,
-  'Typický vzorec je podbřišek, oblast nad stydkou kostí a stehna — bolest tam často vystřeluje. Bolest v rameni se objevuje jen vzácně, a to tehdy, když ložiska zasahují až k bránici.'
+  'Typický vzorec je podbřišek, oblast nad stydkou kostí a stehna - bolest tam často vystřeluje. Bolest v rameni se objevuje jen vzácně, a to tehdy, když ložiska zasahují až k bránici.'
 FROM questions q
 JOIN surveys s ON s.id = q.survey_id
 WHERE s.slug = 'endo-znalosti' AND q.code = 'k_pain_location';
@@ -53,7 +53,7 @@ WHERE s.slug = 'endo-znalosti' AND q.code = 'k_pain_location';
 -- --------------------------------------------------------------- grading
 --
 -- Extends v_quiz_answers (004) with a bodymap branch: the chosen set is the
--- answer's object keys (a region present at all means "tapped" — `levels: 1`
+-- answer's object keys (a region present at all means "tapped" - `levels: 1`
 -- keeps the stored value at 0/1, so there is no intensity to lose), compared
 -- to spec.correct exactly like `multi` compares its array. CREATE OR REPLACE
 -- keeps the dependent views (v_quiz_stats, v_quiz_scores) intact since the

@@ -1,4 +1,4 @@
-# quiz.dobsinsky.dev — no search indexing, but link previews must still work.
+# quiz.dobsinsky.dev - no search indexing, but link previews must still work.
 #
 # Why not indexed: a search result pointing at a live health survey invites
 # respondents who were never approached personally and arrive with no ?src=
@@ -8,7 +8,7 @@
 #
 # Why the preview bots are allowed anyway: they honour robots.txt, and a blanket
 # Disallow would stop Messenger, WhatsApp and Instagram from reading the
-# Open Graph tags — so a link pasted into the group chats this survey is actually
+# Open Graph tags - so a link pasted into the group chats this survey is actually
 # distributed through would show a bare URL instead of a title and an image.
 # These agents generate previews; they do not index.
 #

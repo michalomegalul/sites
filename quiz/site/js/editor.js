@@ -1,4 +1,4 @@
-/* Survey editor — authoring UI for the questions, without writing SQL.
+/* Survey editor - authoring UI for the questions, without writing SQL.
  *
  * LAN/Tailscale only. Every rule that protects collected data is enforced by
  * the API, not here; this just surfaces the reasons legibly. In particular a
@@ -158,12 +158,15 @@
     var intro = textarea(text.intro_md, 5);
     var consent = textarea(text.consent_md, 8);
     var thanks = textarea(text.thanks_md, 5);
+    var sources = textarea(text.sources_md, 8);
 
     sec.appendChild(field('Title', title));
     sec.appendChild(field('Intro', intro, 'markdown: **bold**, - lists'));
     sec.appendChild(field('Consent text', consent,
       'shown before starting, checkbox unticked by default'));
     sec.appendChild(field('Thank-you text', thanks));
+    sec.appendChild(field('Sources', sources,
+      'quiz results screen, collapsed; markdown: - list items, [text](https://...) links'));
 
     var openBox = h('label', 'ed-check');
     var openIn = document.createElement('input');
@@ -186,7 +189,8 @@
       var i18n = {};
       i18n[activeLocale] = {
         title: title.value, intro_md: intro.value,
-        consent_md: consent.value, thanks_md: thanks.value
+        consent_md: consent.value, thanks_md: thanks.value,
+        sources_md: sources.value
       };
       api('PUT', '/' + encodeURIComponent(SLUG) + '/survey',
           { is_open: openIn.checked, accent: accent.value(), i18n: i18n })
@@ -253,7 +257,7 @@
       var box = h('div', 'ed-swatch');
       box.style.background = pal.bg;
       box.style.color = pal.ink;
-      // --line isn't in the built object any more — style.css defines it once,
+      // --line isn't in the built object any more - style.css defines it once,
       // globally, as this same mix. See palette.js's top comment.
       box.style.borderColor = 'color-mix(in srgb, ' + pal.ink + ' 14%, transparent)';
       box.appendChild(h('div', 'ed-swatch-name', label));
@@ -287,7 +291,7 @@
       }
       var p = window.QuizPalette.build(s);
       if (!p) {
-        preview.appendChild(h('p', 'ed-warn', 'Not a hex colour — expected #rrggbb.'));
+        preview.appendChild(h('p', 'ed-warn', 'Not a hex colour - expected #rrggbb.'));
         return;
       }
       var grid = h('div', 'ed-swatches');
@@ -412,7 +416,7 @@
     kindSel.disabled = locked;
 
     var top = h('div', 'ed-row');
-    top.appendChild(field('Code', code, locked ? '(locked — has answers)' : 'export key'));
+    top.appendChild(field('Code', code, locked ? '(locked - has answers)' : 'export key'));
     var kw = field('Kind', kindSel, locked ? '(locked)' : '');
     kw.className = 'ed-field narrow';
     top.appendChild(kw);
@@ -444,7 +448,7 @@
     if (data.mode === 'quiz') {
       explain = textarea(text.explain_md, 4);
       box.appendChild(field('Explanation (' + activeLocale + ')', explain,
-        'shown after answering — only used if the question has a correct answer'));
+        'shown after answering - only used if the question has a correct answer'));
     }
 
     // options
