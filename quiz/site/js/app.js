@@ -703,6 +703,14 @@
   }
 
   function verdictPanel(q, fb, chosen) {
+    // "Nevím" is not a mistake to correct, so it gets no verdict at all - just
+    // the explanation. It still counts as wrong in the score (see app.py).
+    if (fb.dont_know) {
+      var plain = h('div', 'verdict verdict--info');
+      if (fb.explain_md) renderMarkdown(fb.explain_md, plain.appendChild(h('div', 'prose')));
+      if (fb.peer_pct != null) plain.appendChild(h('p', 'verdict-peers', t.peerCorrect(fb.peer_pct)));
+      return plain;
+    }
     var box = h('div', 'verdict ' + (fb.correct ? 'verdict--ok' : 'verdict--no'));
     var head = h('p', 'verdict-head');
     head.appendChild(h('span', 'verdict-mark', fb.correct ? '✓' : '✕'));
@@ -955,7 +963,6 @@
     renderMarkdown(state.survey.thanks_md, wrap.appendChild(h('div', 'prose')));
     if (result.out_of) {
       wrap.appendChild(recap(result));
-      if (state.survey.sources_md) wrap.appendChild(sourcesBlock(state.survey.sources_md));
       wrap.appendChild(shareBox());
     }
 
@@ -1001,6 +1008,9 @@
     });
     box.append(status, send);
     wrap.appendChild(box);
+    // Last on the page and open: every claim in the explanations traces back
+    // to one of these, so they should be seen, not tucked behind a toggle.
+    if (result.out_of && state.survey.sources_md) wrap.appendChild(sourcesBlock(state.survey.sources_md));
     wrap.appendChild(langSwitcher());
     show(wrap);
   }
@@ -1032,9 +1042,10 @@
     var box = h('div');
     box.appendChild(h('h2', null, t.reviewHead));
     (result.review || []).forEach(function (item) {
-      var row = h('details', 'recap' + (item.correct ? ' recap--ok' : ' recap--no'));
+      var row = h('details', 'recap' + (item.correct ? ' recap--ok'
+        : item.dont_know ? ' recap--info' : ' recap--no'));
       var sum = h('summary');
-      sum.appendChild(h('span', 'verdict-mark', item.correct ? '✓' : '✕'));
+      sum.appendChild(h('span', 'verdict-mark', item.correct ? '✓' : item.dont_know ? '?' : '✕'));
       sum.appendChild(document.createTextNode(item.prompt || item.code));
       row.appendChild(sum);
       if (item.explain_md) renderMarkdown(item.explain_md, row.appendChild(h('div', 'prose')));
@@ -1044,10 +1055,10 @@
   }
 
   function sourcesBlock(md) {
-    var row = h('details', 'sources');
-    row.appendChild(h('summary', null, t.sourcesHead));
-    renderMarkdown(md, row.appendChild(h('div', 'prose')));
-    return row;
+    var box = h('section', 'sources');
+    box.appendChild(h('h2', null, t.sourcesHead));
+    renderMarkdown(md, box.appendChild(h('div', 'prose')));
+    return box;
   }
 
   function shareBox() {

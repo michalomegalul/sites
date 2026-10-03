@@ -184,10 +184,10 @@ INSERT INTO aq VALUES
 -- ===== information and feedback: ungraded ==================================
 (150, 'info_sources', 'multi', true,
  '{"options":["doctor","internet","family","school","nowhere"],"exclusive":["nowhere"]}',
- 'Odkud jste dosud čerpal/a informace o gynekologickém onemocnění, jako je endometrióza?', 'Můžete označit více odpovědí.',
- '{"doctor":"od lékaře / zdravotní sestry","internet":"z internetu a sociálních sítí","family":"od rodiny nebo přátel","school":"ze školy / výuky","nowhere":"nikde jsem se s tím zatím nesetkal/a"}', NULL,
- 'Where have you got information about gynaecological conditions such as endometriosis so far?', 'You can choose more than one.',
- '{"doctor":"From a doctor or nurse","internet":"From the internet and social media","family":"From family or friends","school":"From school / classes","nowhere":"I have not come across it yet"}', NULL),
+ 'Odkud byste čerpal/a informace o gynekologickém onemocnění?', 'Můžete označit více odpovědí.',
+ '{"doctor":"od lékaře / zdravotní sestry","internet":"z internetu a sociálních sítí","family":"od rodiny nebo přátel","school":"ze školy / výuky","nowhere":"nikde, informace bych nehledal/a"}', NULL,
+ 'Where would you look for information about a gynaecological condition?', 'You can choose more than one.',
+ '{"doctor":"From a doctor or nurse","internet":"From the internet and social media","family":"From family or friends","school":"From school / classes","nowhere":"Nowhere, I would not look for it"}', NULL),
 
 (160, 'wants_materials', 'single', true,
  '{"options":["yes","no","unsure"]}',

@@ -49,7 +49,8 @@ const QUESTIONS = [
   { code: 'q_multi', kind: 'multi', graded: true, required: true,
     spec: { options: ['a', 'b', 'c'] }, labels: { a: 'A', b: 'B', c: 'C' }, prompt: 'Které příznaky?' },
   { code: 'q_delay', kind: 'single', graded: true, required: true,
-    spec: { options: ['a', 'b'] }, labels: { a: '1 rok', b: '7 let' }, prompt: 'Jak dlouho trvá diagnóza?' },
+    spec: { options: ['dunno', 'a', 'b'] }, labels: { dunno: 'nevím', a: '1 rok', b: '7 let' },
+    prompt: 'Jak dlouho trvá diagnóza?' },
 ];
 
 const CORRECT = { q_prevalence: ['b'], q_pregnancy: ['b'], q_multi: ['a', 'b'], q_delay: ['b'] };
@@ -65,7 +66,7 @@ const server = {
       return { status: 200, json: {
         slug: 'endo-znalosti', locale: 'cs', locales: ['cs', 'en'], is_open: true,
         consent_ver: 1, mode: 'quiz', title: 'Kvíz', intro_md: 'i', consent_md: 'c',
-        thanks_md: 'd', questions: QUESTIONS,
+        thanks_md: 'd', sources_md: '- [WHO](https://www.who.int/)', questions: QUESTIONS,
       } };
     }
     if (method === 'POST' && url.endsWith('/start')) {
@@ -83,7 +84,8 @@ const server = {
           const ok = Array.isArray(value)
             ? JSON.stringify([...value].sort()) === JSON.stringify([...want].sort())
             : want.includes(value);
-          feedback[code] = { correct: ok, correct_options: want, explain_md: 'protože…' };
+          feedback[code] = { correct: ok, dont_know: value === 'dunno', correct_options: want,
+            explain_md: 'protože…' };
         }
       }
       return { status: 200, json: { saved, rejected: [], feedback } };
@@ -194,6 +196,13 @@ function check(cond, msg) {
         check(/Chybělo: B/.test(v), 'multi verdict names the missed option');
         check(!/Navíc/.test(v), 'multi verdict reports no extra options');
       }
+      // q_delay was answered "nevím": no verdict, just the explanation.
+      if (prompt === 'Jak dlouho trvá diagnóza?') {
+        const v = doc.querySelector('.verdict');
+        check(!v.querySelector('.verdict-head') && !/Omyl|Správná odpověď/.test(v.textContent),
+          '"nevím" gets no Omyl verdict');
+        check(/protože/.test(v.textContent), '"nevím" still gets the explanation');
+      }
       const next = buttonWith('Pokračovat');
       if (next) {
         next.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
@@ -219,16 +228,27 @@ function check(cond, msg) {
   check(!/povinn/i.test(text()), 'no missing-required complaint at the end');
   check(server.submitted, 'server recorded the submission');
   check(/\/ 4/.test(text()) || /4/.test(text()), 'score card rendered');
+  const src = doc.querySelector('#screen .sources');
+  check(!!src && /Zdroje/.test(src.textContent) && /WHO/.test(src.textContent), 'sources shown on the results page');
+  check(!!src && !src.closest('details') && !doc.querySelector('#screen .consent-box ~ * .sources, #screen .sources ~ .consent-box'),
+    'sources are open and come after the follow-up form');
 
   console.log('\nanswers the server received: ' + Object.keys(server.answers).join(', '));
   check(Object.keys(server.answers).length === QUESTIONS.length,
     `all ${QUESTIONS.length} answers reached the server`);
 
   console.log('\nbody map front/back toggle');
-  // Shoulders exist in both views, so this map builds the toggle. The views
-  // are SVGs, where `.hidden =` is inert - the attribute is what must change.
-  const map = window.BodyMap.create({
+  // Shoulders are on both views, so they alone do not earn a back view - the
+  // quiz map (shoulders + front regions) must have no toggle at all.
+  const quizMap = window.BodyMap.create({
     regions: ['shoulder-l', 'abdomen-lower-l'], levels: 1, t: window.I18N ? window.I18N.cs : {},
+  });
+  check(quizMap.querySelectorAll('svg').length === 1 && !quizMap.querySelector('.view-toggle'),
+    'shoulders + front regions: front view only, no toggle');
+  // A back-only region does build the toggle. The views are SVGs, where
+  // `.hidden =` is inert - the attribute is what must change.
+  const map = window.BodyMap.create({
+    regions: ['shoulder-l', 'sacrum'], levels: 3, t: window.I18N ? window.I18N.cs : {},
   });
   doc.body.appendChild(map);
   const [front, back] = map.querySelectorAll('svg');

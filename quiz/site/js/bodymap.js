@@ -63,6 +63,16 @@
     return node;
   }
 
+  /* The back view is only worth drawing for a region the front cannot show.
+   * Shoulders are on both, so a map whose only "back" regions are shoulders
+   * (the quiz's k_pain_location) gets the front view alone. */
+  function needsBack(regions) {
+    var frontCodes = FRONT.map(function (r) { return r[0]; });
+    return !regions || BACK.some(function (r) {
+      return frontCodes.indexOf(r[0]) === -1 && regions.indexOf(r[0]) !== -1;
+    });
+  }
+
   function buildView(shapes, allowed) {
     var svg = el('svg', {
       viewBox: '0 0 200 440',
@@ -114,13 +124,10 @@
     var frontSvg = buildView(FRONT, opts.regions);
     stage.appendChild(frontSvg);
 
-    // A question restricted to front-only regions (every graded quiz map so
-    // far) has nothing to show on the back view, so the toggle - and the
-    // view it would switch to - is simply not built rather than built empty.
-    var backCodes = BACK.map(function (r) { return r[0]; });
-    var hasBack = !opts.regions || opts.regions.some(function (code) {
-      return backCodes.indexOf(code) !== -1;
-    });
+    // A question restricted to front regions (every graded quiz map so far)
+    // has nothing to show on the back view, so the toggle - and the view it
+    // would switch to - is simply not built rather than built empty.
+    var hasBack = needsBack(opts.regions);
     var toggle = null, backSvg = null, frontBtn = null, backBtn = null;
     if (hasBack) {
       toggle = document.createElement('div');
@@ -273,12 +280,8 @@
     wrap.className = 'bodymap';
     wrap.style.display = 'flex';
     wrap.style.gap = '1rem';
-    var backCodes = BACK.map(function (r) { return r[0]; });
-    var hasBack = !opts.regions || opts.regions.some(function (code) {
-      return backCodes.indexOf(code) !== -1;
-    });
     var front = buildView(FRONT, opts.regions);
-    var views = hasBack ? [front, buildView(BACK, opts.regions)] : [front];
+    var views = needsBack(opts.regions) ? [front, buildView(BACK, opts.regions)] : [front];
     views.forEach(function (svg) {
       svg.querySelectorAll('.region').forEach(function (n) {
         n.removeAttribute('tabindex');
@@ -291,7 +294,8 @@
     return wrap;
   }
 
-  /* Researcher heat map. Both views at once, no interaction beyond hover.
+  /* Researcher heat map. Both views at once (front only when
+   * the regions are all front-facing), no interaction beyond hover.
    *
    * Colour encodes ONE thing - how many respondents marked the region - on a
    * single-hue sequential ramp (see admin.css). Mean intensity is a second
@@ -311,7 +315,9 @@
     var wrap = document.createElement('div');
     wrap.className = 'bodymap heat';
 
-    [buildView(FRONT, opts.regions), buildView(BACK, opts.regions)].forEach(function (svg) {
+    var views = [buildView(FRONT, opts.regions)];
+    if (needsBack(opts.regions)) views.push(buildView(BACK, opts.regions));
+    views.forEach(function (svg) {
       svg.querySelectorAll('.region').forEach(function (node) {
         node.removeAttribute('tabindex');
         node.setAttribute('role', 'img');

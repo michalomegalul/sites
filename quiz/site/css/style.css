@@ -565,6 +565,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .verdict--ok { border-left-color: #2f8f5b; }
 .verdict--no { border-left-color: var(--accent); }
+.verdict--info { border-left-color: var(--ink-soft); }
 
 .verdict-head {
   display: flex; align-items: center; gap: .55rem;
@@ -626,6 +627,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .recap--ok { border-left-color: #2f8f5b; }
 .recap--no { border-left-color: var(--accent); }
+.recap--info { border-left-color: var(--ink-soft); }
 .recap summary {
   display: flex; align-items: flex-start; gap: .6rem;
   cursor: pointer; font-size: .94rem; list-style: none;
@@ -636,13 +638,14 @@ input[type="range"]::-moz-range-thumb {
 .recap .prose { font-size: .9rem; }
 .recap .prose p:last-child { margin-bottom: 0; }
 
-/* sources - collapsed, and quieter than the recap rows above it */
-.sources { margin: 0 0 1.5rem; font-size: .9rem; }
-.sources summary {
-  cursor: pointer; padding: .4rem 0;
-  font-weight: 600; color: var(--ink-soft);
+/* sources - last on the results page, quieter than the recap above */
+.sources {
+  margin: 2rem 0 1.5rem; padding-top: 1.25rem;
+  border-top: 1px solid var(--line); font-size: .9rem;
 }
+.sources h2 { font-size: 1.05rem; color: var(--ink-soft); }
 .sources .prose { font-size: .85rem; }
+.sources .prose li { margin-bottom: .45rem; }
 .sources .prose a { color: var(--accent); overflow-wrap: anywhere; }
 
 /* ------------------------------------------------------------- home screen */

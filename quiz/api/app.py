@@ -415,6 +415,18 @@ def grade(kind, spec, value):
     return value in correct
 
 
+# "nevím" / "nedokážu posoudit" options on graded questions. They still grade
+# as wrong (008: not knowing is what the thesis measures), but the respondent
+# is not told they fell for a misconception - they said they did not know.
+DONT_KNOW = ("dunno", "unsure")
+
+
+def is_dont_know(value):
+    if isinstance(value, list):
+        return len(value) == 1 and value[0] in DONT_KNOW
+    return value in DONT_KNOW
+
+
 def peer_correct_shares(cur, survey_id, codes):
     """{question code: whole-percent correct} for the graded `codes`.
 
@@ -540,6 +552,7 @@ def patch_response(response_id):
             if verdict is not None:
                 feedback[code] = {
                     "correct": verdict,
+                    "dont_know": is_dont_know(cleaned),
                     "correct_options": q["spec"].get("correct", []),
                     "explain_md": q["explain_md"],
                 }
@@ -611,6 +624,7 @@ def submit(response_id):
                 "code": row["code"],
                 "prompt": row["prompt"],
                 "correct": grade(row["kind"], row["spec"], row["value"]),
+                "dont_know": is_dont_know(row["value"]),
                 "correct_options": row["spec"].get("correct", []),
                 "explain_md": row["explain_md"],
             })
