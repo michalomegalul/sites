@@ -40,7 +40,7 @@
    * /{locale}/s/{slug} path and still goes exactly where it did. */
   function parseRoute() {
     var params = new URLSearchParams(location.search);
-    state.src = params.get('src');
+    state.src = params.get('src') || searchSrc();
 
     var m = location.pathname.match(/^\/([a-z]{2})\/s\/([a-z0-9-]+)(\/print)?\/?$/);
     if (m) {
@@ -60,6 +60,19 @@
     state.locale = home ? home[1] : CFG.defaultLocale;
     if ((CFG.locales || []).indexOf(state.locale) === -1) {
       state.locale = CFG.defaultLocale;
+    }
+  }
+
+  // An untagged visit from a search result is tagged `search`, so it counts
+  // as its own source instead of NULL. Search engines send their origin as
+  // the referrer; nothing else about the visitor is read.
+  var SEARCH_HOST = /(^|\.)(google\.[a-z.]+|bing\.com|seznam\.cz|duckduckgo\.com|search\.yahoo\.com|ecosia\.org|search\.brave\.com)$/;
+
+  function searchSrc() {
+    try {
+      return SEARCH_HOST.test(new URL(document.referrer).hostname) ? 'search' : null;
+    } catch (e) {
+      return null; // no referrer
     }
   }
 

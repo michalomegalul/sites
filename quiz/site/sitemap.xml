@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The chooser and every public questionnaire, in both languages. The routes
+     are client-rendered from one index.html; Google renders the JS. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://quiz.dobsinsky.dev/</loc></url>
+  <url><loc>https://quiz.dobsinsky.dev/en</loc></url>
+  <url><loc>https://quiz.dobsinsky.dev/cs/s/endo-znalosti</loc></url>
+  <url><loc>https://quiz.dobsinsky.dev/en/s/endo-znalosti</loc></url>
+  <url><loc>https://quiz.dobsinsky.dev/cs/s/endo-2026</loc></url>
+  <url><loc>https://quiz.dobsinsky.dev/en/s/endo-2026</loc></url>
+</urlset>

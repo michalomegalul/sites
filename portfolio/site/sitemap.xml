@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The front page, plus the CV page. The sections are anchors on the front
      page, not separate URLs, so listing them would be claiming pages that do not
-     exist. quiz.dobsinsky.dev
-     is deliberately absent: it asks not to be indexed at all. -->
+     exist. quiz.dobsinsky.dev has its own sitemap on its own host. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://dobsinsky.dev/</loc>
