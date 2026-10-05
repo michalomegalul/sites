@@ -249,7 +249,7 @@ async function loadProjects() {
   /* The count comes through our own API, never straight from the quiz site: the
      CSP is self-only and this page makes no third-party requests to it. Silent
      on any failure and on null (fewer than 10 responses, nothing worth showing). */
-  const QUIZ_URL = 'https://quiz.dobsinsky.dev/';
+  const QUIZ_URL = 'https://quiz.dobsinsky.dev/?src=web';
   const addQuizCount = async (el) => {
     try {
       const d = await (await fetch(`${API}/quizcount`)).json();

@@ -4,7 +4,7 @@
       "name": "Endometriosis Survey Engine",
       "stack": "FLASK · POSTGRESQL · VANILLA JS · NGINX",
       "desc": "Self-hosted replacement for Google Forms, made for a nursing-school thesis. Surveys are rows in the database, not code. It has two languages, an SVG body map for marking pain, and autosave with resume. The graded awareness quiz keeps its answer key on the server. CSV export uses stable question codes. No IP or user-agent is stored next to a health answer.",
-      "url": "https://quiz.dobsinsky.dev/"
+      "url": "https://quiz.dobsinsky.dev/?src=web"
     },
     {
       "name": "Home Camera AI Detection",
