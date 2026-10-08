@@ -126,7 +126,7 @@ INSERT INTO aq VALUES
  'Endometriosis is not only painful periods. It also involves **pain when opening the bowels**, pain radiating **into the legs**, pain during sex, chronic fatigue and bloating. Losing teeth or hair and dizziness are not typical symptoms. That breadth of symptoms is a large part of why it takes so long to recognise.'),
 
 (90, 'k_pain_location', 'bodymap', false,
- '{"regions":["shoulder-l","shoulder-r","abdomen-upper","abdomen-lower-l","abdomen-lower-r","pelvis-suprapubic","thigh-l","thigh-r"],"correct":["abdomen-lower-l","abdomen-lower-r","pelvis-suprapubic","thigh-l","thigh-r"],"levels":1}',
+ '{"regions":["shoulder-l","shoulder-r","abdomen-upper","abdomen-lower-l","abdomen-lower-r","pelvis-suprapubic","thigh-l","thigh-r"],"correct":["abdomen-lower-l","abdomen-lower-r","pelvis-suprapubic"],"neutral":["thigh-l","thigh-r"],"levels":1}',
  'Kde si myslíte, že bývá bolest při endometrióze nejčastěji?',
  'Klepnutím vyberte všechny oblasti, o kterých si myslíte, že bývají postižené, pak zkontrolujte odpověď.',
  '{"shoulder-l":"Levé rameno","shoulder-r":"Pravé rameno","abdomen-upper":"Horní část břicha","abdomen-lower-l":"Podbřišek vlevo","abdomen-lower-r":"Podbřišek vpravo","pelvis-suprapubic":"Nad stydkou kostí","thigh-l":"Levé stehno","thigh-r":"Pravé stehno"}',

@@ -403,7 +403,9 @@ def grade(kind, spec, value):
     """True/False for a gradable question, None if it is not graded.
 
     Kept identical to the SQL in db/004_quiz_mode.sql - a multi must match the
-    correct set exactly, so ticking everything scores nothing.
+    correct set exactly, so ticking everything scores nothing. A bodymap may
+    list `neutral` regions (014) that are right whether tapped or not; they are
+    dropped from the chosen set before the comparison.
     """
     correct = spec.get("correct")
     if correct is None:
@@ -411,7 +413,9 @@ def grade(kind, spec, value):
     if kind == "multi":
         return sorted(value or []) == sorted(correct)
     if kind == "bodymap":
-        return sorted((value or {}).keys()) == sorted(correct)
+        neutral = set(spec.get("neutral", []))
+        chosen = [k for k in (value or {}) if k not in neutral]
+        return sorted(chosen) == sorted(correct)
     return value in correct
 
 

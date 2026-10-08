@@ -709,9 +709,13 @@
     var picked = Array.isArray(chosen) ? chosen
       : (chosen && typeof chosen === 'object') ? Object.keys(chosen) : [];
     var want = fb.correct_options || [];
+    // Neutral regions are right either way, so they are never "extra".
+    var neutral = (q.spec || {}).neutral || [];
     return {
       missed: want.filter(function (c) { return picked.indexOf(c) === -1; }),
-      extra: picked.filter(function (c) { return want.indexOf(c) === -1; })
+      extra: picked.filter(function (c) {
+        return want.indexOf(c) === -1 && neutral.indexOf(c) === -1;
+      })
     };
   }
 
