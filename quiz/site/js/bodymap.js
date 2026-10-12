@@ -31,11 +31,15 @@
   ];
 
   var FRONT = [
+    ['head',              { cx: 100, cy: 34,  rx: 19, ry: 22 }],
     ['shoulder-r',        { cx: 66,  cy: 97,  rx: 17, ry: 13 }],
     ['shoulder-l',        { cx: 134, cy: 97,  rx: 17, ry: 13 }],
     ['ribs-r',            { cx: 81,  cy: 140, rx: 17, ry: 17 }],
     ['ribs-l',            { cx: 119, cy: 140, rx: 17, ry: 17 }],
     ['abdomen-upper',     { cx: 100, cy: 172, rx: 25, ry: 15 }],
+    // One undivided lower abdomen for the simplified quiz map (015); never
+    // declared together with the L/R halves and suprapubic it overlaps.
+    ['abdomen-lower',     { cx: 100, cy: 211, rx: 30, ry: 22 }],
     ['abdomen-lower-r',   { cx: 84,  cy: 203, rx: 17, ry: 16 }],
     ['abdomen-lower-l',   { cx: 116, cy: 203, rx: 17, ry: 16 }],
     ['pelvis-suprapubic', { cx: 100, cy: 230, rx: 21, ry: 13 }],
