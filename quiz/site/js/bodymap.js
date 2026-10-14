@@ -34,6 +34,10 @@
     ['head',              { cx: 100, cy: 34,  rx: 19, ry: 22 }],
     ['shoulder-r',        { cx: 66,  cy: 97,  rx: 17, ry: 13 }],
     ['shoulder-l',        { cx: 134, cy: 97,  rx: 17, ry: 13 }],
+    // Forearm and hand, the low end of each arm: a safe wrong answer on the
+    // quiz map (016), unlike legs, neck or chest, which endometriosis can reach.
+    ['hand-r',            { cx: 48,  cy: 200, rx: 13, ry: 22 }],
+    ['hand-l',            { cx: 152, cy: 200, rx: 13, ry: 22 }],
     ['ribs-r',            { cx: 81,  cy: 140, rx: 17, ry: 17 }],
     ['ribs-l',            { cx: 119, cy: 140, rx: 17, ry: 17 }],
     ['abdomen-upper',     { cx: 100, cy: 172, rx: 25, ry: 15 }],
