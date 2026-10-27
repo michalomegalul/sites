@@ -198,9 +198,8 @@ if (window.gsap && !reducedMotion) {
  */
 const clamp01 = (n) => (n < 0 ? 0 : n > 1 ? 1 : n);
 
-function attachTilt(el, holo) {
+function attachTilt(el) {
   if (reducedMotion) return;
-  if (holo) el.classList.add('project--holo');
 
   let queued = false;
   let last = null;
@@ -212,20 +211,8 @@ function attachTilt(el, holo) {
     if (!r.width || !r.height) return;
     const x = clamp01((last.clientX - r.left) / r.width);
     const y = clamp01((last.clientY - r.top) / r.height);
-    const s = el.style;
-    s.setProperty('--rx', ((0.5 - y) * 8).toFixed(2) + 'deg');
-    s.setProperty('--ry', ((x - 0.5) * 11).toFixed(2) + 'deg');
-    // Glare sits under the cursor; the foil slides the opposite way, which is
-    // what reads as light moving across a surface rather than a sticker.
-    s.setProperty('--mx', (x * 100).toFixed(1) + '%');
-    s.setProperty('--my', (y * 100).toFixed(1) + '%');
-    s.setProperty('--bx', (85 - x * 70).toFixed(1) + '%');
-    s.setProperty('--by', (85 - y * 70).toFixed(1) + '%');
-    // Unitless, for hue-rotate and conic angles. The colour shifting with
-    // viewing angle is the whole point of a hologram - without it you have a
-    // sticker.
-    s.setProperty('--hx', (x * 100).toFixed(1));
-    s.setProperty('--hy', (y * 100).toFixed(1));
+    el.style.setProperty('--rx', ((0.5 - y) * 8).toFixed(2) + 'deg');
+    el.style.setProperty('--ry', ((x - 0.5) * 11).toFixed(2) + 'deg');
   };
 
   el.addEventListener('pointerenter', () => el.style.setProperty('--lift', '1'));
@@ -243,8 +230,6 @@ function attachTilt(el, holo) {
     s.setProperty('--ry', '0deg');
   });
 }
-// Not `.forEach(attachTilt)` - forEach passes the index as the second argument,
-// which would land in `holo` and foil every panel after the first.
 document.querySelectorAll('[data-tilt]').forEach((el) => attachTilt(el));
 
 /* ---------------- projects ---------------- */
@@ -256,6 +241,13 @@ const githubData = fetch(`${API}/github`)
   .then((d) => (d.error ? null : d))
   .catch(() => null);
 
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+};
+
 async function loadProjects() {
   let data;
   try {
@@ -263,69 +255,115 @@ async function loadProjects() {
   } catch {
     data = { featured: [], archive: [] };
   }
-  /* One effect per featured card so they can be compared side by side. Index 0
-     is the quiz and gets the Balatro-style holographic; the rest are
-     alternatives. Collapse this to a single class once one wins. */
-  const FX = ['fx-holo', 'fx-foil', 'fx-poly', 'fx-crt', 'fx-glass'];
 
   /* The count comes through our own API, never straight from the quiz site: the
      CSP is self-only and this page makes no third-party requests to it. Silent
      on any failure and on null (fewer than 10 responses, nothing worth showing). */
   const QUIZ_URL = 'https://quiz.dobsinsky.dev/?src=web';
-  const addQuizCount = async (el) => {
+  const addQuizCount = async (card) => {
     try {
       const d = await (await fetch(`${API}/quizcount`)).json();
       if (typeof d.responses !== 'number' || d.responses < 1) return;
-      const line = document.createElement('p');
-      line.className = 'project__count';
-      line.textContent = `${d.responses}+ responses so far`;
-      el.querySelector('.project__desc').after(line);
+      card.querySelector('.project__desc').after(el('p', 'project__count', `${d.responses}+ responses so far`));
     } catch { /* stays absent */ }
   };
 
-  const card = (p, archive, i) => {
-    const el = document.createElement('article');
-    el.className = 'project'
-      + (archive ? ' project--archive' : ' project--' + FX[i % FX.length]);
-    el.innerHTML = `
-      <h3 class="project__name">${p.name}</h3>
-      <p class="project__stack">${p.stack}</p>
-      <p class="project__desc">${p.desc}</p>
-      ${p.url ? `<a class="project__link" href="${p.url}" target="_blank" rel="noopener">view source →</a>` : ''}
-      ${archive ? '' : '<span class="project__foil" aria-hidden="true"></span><span class="project__glare" aria-hidden="true"></span>'}
-    `;
-    // Foil only on featured. A page where every card shimmers says nothing about
-    // which ones matter - and the archive is dug live from GitHub, so it is a
-    // long list.
-    attachTilt(el, !archive);
-    if (p.url === QUIZ_URL) addQuizCount(el);
-    return el;
+  const card = (p, cls) => {
+    const c = el('article', 'project ' + cls);
+    c.append(el('h3', 'project__name', p.name), el('p', 'project__stack', p.stack), el('p', 'project__desc', p.desc));
+    if (p.url) {
+      const a = el('a', 'project__link', p.url.includes('github.com') ? 'view source →' : 'open →');
+      a.href = p.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      c.append(a);
+    }
+    if (p.url === QUIZ_URL) addQuizCount(c);
+    return c;
   };
-  data.featured.forEach((p, i) => $('#projects-featured').appendChild(card(p, false, i)));
 
-  /* archive: dug live from GitHub, newest first; falls back to projects.json */
-  try {
-    const featuredRepos = data.featured.map((p) => (p.url || '').split('/').pop().toLowerCase());
-    const repos = await (await fetch('https://api.github.com/users/michalomegalul/repos?per_page=100&sort=pushed')).json();
-    if (!Array.isArray(repos)) throw 0;
-    repos
-      .filter((r) => !r.fork && !featuredRepos.includes(r.name.toLowerCase()))
-      .slice(0, 12)
-      .forEach((r) =>
-        $('#projects-archive').appendChild(
-          card({
-            name: r.name,
-            stack: [(r.language || 'misc').toUpperCase(), 'pushed ' + r.pushed_at.slice(0, 10)].join(' · '),
-            desc: r.description || 'no description. it knows what it did.',
-            url: r.html_url,
-          }, true)
-        )
-      );
-    $('#archive-toggle').textContent = '$ cat ./archive - dug live from github';
-  } catch {
-    data.archive.forEach((p) => $('#projects-archive').appendChild(card(p, true)));
+  /* Featured: a traceroute. Each project is a hop; the round-trip times are
+     decoration, growing the way they do as a route leaves the building. */
+  const trace = $('#projects-featured');
+  const hops = data.featured.map((p, i) => {
+    const c = card(p, 'hop');
+    const rtt = (0.4 + i * i * 2.6).toFixed(1);
+    c.dataset.rtt = rtt;
+    const head = el('div', 'hop__head');
+    head.append(c.querySelector('.project__name'), el('span', 'hop__rtt', `${rtt} ms`));
+    const dot = el('span', 'hop__dot');
+    dot.setAttribute('aria-hidden', 'true');
+    c.prepend(el('span', 'hop__n', String(i + 1)), dot, head);
+    attachTilt(c);
+    trace.append(c);
+    return c;
+  });
+  animateTrace(trace, hops);
+
+  /* Archive: the curated list from projects.json first (several of those never
+     lived on GitHub), then any other GitHub repo, newest first. Repos without a
+     description are left out - if it can't say what it is, it isn't worth a
+     card - and adding one on GitHub is all it takes to show up here. */
+  const archive = $('#projects-archive');
+  data.archive.forEach((p) => archive.append(card(p, 'project--archive')));
+  const gh = await githubData;
+  if (gh) {
+    const repoName = (url) => (url || '').split('/').pop().toLowerCase();
+    const skip = new Set(['michalomegalul', 'sites', 'obsidian-notes']);
+    data.featured.concat(data.archive).forEach((p) => skip.add(repoName(p.url)));
+    gh.repos
+      .filter((r) => r.description && !skip.has(r.name.toLowerCase()))
+      .slice(0, 8)
+      .forEach((r) => archive.append(card({
+        name: r.name,
+        stack: [(r.language || 'misc').toUpperCase(), 'pushed ' + r.pushed_at.slice(0, 10)].join(' · '),
+        desc: r.description,
+        url: r.html_url,
+      }, 'project--archive')));
   }
-  if (window.__reveal) window.__reveal('#projects-featured .project');
+}
+
+/* Draws the trace line down the gutter as the section scrolls, and lights each
+   hop when the line gets there: dot fills, name resolves, the RTT counts up out
+   of the "* * *" a traceroute prints for a hop that hasn't answered yet. The
+   CSS resting state is fully lit, so none of this is needed to read the list. */
+function animateTrace(trace, hops) {
+  if (!window.gsap || reducedMotion || !hops.length) return;
+  trace.classList.add('trace--live');
+  gsap.fromTo(trace.querySelector('.trace__line'), { scaleY: 0 }, {
+    scaleY: 1, ease: 'none',
+    // scrub: true for the same reason as the hero - nothing to strand.
+    scrollTrigger: { trigger: trace, start: 'top 65%', end: 'bottom 65%', scrub: true },
+  });
+  hops.forEach((hop) => {
+    const rtt = hop.querySelector('.hop__rtt');
+    const name = hop.querySelector('.project__name');
+    const text = name.textContent;
+    name.setAttribute('aria-label', text);
+    rtt.textContent = '* * *';
+    gsap.from(hop, {
+      // From the rail side: a positive x on cards not yet revealed widens the
+      // page and gives phones a sideways scroll.
+      x: -32, opacity: 0, duration: 0.6, ease: 'power3.out',
+      // Same as the panels: hand the transform back to CSS for the tilt.
+      clearProps: 'transform,opacity',
+      scrollTrigger: { trigger: hop, start: 'top 90%' },
+    });
+    ScrollTrigger.create({
+      trigger: hop,
+      start: 'top 65%',
+      once: true,
+      onEnter: () => {
+        hop.classList.add('hop--lit');
+        scramble(name, text, 0.6);
+        const n = { v: 0 };
+        gsap.to(n, {
+          v: +hop.dataset.rtt, duration: 0.6, ease: 'power2.out',
+          onUpdate: () => { rtt.textContent = `${n.v.toFixed(1)} ms`; },
+        });
+      },
+    });
+  });
 }
 loadProjects();
 

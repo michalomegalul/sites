@@ -7,11 +7,37 @@
       "url": "https://quiz.dobsinsky.dev/?src=web"
     },
     {
+      "name": "Bot Arena",
+      "stack": "PYTHON · FASTAPI · REDPANDA · TIMESCALEDB · REACT · OLLAMA",
+      "desc": "Paper-trading arena where bots start with $1000 each and race the S&P 500. Ten rule-based strategies, a random monkey and local-LLM portfolio managers. There's a backtester without lookahead, a risk manager with a kill switch, and a live leaderboard. So far nothing has shown real skill, including the AI.",
+      "url": "https://github.com/michalomegalul/bot-arena"
+    },
+    {
+      "name": "Deal Hunter",
+      "stack": "PYTHON · POSTGRESQL · OLLAMA · NTFY · DOCKER",
+      "desc": "Scrapes Bazoš and Aukro every ten minutes for underpriced graphics cards, laptops and disks. Prices each model against 60 days of listings, then a local LLM throws out broken or misleading ads, quoting the ad for every claim. Good deals land on my phone.",
+      "url": "https://github.com/michalomegalul/deal-hunter"
+    },
+    {
+      "name": "Valcraft - Minecraft × Valheim",
+      "stack": "C# · BEPINEX · JAVA · FABRIC",
+      "desc": "Play Valheim with Minecraft's mechanics. A hidden Minecraft instance handles movement, blocks, tools and TNT, and Valheim renders it all. Placed blocks become Valheim meshes, and digging reshapes Valheim's terrain.",
+      "url": "https://github.com/michalomegalul/minecraftxvalheim"
+    },
+    {
+      "name": "ReelGuard",
+      "stack": "KOTLIN · ANDROID · ACCESSIBILITY API",
+      "desc": "Android app that limits Instagram Reels, YouTube Shorts and TikTok to a daily allowance, with a countdown while you watch. No internet permission and no dependencies.",
+      "url": "https://github.com/michalomegalul/ReelGuard"
+    },
+    {
       "name": "Home Camera AI Detection",
       "stack": "PYTHON · OPENCV · YOLOV8 · OAK-D",
       "desc": "Real-time monitoring with a Luxonis OAK-D LR depth camera. It detects people and vehicles and draws heatmaps. It also counts line crossings and watches zones like the property gate.",
-      "url": "https://github.com/michalomegalul/Torch-luxonis"
-    },
+      "url": ""
+    }
+  ],
+  "archive": [
     {
       "name": "Steam CZ Behavior Analysis",
       "stack": "R · STATISTICS · STL · ANOVA",
@@ -25,17 +51,15 @@
       "url": ""
     },
     {
+      "name": "rust-dns",
+      "stack": "RUST · UDP · RFC 1035",
+      "desc": "DNS server from scratch in Rust, every byte parsed by hand with no DNS crates. A learning project, built stage by stage toward a caching, ad-blocking resolver for the homelab.",
+      "url": ""
+    },
+    {
       "name": "Full-stack E-shop",
       "stack": "FLASK · REACT · TAILWIND · STRIPE",
       "desc": "E-shop with a Flask backend and a React frontend. Has JWT auth, a local cart and Stripe payments.",
-      "url": "https://github.com/michalomegalul/Eshop_MAP"
-    }
-  ],
-  "archive": [
-    {
-      "name": "Instagram Chat Analyzer",
-      "stack": "PYTHON · PANDAS · MATPLOTLIB",
-      "desc": "Offline tool that turns exported Instagram DM JSON into stats and plots. Made for myself.",
       "url": ""
     },
     {
@@ -43,6 +67,12 @@
       "stack": "FLASK · GRAFANA · PYTEST · DOCKER",
       "desc": "Token-authenticated product API that syncs prices and stock from an external service. Runs in Docker, has tests, monitored with Grafana.",
       "url": "https://github.com/michalomegalul/REST_API"
+    },
+    {
+      "name": "Instagram Chat Analyzer",
+      "stack": "PYTHON · PANDAS · MATPLOTLIB",
+      "desc": "Offline tool that turns exported Instagram DM JSON into stats and plots. Made for myself.",
+      "url": ""
     },
     {
       "name": "AC Automation",
