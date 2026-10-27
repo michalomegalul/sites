@@ -116,22 +116,14 @@ if (window.gsap && !reducedMotion) {
     xPercent: 10, rotateY: -10, z: -60, opacity: 0.35, ease: 'none',
   });
 
-  /* panels & projects tip up from the page plane */
-  const reveal = (els) =>
-    gsap.utils.toArray(els).forEach((el) => {
-      gsap.from(el, {
-        scrollTrigger: { trigger: el, start: 'top 88%' },
-        rotateX: -18, y: 60, opacity: 0, transformOrigin: 'top center',
-        duration: 0.7, ease: 'power3.out',
-        // Hand the transform back to CSS when the reveal finishes. Without this
-        // GSAP leaves an inline transform on the element forever, which beats
-        // the stylesheet and kills the hover tilt on every card it touched.
-        clearProps: 'transform',
-      });
+  /* panels tip up from the page plane, scrubbed to the scroll like the
+     projects below, so scrolling back up lays them down again */
+  gsap.utils.toArray('.panel').forEach((el) => {
+    gsap.from(el, {
+      scrollTrigger: { trigger: el, start: 'top 98%', end: 'top 70%', scrub: true },
+      rotateX: -18, y: 60, opacity: 0, transformOrigin: 'top center', ease: 'power2.out',
     });
-  reveal('.panel');
-  /* projects are injected later - observer below handles them */
-  window.__reveal = reveal;
+  });
 }
 
 /* ---------------- scramble / resolve ---------------- */
@@ -184,55 +176,6 @@ if (window.gsap && !reducedMotion) {
   });
 }
 
-/* mouse tilt on cards (kept subtle) */
-/* Writes CSS custom properties instead of an inline `transform`.
- *
- * The old version assigned el.style.transform directly, which put it in a fight
- * with GSAP's reveal tween on the same element - whichever wrote last won, and
- * the snap-back on mouseleave had no easing at all. That is what made the hover
- * feel broken. CSS owns the transform now and composes it from these vars, so
- * nothing overwrites anything and the return is eased.
- *
- * Reads are batched into one rAF: pointermove fires far more often than the
- * screen refreshes, and getBoundingClientRect forces layout.
- */
-const clamp01 = (n) => (n < 0 ? 0 : n > 1 ? 1 : n);
-
-function attachTilt(el) {
-  if (reducedMotion) return;
-
-  let queued = false;
-  let last = null;
-
-  const apply = () => {
-    queued = false;
-    if (!last) return;
-    const r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    const x = clamp01((last.clientX - r.left) / r.width);
-    const y = clamp01((last.clientY - r.top) / r.height);
-    el.style.setProperty('--rx', ((0.5 - y) * 8).toFixed(2) + 'deg');
-    el.style.setProperty('--ry', ((x - 0.5) * 11).toFixed(2) + 'deg');
-  };
-
-  el.addEventListener('pointerenter', () => el.style.setProperty('--lift', '1'));
-  el.addEventListener('pointermove', (e) => {
-    last = e;
-    if (!queued) {
-      queued = true;
-      requestAnimationFrame(apply);
-    }
-  });
-  el.addEventListener('pointerleave', () => {
-    const s = el.style;
-    s.setProperty('--lift', '0');
-    s.setProperty('--rx', '0deg');
-    s.setProperty('--ry', '0deg');
-  });
-}
-document.querySelectorAll('[data-tilt]').forEach((el) => attachTilt(el));
-
-/* ---------------- projects ---------------- */
 /* GitHub comes through our own API (api/app.py, cached on the box): visitors'
    browsers never talk to api.github.com, which rate-limits shared IPs and would
    need a hole in the CSP. One request feeds both the archive and the NOW panel. */
@@ -248,6 +191,36 @@ const el = (tag, cls, text) => {
   return e;
 };
 
+/* ---------------- projects: a traceroute ---------------- */
+/* Every project is a hop hanging off a line down the middle, alternating sides.
+   The featured ones come first; the archive (projects.json plus GitHub) carries
+   on below as smaller hops when opened. The round-trip times are decoration,
+   growing the way they do as a route leaves the building. */
+const hopRtt = (i) => (0.4 + i * i * 2.6).toFixed(1);
+let hopCount = 0;
+
+function makeHop(p, small) {
+  const i = hopCount++;
+  const hop = el('article', 'hop ' + (i % 2 ? 'hop--r' : 'hop--l') + (small ? ' hop--small' : ''));
+  hop.dataset.rtt = hopRtt(i);
+  const dot = el('span', 'hop__dot');
+  dot.setAttribute('aria-hidden', 'true');
+
+  const card = el('div', 'project hop__card');
+  const head = el('div', 'hop__head');
+  head.append(el('h3', 'project__name', p.name), el('span', 'hop__rtt', `${hop.dataset.rtt} ms`));
+  card.append(head, el('p', 'project__stack', p.stack), el('p', 'project__desc', p.desc));
+  if (p.url) {
+    const a = el('a', 'project__link', p.url.includes('github.com') ? 'view source →' : 'open →');
+    a.href = p.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    card.append(a);
+  }
+  hop.append(el('span', 'hop__n', String(i + 1)), dot, card);
+  return hop;
+}
+
 async function loadProjects() {
   let data;
   try {
@@ -260,52 +233,46 @@ async function loadProjects() {
      CSP is self-only and this page makes no third-party requests to it. Silent
      on any failure and on null (fewer than 10 responses, nothing worth showing). */
   const QUIZ_URL = 'https://quiz.dobsinsky.dev/?src=web';
-  const addQuizCount = async (card) => {
+  const addQuizCount = async (hop) => {
     try {
       const d = await (await fetch(`${API}/quizcount`)).json();
       if (typeof d.responses !== 'number' || d.responses < 1) return;
-      card.querySelector('.project__desc').after(el('p', 'project__count', `${d.responses}+ responses so far`));
+      hop.querySelector('.project__desc').after(el('p', 'project__count', `${d.responses}+ responses so far`));
     } catch { /* stays absent */ }
   };
 
-  const card = (p, cls) => {
-    const c = el('article', 'project ' + cls);
-    c.append(el('h3', 'project__name', p.name), el('p', 'project__stack', p.stack), el('p', 'project__desc', p.desc));
-    if (p.url) {
-      const a = el('a', 'project__link', p.url.includes('github.com') ? 'view source →' : 'open →');
-      a.href = p.url;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      c.append(a);
-    }
-    if (p.url === QUIZ_URL) addQuizCount(c);
-    return c;
-  };
-
-  /* Featured: a traceroute. Each project is a hop; the round-trip times are
-     decoration, growing the way they do as a route leaves the building. */
   const trace = $('#projects-featured');
-  const hops = data.featured.map((p, i) => {
-    const c = card(p, 'hop');
-    const rtt = (0.4 + i * i * 2.6).toFixed(1);
-    c.dataset.rtt = rtt;
-    const head = el('div', 'hop__head');
-    head.append(c.querySelector('.project__name'), el('span', 'hop__rtt', `${rtt} ms`));
-    const dot = el('span', 'hop__dot');
-    dot.setAttribute('aria-hidden', 'true');
-    c.prepend(el('span', 'hop__n', String(i + 1)), dot, head);
-    attachTilt(c);
-    trace.append(c);
-    return c;
+  data.featured.forEach((p) => {
+    const hop = makeHop(p, false);
+    if (p.url === QUIZ_URL) addQuizCount(hop);
+    trace.append(hop);
   });
-  animateTrace(trace, hops);
+  /* The cards just made the section a few screens taller, after ScrollTrigger
+     measured the page at load - every trigger below here (section colours, the
+     MX header, the ruler) would otherwise fire at the old positions. */
+  if (window.ScrollTrigger) ScrollTrigger.refresh();
+
+  /* Setting up a dozen scrubbed timelines is the heaviest thing on the page, so
+     it waits until the projects are a screen away instead of landing on top of
+     the page load. Until then the hops simply sit there finished. */
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => {
+      if (!es.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      animateTrace(trace);
+    }, { rootMargin: '0px 0px 100% 0px' });
+    io.observe(trace);
+  } else {
+    animateTrace(trace);
+  }
 
   /* Archive: the curated list from projects.json first (several of those never
      lived on GitHub), then any other GitHub repo, newest first. Repos without a
      description are left out - if it can't say what it is, it isn't worth a
-     card - and adding one on GitHub is all it takes to show up here. */
+     hop - and adding one on GitHub is all it takes to show up here. Built now,
+     animated the first time it is opened. */
   const archive = $('#projects-archive');
-  data.archive.forEach((p) => archive.append(card(p, 'project--archive')));
+  const items = data.archive.slice();
   const gh = await githubData;
   if (gh) {
     const repoName = (url) => (url || '').split('/').pop().toLowerCase();
@@ -314,21 +281,41 @@ async function loadProjects() {
     gh.repos
       .filter((r) => r.description && !skip.has(r.name.toLowerCase()))
       .slice(0, 8)
-      .forEach((r) => archive.append(card({
+      .forEach((r) => items.push({
         name: r.name,
         stack: [(r.language || 'misc').toUpperCase(), 'pushed ' + r.pushed_at.slice(0, 10)].join(' · '),
         desc: r.description,
         url: r.html_url,
-      }, 'project--archive')));
+      }));
   }
+  items.forEach((p) => archive.append(makeHop(p, true)));
 }
 
-/* Draws the trace line down the gutter as the section scrolls, and lights each
-   hop when the line gets there: dot fills, name resolves, the RTT counts up out
-   of the "* * *" a traceroute prints for a hop that hasn't answered yet. The
-   CSS resting state is fully lit, so none of this is needed to read the list. */
-function animateTrace(trace, hops) {
-  if (!window.gsap || reducedMotion || !hops.length) return;
+/* Hop lights up: dot fills, name resolves, the RTT counts up out of the "* * *"
+   a traceroute prints for a hop that hasn't answered yet. Hovering pings again. */
+function pingHop(hop, duration) {
+  const rtt = hop.querySelector('.hop__rtt');
+  const n = { v: 0 };
+  gsap.to(n, {
+    v: +hop.dataset.rtt, duration, ease: 'power2.out',
+    onUpdate: () => { rtt.textContent = `${n.v.toFixed(1)} ms`; },
+  });
+  hop.classList.remove('hop--ping');
+  void hop.offsetWidth; // restart the ring animation
+  hop.classList.add('hop--ping');
+}
+
+/* Scroll down and a hop assembles - connector out of the line, then the card's
+   frame drawing itself from that corner (--draw, see the CSS) while its lines
+   come in one after another - and scroll back up past it and it takes itself
+   apart again. The line is scrubbed to the scroll; the hops are not: scrubbed,
+   anyone who stopped scrolling halfway was left looking at half-drawn frames
+   that read as empty boxes. The scroll only starts a hop, and it always plays
+   through. The CSS resting state is the finished picture, so without GSAP or
+   with reduced motion nothing is missing. */
+function animateTrace(trace) {
+  const hops = [...trace.querySelectorAll('.hop')];
+  if (!window.gsap || reducedMotion || !hops.length || trace.classList.contains('trace--live')) return;
   trace.classList.add('trace--live');
   gsap.fromTo(trace.querySelector('.trace__line'), { scaleY: 0 }, {
     scaleY: 1, ease: 'none',
@@ -336,33 +323,75 @@ function animateTrace(trace, hops) {
     scrollTrigger: { trigger: trace, start: 'top 65%', end: 'bottom 65%', scrub: true },
   });
   hops.forEach((hop) => {
-    const rtt = hop.querySelector('.hop__rtt');
+    const card = hop.querySelector('.hop__card');
     const name = hop.querySelector('.project__name');
     const text = name.textContent;
     name.setAttribute('aria-label', text);
-    rtt.textContent = '* * *';
-    gsap.from(hop, {
-      // From the rail side: a positive x on cards not yet revealed widens the
-      // page and gives phones a sideways scroll.
-      x: -32, opacity: 0, duration: 0.6, ease: 'power3.out',
-      // Same as the panels: hand the transform back to CSS for the tilt.
-      clearProps: 'transform,opacity',
-      scrollTrigger: { trigger: hop, start: 'top 90%' },
-    });
-    ScrollTrigger.create({
-      trigger: hop,
-      start: 'top 65%',
-      once: true,
-      onEnter: () => {
-        hop.classList.add('hop--lit');
-        scramble(name, text, 0.6);
-        const n = { v: 0 };
-        gsap.to(n, {
-          v: +hop.dataset.rtt, duration: 0.6, ease: 'power2.out',
-          onUpdate: () => { rtt.textContent = `${n.v.toFixed(1)} ms`; },
-        });
+    hop.querySelector('.hop__rtt').textContent = '* * *';
+
+    // One ScrollTrigger per hop. Its progress (the scroll position, not the
+    // animation) is also what the ruler reads.
+    let lit = false;
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: hop, start: 'top 88%', end: 'top 40%',
+        toggleActions: 'play none none reverse',
+        onEnter: () => {
+          if (lit) return;
+          lit = true;
+          hop.classList.add('hop--lit');
+          scramble(name, text, 0.6);
+          pingHop(hop, 0.6);
+        },
       },
     });
+    hop._st = tl.scrollTrigger;
+    tl
+      .fromTo(hop, { '--link': 0 }, { '--link': 1, duration: 0.18, ease: 'power1.in' })
+      .fromTo(card, { '--draw': 0 }, { '--draw': 1, duration: 0.55, ease: 'power2.inOut' })
+      .fromTo(card.children, { y: 10, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.06, duration: 0.3, ease: 'power2.out' }, '<0.05');
+    card.addEventListener('pointerenter', () => { if (hop.classList.contains('hop--lit')) pingHop(hop, 0.4); });
+  });
+  updateRuler();
+}
+
+/* A tick ruler in the corner while the projects are on screen, with a playhead
+   that follows the scroll and a major tick per hop - the scrubber from
+   animejs.com, reading "hop n/N" instead of a frame number. Desktop only. */
+const ruler = $('#trace-ruler');
+function updateRuler() {
+  if (!window.gsap || reducedMotion || !ruler) return;
+  const hops = [...document.querySelectorAll('#rec-txt .hop')].filter((h) => !h.closest('[hidden]'));
+  const marks = ruler.querySelector('.ruler__marks');
+  marks.textContent = '';
+  hops.forEach((_, i) => {
+    const m = el('i');
+    m.style.left = (hops.length > 1 ? (i / (hops.length - 1)) * 100 : 0) + '%';
+    marks.append(m);
+  });
+  ruler._hops = hops;
+  // The hop list changes without a scroll (trace set up late, archive opened),
+  // so repaint rather than wait for the next scroll event - a beat later, once
+  // the new hops' triggers have worked out their own progress.
+  if (ruler._st) gsap.delayedCall(0.1, () => paintRuler(ruler._st));
+}
+function paintRuler(self) {
+  ruler.querySelector('.ruler__head').style.left = (self.progress * 100).toFixed(2) + '%';
+  const hops = ruler._hops || [];
+  // A hop counts as reached once the scroll is past where its trigger starts.
+  // Compared against the trigger's cached start rather than its progress, which
+  // may not have been updated yet this frame.
+  const y = scrollY;
+  const reached = hops.filter((h) => h._st && y >= h._st.start).length;
+  ruler.querySelector('.ruler__label').textContent = `hop ${Math.max(reached, 1)}/${hops.length}`;
+}
+if (window.gsap && !reducedMotion && ruler) {
+  ruler._st = ScrollTrigger.create({
+    trigger: '#rec-txt',
+    start: 'top 60%',
+    end: 'bottom 60%',
+    onToggle: (self) => ruler.classList.toggle('ruler--on', self.isActive),
+    onUpdate: paintRuler,
   });
 }
 loadProjects();
@@ -375,6 +404,9 @@ $('#archive-toggle').addEventListener('click', () => {
   $('#archive-toggle').textContent = open
     ? '$ rm -rf ./visibility - hide it again'
     : '$ cat ./archive - the less polished stuff';
+  if (open) animateTrace(arc);
+  if (window.ScrollTrigger) ScrollTrigger.refresh();
+  updateRuler();
 });
 
 /* ---------------- NOW panel ---------------- */
@@ -685,7 +717,7 @@ async function loadVisitors() {
    button, or when the browser goes idle after load - off the critical path, but
    usually ready before anyone reaches for it. */
 // Bump together with the ?v= in index.html, for the same reason.
-const ASSET_V = '20261027';
+const ASSET_V = '20261027b';
 let shellPromise = null;
 function loadShell() {
   if (!shellPromise) {

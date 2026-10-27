@@ -108,8 +108,8 @@
 <!-- ?v= busts Cloudflare's four-hour edge cache and the browser's, so a deploy
      never pairs this HTML with yesterday's CSS and JS. Bump it on every change
      to a css/js file (and ASSET_V in app.js for the shell). -->
-<link rel="stylesheet" href="css/fonts.css?v=20261027">
-<link rel="stylesheet" href="css/style.css?v=20261027">
+<link rel="stylesheet" href="css/fonts.css?v=20261027b">
+<link rel="stylesheet" href="css/style.css?v=20261027b">
 </head>
 <body data-bg="ink">
 
@@ -161,7 +161,7 @@
   <h2 class="rec__header"><span class="rec__type">;; A</span> about</h2>
 
   <div class="grid grid--2">
-    <div class="panel" data-tilt>
+    <div class="panel">
       <p class="panel__label">RECORD</p>
       <p class="panel__body">
         I'm a developer at CZ.NIC, the organisation behind the .cz registry.
@@ -181,18 +181,18 @@
       <p class="panel__foot" id="steam-now" hidden></p>
     </div>
 
-    <div class="panel panel--terminal" data-tilt>
+    <div class="panel panel--terminal">
       <p class="panel__label" id="now-label">NOW (live from my notebook)</p>
       <pre class="now__output" id="now-output">loading...</pre>
       <p class="panel__foot" id="last-commit">fetching last commit...</p>
     </div>
 
-    <div class="panel panel--terminal" data-tilt>
+    <div class="panel panel--terminal">
       <p class="panel__label">VITALS (the box, live)</p>
       <pre class="now__output" id="pulse-output">querying...</pre>
     </div>
 
-    <div class="panel panel--terminal" data-tilt>
+    <div class="panel panel--terminal">
       <p class="panel__label">DEFENCE (crowdsec + nginx, live)</p>
       <pre class="now__output" id="defence-output">querying...</pre>
     </div>
@@ -218,7 +218,15 @@
   <button class="archive-toggle" id="archive-toggle" aria-expanded="false">
     $ cat ./archive - the less polished stuff
   </button>
-  <div class="projects projects--archive" id="projects-archive" hidden></div>
+  <div class="trace trace--archive" id="projects-archive" hidden>
+    <span class="trace__rail" aria-hidden="true"></span>
+    <span class="trace__line" aria-hidden="true"></span>
+  </div>
+
+  <div class="ruler" id="trace-ruler" aria-hidden="true">
+    <span class="ruler__label">hop 1/1</span>
+    <span class="ruler__scale"><span class="ruler__marks"></span><i class="ruler__head"></i></span>
+  </div>
 </section>
 
 <!-- ============ SRV RECORDS - HOMELAB (TRUSTED ONLY) ============ -->
@@ -280,9 +288,9 @@
      document order after parsing, so app.js still sees window.gsap; deferring
      only the GSAP pair would have app.js run first, find no gsap, and silently
      drop every animation on the page. -->
-<script defer src="vendor/gsap.min.js?v=20261027"></script>
-<script defer src="vendor/ScrollTrigger.min.js?v=20261027"></script>
-<script defer src="js/app.js?v=20261027"></script>
-<script defer src="js/cursor.js?v=20261027"></script>
+<script defer src="vendor/gsap.min.js?v=20261027b"></script>
+<script defer src="vendor/ScrollTrigger.min.js?v=20261027b"></script>
+<script defer src="js/app.js?v=20261027b"></script>
+<script defer src="js/cursor.js?v=20261027b"></script>
 </body>
 </html>
