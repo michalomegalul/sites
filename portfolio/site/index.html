@@ -57,7 +57,8 @@
       "familyName": "Dobšínský",
       "alternateName": [
         "Michal Dobsinsky",
-        "Dobšínský"
+        "Dobšínský",
+        "Dobsinsky"
       ],
       "url": "https://dobsinsky.dev/",
       "email": "mailto:michal@dobsinsky.dev",
@@ -98,6 +99,8 @@
      the CSS that references them is discovered one file later. -->
 <link rel="preload" href="/fonts/ArchivoBlack-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/IBMPlexMono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<!-- The Š in DOBŠÍNSKÝ is the LCP element and lives in the latin-ext subset. -->
+<link rel="preload" href="/fonts/ArchivoBlack-400-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/achievements.css">
@@ -226,7 +229,10 @@
 <!-- ============ MX RECORD - CONTACT ============ -->
 <section class="sec sec--mx" data-bg="ink" id="rec-mx">
   <h2 class="rec__header"><span class="rec__type">;; MX</span> mail exchange</h2>
-  <a class="mx__addr" href="mailto:michal@dobsinsky.dev" id="mx-addr">michal<span class="mx__at">@</span>dobsinsky.dev</a>
+  <!-- email_off stops Cloudflare Email Obfuscation rewriting the address and
+       injecting its render-blocking decoder script. The address is public on
+       purpose. Same for the shell prompts below. -->
+  <!--email_off--><a class="mx__addr" href="mailto:michal@dobsinsky.dev" id="mx-addr">michal<span class="mx__at">@</span>dobsinsky.dev</a><!--/email_off-->
   <button class="mx__copy" id="mx-copy">copy address</button>
   <div class="mx__links">
     <a href="https://github.com/michalomegalul" target="_blank" rel="noopener">github/michalomegalul</a>
@@ -245,12 +251,12 @@
 <div class="term" id="term" hidden>
   <div class="term__win" role="dialog" aria-label="pseudo-shell">
     <div class="term__bar">
-      <span>guest@dobsinsky.dev - pts/0</span>
+      <!--email_off--><span>guest@dobsinsky.dev - pts/0</span><!--/email_off-->
       <button class="term__close" id="term-close" aria-label="close">✕</button>
     </div>
     <div class="term__out" id="term-out"></div>
     <div class="term__inputrow">
-      <span class="term__ps1">guest@dobsinsky.dev:~$</span>
+      <!--email_off--><span class="term__ps1">guest@dobsinsky.dev:~$</span><!--/email_off-->
       <input class="term__input" id="term-in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="command input">
     </div>
   </div>

@@ -428,7 +428,6 @@ a:hover { background: var(--signal); color: var(--ink); }
 .mx__links { display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; margin-top: 2.5rem; font-size: 0.9rem; }
 
 .footer { margin-top: 5rem; font-size: 0.75rem; color: var(--fg-dim); }
-.footer__vid { opacity: 0.5; }
 
 /* ---------- motion safety ---------- */
 @media (prefers-reduced-motion: reduce) {
