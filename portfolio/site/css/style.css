@@ -318,6 +318,7 @@ a:hover { background: var(--signal); color: var(--ink); }
   border: 1px solid rgba(255,255,255,0.3); background: transparent; color: var(--fg);
   padding: 0.25rem 0.5rem;
 }
+.visitor input.visitor__theme { width: 6rem; }
 .visitor button {
   font-family: var(--mono); border: 2px solid rgba(255,255,255,0.3); background: none;
   color: var(--fg); padding: 0.25rem 0.7rem; cursor: pointer;

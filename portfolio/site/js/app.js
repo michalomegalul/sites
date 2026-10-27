@@ -611,10 +611,10 @@ async function loadPve() {
       const warn = pct > 85 ? ' class="warn"' : '';
       box.insertAdjacentHTML(
         'beforeend',
-        `<div class="stat">
+        `<div class="stat" data-pct="${pct}">
           <p class="stat__label">${label}</p>
           <p class="stat__value">${value}</p>
-          <div class="stat__bar"><i${warn} style="width:${pct}%"></i></div>
+          <div class="stat__bar"><i${warn}></i></div>
           <p class="stat__sub">${sub}</p>
         </div>`
       );
@@ -623,6 +623,8 @@ async function loadPve() {
     stat('RAM', d.mem_pct + '%', d.mem_pct, `${d.mem_used} / ${d.mem_total} GiB`);
     d.disks.forEach((disk) => stat('DISK ' + disk.name, disk.pct + '%', disk.pct, `${disk.used} / ${disk.total}`));
     stat('LXC', `${d.lxc_running}/${d.lxc_total}`, (d.lxc_running / d.lxc_total) * 100, `uptime ${d.uptime}`);
+    // Widths through the CSSOM: the CSP refuses style="" attributes in markup.
+    box.querySelectorAll('.stat').forEach((s) => { s.querySelector('.stat__bar i').style.width = s.dataset.pct + '%'; });
   } catch {
     $('#pve-stats').innerHTML = '<p class="dig-line">;; proxmox api unreachable</p>';
   }
@@ -651,7 +653,7 @@ async function loadVisitors() {
         <small class="visitor__ua">${v.ua || ''}</small>
         <input placeholder="name" value="${v.name || ''}" data-f="name">
         <input placeholder="greeting" value="${v.greeting || ''}" data-f="greeting">
-        <input placeholder="theme" value="${v.theme || ''}" data-f="theme" style="width:6rem">
+        <input placeholder="theme" value="${v.theme || ''}" data-f="theme" class="visitor__theme">
         <button>tag</button>
       </div>`
       )
@@ -682,6 +684,8 @@ async function loadVisitors() {
    (the cursor caret needs it to tell commands from searches), on the SHELL
    button, or when the browser goes idle after load - off the critical path, but
    usually ready before anyone reaches for it. */
+// Bump together with the ?v= in index.html, for the same reason.
+const ASSET_V = '20261027';
 let shellPromise = null;
 function loadShell() {
   if (!shellPromise) {
@@ -690,8 +694,8 @@ function loadShell() {
       node.onerror = reject;
       document.head.append(node);
     });
-    const css = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'shell/shell.css' });
-    const js = Object.assign(document.createElement('script'), { src: 'shell/terminal.js' });
+    const css = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'shell/shell.css?v=' + ASSET_V });
+    const js = Object.assign(document.createElement('script'), { src: 'shell/terminal.js?v=' + ASSET_V });
     shellPromise = Promise.all([load(css), load(js)]);
   }
   return shellPromise;
