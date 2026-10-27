@@ -1,5 +1,7 @@
-/* dobsinsky.dev - terminal.js v2
-   themes · snake · real neofetch · nano/vim · msg→ntfy · admin mode */
+/* dobsinsky.dev - shell/terminal.js v2
+   themes · snake · real neofetch · nano/vim · msg→ntfy · admin mode
+   Not in the page's script tags: loadShell() in app.js injects it on the first
+   key press, the SHELL button or when the browser goes idle after load. */
 
 (() => {
   const API = '/api';
@@ -8,7 +10,8 @@
   const input = document.getElementById('term-in');
   const PROMPT = () => `${state.trusted ? 'michal' : 'guest'}@dobsinsky.dev:~$`;
 
-  const state = { trusted: false, history: [], hIdx: -1, ssh: 0, game: null, editor: null };
+  // app.js may have found out we are on the trusted net before this loaded.
+  const state = { trusted: !!window.__trusted, history: [], hIdx: -1, ssh: 0, game: null, editor: null };
 
   /* expose hook so app.js can tell us we're trusted */
   window.__termTrusted = () => (state.trusted = true);
@@ -33,7 +36,6 @@
     ['all', 'completionist', 'unlock everything else'],
   ];
   const GAMES = ['snake', 'slots', 'wpm', 'hangman', 'guess', 'reaction'];
-  const SECTIONS = ['top', 'rec-a', 'rec-txt', 'rec-mx'];
   const achLoad = () => {
     try {
       const d = JSON.parse(localStorage.getItem('ach') || '{}');
@@ -74,18 +76,12 @@
     if (!d.played.includes(game)) { d.played.push(game); achSave(d); }
     if (GAMES.every((g) => d.played.includes(g))) unlock('allgames');
   }
-  function markSeen(id) {
-    const d = achLoad();
-    if (!d.seen.includes(id)) { d.seen.push(id); achSave(d); }
-    if (SECTIONS.every((x) => d.seen.includes(x))) unlock('sections');
+  // app.js records the sections (SHELL_SECTIONS), so visits from before this
+  // file loaded still count; this only turns them into the achievement.
+  function checkSections() {
+    if (SHELL_SECTIONS.every((x) => achLoad().seen.includes(x))) unlock('sections');
   }
-  if ('IntersectionObserver' in window) {
-    // a section counts once it crosses the middle of the screen
-    const io = new IntersectionObserver((es) => es.forEach((e) => {
-      if (e.isIntersecting) { markSeen(e.target.id); io.unobserve(e.target); }
-    }), { rootMargin: '-45% 0px -45% 0px' });
-    SECTIONS.forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
-  }
+  checkSections();
 
   /* keyboard-only games: state.game is truthy while one runs, Esc quits (q too if quitOnQ) */
   function keyGame(name, quitOnQ, onKey, cleanup) {
@@ -459,31 +455,31 @@
       const grid = Array.from({ length: H }, () => Array(W).fill(null));
       const put = (x, y, ch, c) => { if (x >= 0 && x < W && y >= 0 && y < H) grid[y][x] = { ch, c }; };
       let tips = [{ x: W >> 1, y: H - 1, life: 11, trunk: true }];
-      put(W >> 1, H - 1, '|', '#b8865a');
+      put(W >> 1, H - 1, '|', 'tc-bark');
       runAnim((screen, stop) => {
         if (!tips.length) { stop(); print('bonsai: done.', 'term__dim'); return; }
         const next = [];
         tips.forEach((t) => {
           if (t.life <= 0) {
             for (let dx = -2; dx <= 2; dx++) for (let dy = -1; dy <= 1; dy++)
-              if (Math.random() > 0.4) put(t.x + dx, t.y + dy, '&', Math.random() > 0.25 ? '#5fbf6e' : 'var(--signal)');
+              if (Math.random() > 0.4) put(t.x + dx, t.y + dy, '&', Math.random() > 0.25 ? 'tc-leaf' : 'tc-signal');
             return;
           }
           const lean = t.trunk ? [-1, 0, 0, 1][(Math.random() * 4) | 0] : (t.dir || 1) * (Math.random() > 0.3 ? 1 : 0);
           t.x += lean; t.y -= 1; t.life--;
-          put(t.x, t.y, lean === 0 ? '|' : lean > 0 ? '\\' : '/', '#b8865a');
+          put(t.x, t.y, lean === 0 ? '|' : lean > 0 ? '\\' : '/', 'tc-bark');
           next.push(t);
           if (t.trunk && t.life < 9 && Math.random() > 0.55)
             next.push({ x: t.x, y: t.y, life: 2 + ((Math.random() * 3) | 0), trunk: false, dir: Math.random() > 0.5 ? 1 : -1 });
         });
         tips = next;
-        screen.innerHTML = grid.map((r) => r.map((c) => c ? `<span style="color:${c.c}">${c.ch}</span>` : ' ').join('')).join('\n') +
+        screen.innerHTML = grid.map((r) => r.map((c) => c ? `<span class="${c.c}">${c.ch}</span>` : ' ').join('')).join('\n') +
           '\n' + '─'.repeat(W) + '\n' + ' '.repeat((W >> 1) - 4) + '\\______/';
       }, 160);
     },
 
     pipes() {
-      const W = 44, H = 14, COLORS = ['var(--signal)', '#5af78e', '#57c7ff', '#ff6ac1', '#f3f99d'];
+      const W = 44, H = 14, COLORS = ['tc-signal', 'tc-green', 'tc-blue', 'tc-pink', 'tc-yellow'];
       let grid, pipes, filled;
       const reset = () => {
         grid = Array.from({ length: H }, () => Array(W).fill(null));
@@ -506,7 +502,7 @@
           p.y = (p.y + D[nd][1] + H) % H;
         });
         if (filled > W * H * 0.55) reset();
-        screen.innerHTML = grid.map((r) => r.map((c) => c ? `<span style="color:${c.c}">${c.ch}</span>` : ' ').join('')).join('\n');
+        screen.innerHTML = grid.map((r) => r.map((c) => c ? `<span class="${c.c}">${c.ch}</span>` : ' ').join('')).join('\n');
       }, 90);
     },
 
@@ -525,7 +521,7 @@
           }
         });
         screen.innerHTML = grid.map((r, y) =>
-          r.map((c, x) => c === ' ' ? ' ' : `<span style="color:${drops[x].y === y ? '#d8ffd8' : '#3fae52'}">${c}</span>`).join('')
+          r.map((c, x) => c === ' ' ? ' ' : `<span class="${drops[x].y === y ? 'tc-head' : 'tc-rain'}">${c}</span>`).join('')
         ).join('\n');
       }, 70);
     },
@@ -1100,6 +1096,8 @@
     isCommand: (name) => Object.prototype.hasOwnProperty.call(cmds, name.toLowerCase()),
     names: () => Object.keys(cmds),
     exec: (line) => { openTerm(); run(line); },
+    open: openTerm,
+    checkSections,
   };
 
   document.getElementById('term-open').addEventListener('click', openTerm);

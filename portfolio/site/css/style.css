@@ -358,87 +358,13 @@ a:hover { background: var(--signal); color: var(--ink); }
   .statusbar { font-size: 0.68rem; gap: 0.4rem; }
 }
 
-/* ---------- terminal overlay ---------- */
+/* ---------- shell button (the shell itself is shell/shell.css) ---------- */
 .statusbar__shell {
   font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
   background: none; border: 1px solid var(--signal); color: var(--signal);
   padding: 0.15rem 0.6rem; cursor: pointer; margin-left: 1rem;
 }
 .statusbar__shell:hover { background: var(--signal); color: var(--ink); }
-
-.term[hidden] { display: none; }
-
-.term {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: 8vh 4vw;
-}
-.term__win {
-  width: min(60rem, 100%);
-  background: #050505;
-  border: 2px solid var(--signal);
-  box-shadow: 10px 10px 0 rgba(0,0,0,0.45);
-  transform: translateY(-30px); opacity: 0;
-  transition: transform 0.25s ease, opacity 0.25s ease;
-  display: flex; flex-direction: column;
-  max-height: 80vh;
-}
-.term--open .term__win { transform: translateY(0); opacity: 1; }
-
-.term__bar {
-  display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1px solid var(--signal);
-  padding: 0.4rem 0.9rem; font-size: 0.72rem; color: var(--signal);
-}
-.term__close {
-  font-family: var(--mono); background: none; border: none;
-  color: var(--signal); cursor: pointer; font-size: 0.9rem;
-}
-.term__close:hover { color: var(--fg); }
-
-.term__out {
-  padding: 0.9rem; overflow-y: auto; flex: 1;
-  font-size: 0.82rem; min-height: 14rem;
-}
-.term__line { white-space: pre-wrap; color: var(--fg); }
-.term__line a { color: var(--signal); }
-.term__prompt { color: var(--signal); }
-.term__dim { color: var(--fg-dim); }
-.term__accent { color: var(--signal); }
-.term__err { color: #ff5544; }
-
-.term__inputrow {
-  display: flex; gap: 0.6rem; align-items: center;
-  border-top: 1px solid rgba(255, 176, 0, 0.3);
-  padding: 0.6rem 0.9rem;
-}
-.term__ps1 { color: var(--signal); font-size: 0.82rem; white-space: nowrap; }
-.term__input {
-  flex: 1; font-family: var(--mono); font-size: 0.85rem;
-  background: none; border: none; color: var(--fg); caret-color: var(--signal);
-}
-.term__input:focus { outline: none; }
-
-@media (max-width: 640px) {
-  .term { padding: 4vh 2vw; }
-  .term__ps1 { display: none; }
-}
-
-/* ---------- editor in terminal ---------- */
-.ted { border: 1px solid var(--signal); margin: 0.5rem 0; }
-.ted__bar {
-  display: flex; justify-content: space-between;
-  font-size: 0.7rem; color: var(--ink);
-  background: var(--signal); padding: 0.2rem 0.6rem;
-}
-.ted__area {
-  width: 100%; min-height: 11rem; resize: vertical;
-  font-family: var(--mono); font-size: 0.82rem;
-  background: transparent; color: var(--fg);
-  border: none; padding: 0.6rem;
-}
-.ted__area:focus { outline: none; }
 
 /* ---------- themes ----------
    theme switching redefines the core vars; app.js reads section
@@ -485,9 +411,6 @@ a:hover { background: var(--signal); color: var(--ink); }
 [data-theme="latte"] .sec--srv .svc, [data-theme="latte"] .sec--srv .visitor input,
 [data-theme="latte"] .sec--srv .visitor button { border-color: #EFF1F5; color: #EFF1F5; background: transparent; }
 
-/* scroll lock while terminal is open */
-body.term-open { overflow: hidden; }
-
 /* ---------- more themes ---------- */
 [data-theme="dracula"] {
   --ink: #191a24; --cobalt: #282a36; --oxide: #44475a; --bone: #f8f8f2;
@@ -501,16 +424,6 @@ body.term-open { overflow: hidden; }
   --ink: #2e3440; --cobalt: #3b4252; --oxide: #4c566a; --bone: #eceff4;
   --signal: #88c0d0; --fg: #e5e9f0; --fg-dim: #7b88a1; --line: rgba(229,233,240,.25);
 }
-
-/* ---------- slots foreclosure ---------- */
-.wasted {
-  position: fixed; inset: 0; z-index: 999;
-  background: #000; color: #c33;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: var(--display); font-size: clamp(1.6rem, 5vw, 3.5rem);
-  gap: 1rem; text-align: center; padding: 2rem;
-}
-.wasted__sub { font-family: var(--mono); font-size: 0.95rem; color: #777; }
 
 /* ---------- cursor tag (js/cursor.js) ---------- */
 .cursor-tag {

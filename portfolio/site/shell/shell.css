@@ -1,0 +1,133 @@
+/* dobsinsky.dev - shell/shell.css
+   Everything the pseudo-shell needs and nothing the page needs before it is
+   opened. Loaded together with shell/terminal.js by loadShell() in app.js.
+   Themes stay in css/style.css: they apply on page load, shell or not. */
+
+.term[hidden] { display: none; }
+
+.term {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 8vh 4vw;
+}
+.term__win {
+  width: min(60rem, 100%);
+  background: #050505;
+  border: 2px solid var(--signal);
+  box-shadow: 10px 10px 0 rgba(0,0,0,0.45);
+  transform: translateY(-30px); opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  display: flex; flex-direction: column;
+  max-height: 80vh;
+}
+.term--open .term__win { transform: translateY(0); opacity: 1; }
+
+.term__bar {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--signal);
+  padding: 0.4rem 0.9rem; font-size: 0.72rem; color: var(--signal);
+}
+.term__close {
+  font-family: var(--mono); background: none; border: none;
+  color: var(--signal); cursor: pointer; font-size: 0.9rem;
+}
+.term__close:hover { color: var(--fg); }
+
+.term__out {
+  padding: 0.9rem; overflow-y: auto; flex: 1;
+  font-size: 0.82rem; min-height: 14rem;
+}
+.term__line { white-space: pre-wrap; color: var(--fg); }
+.term__line a { color: var(--signal); }
+.term__prompt { color: var(--signal); }
+.term__dim { color: var(--fg-dim); }
+.term__accent { color: var(--signal); }
+.term__err { color: #ff5544; }
+
+.term__inputrow {
+  display: flex; gap: 0.6rem; align-items: center;
+  border-top: 1px solid rgba(255, 176, 0, 0.3);
+  padding: 0.6rem 0.9rem;
+}
+.term__ps1 { color: var(--signal); font-size: 0.82rem; white-space: nowrap; }
+.term__input {
+  flex: 1; font-family: var(--mono); font-size: 0.85rem;
+  background: none; border: none; color: var(--fg); caret-color: var(--signal);
+}
+.term__input:focus { outline: none; }
+
+@media (max-width: 640px) {
+  .term { padding: 4vh 2vw; }
+  .term__ps1 { display: none; }
+}
+
+/* ---------- editor in terminal ---------- */
+.ted { border: 1px solid var(--signal); margin: 0.5rem 0; }
+.ted__bar {
+  display: flex; justify-content: space-between;
+  font-size: 0.7rem; color: var(--ink);
+  background: var(--signal); padding: 0.2rem 0.6rem;
+}
+.ted__area {
+  width: 100%; min-height: 11rem; resize: vertical;
+  font-family: var(--mono); font-size: 0.82rem;
+  background: transparent; color: var(--fg);
+  border: none; padding: 0.6rem;
+}
+.ted__area:focus { outline: none; }
+
+/* scroll lock while terminal is open */
+body.term-open { overflow: hidden; }
+
+/* ---------- slots foreclosure ---------- */
+.wasted {
+  position: fixed; inset: 0; z-index: 999;
+  background: #000; color: #c33;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: clamp(1.6rem, 5vw, 3.5rem);
+  gap: 1rem; text-align: center; padding: 2rem;
+}
+.wasted__sub { font-family: var(--mono); font-size: 0.95rem; color: #777; }
+
+/* achievement toasts + dog art */
+
+#ach-toasts {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 300;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;
+  pointer-events: none;
+}
+.ach-toast {
+  font-family: var(--mono); font-size: 0.8rem;
+  color: var(--fg); background: var(--ink);
+  border: 2px solid var(--signal);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+  padding: 0.5rem 0.8rem; max-width: min(24rem, calc(100vw - 2rem));
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.ach-toast::before { content: '> '; color: var(--signal); }
+.ach-toast--in { opacity: 1; transform: none; }
+
+.term__dog { line-height: 1.05; font-size: clamp(0.4rem, 1.6vw, 0.85rem); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ach-toast { transition: none; transform: none; }
+}
+
+/* Phone: toasts go to the top so they don't cover the footer. */
+@media (max-width: 640px) {
+  #ach-toasts { top: 3rem; bottom: auto; left: 1rem; right: 1rem; align-items: stretch; }
+}
+
+/* Colours for the bonsai, pipes and rain toys. Classes rather than inline
+   style attributes, which the page's CSP (style-src 'self') refuses. */
+.tc-bark { color: #b8865a; }
+.tc-leaf { color: #5fbf6e; }
+.tc-signal { color: var(--signal); }
+.tc-green { color: #5af78e; }
+.tc-blue { color: #57c7ff; }
+.tc-pink { color: #ff6ac1; }
+.tc-yellow { color: #f3f99d; }
+.tc-head { color: #d8ffd8; }
+.tc-rain { color: #3fae52; }

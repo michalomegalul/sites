@@ -582,6 +582,7 @@ async function whoami() {
 whoami();
 
 function enterTrustedMode() {
+  window.__trusted = true; // read by shell/terminal.js if it loads later
   if (window.__termTrusted) window.__termTrusted();
   $('#conn-status').textContent = 'TRUSTED NET';
   $('#conn-status').dataset.state = 'trusted';
@@ -673,6 +674,64 @@ async function loadVisitors() {
       setTimeout(() => (e.target.textContent = 'tag'), 1500);
     });
   } catch {}
+}
+
+/* ---------------- shell (lazy) ---------------- */
+/* shell/terminal.js is ~1200 lines of games and achievements most visitors never
+   open, so it is not in the page's script tags. It loads on the first key press
+   (the cursor caret needs it to tell commands from searches), on the SHELL
+   button, or when the browser goes idle after load - off the critical path, but
+   usually ready before anyone reaches for it. */
+let shellPromise = null;
+function loadShell() {
+  if (!shellPromise) {
+    const load = (node) => new Promise((resolve, reject) => {
+      node.onload = resolve;
+      node.onerror = reject;
+      document.head.append(node);
+    });
+    const css = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'shell/shell.css' });
+    const js = Object.assign(document.createElement('script'), { src: 'shell/terminal.js' });
+    shellPromise = Promise.all([load(css), load(js)]);
+  }
+  return shellPromise;
+}
+const openShell = () => loadShell().then(() => window.__term.open()).catch(() => {});
+
+/* Until the shell has loaded these stand in for its own handlers; once it is
+   there, it handles both and these step aside. */
+addEventListener('keydown', (e) => {
+  if (window.__term) return;
+  loadShell().catch(() => {});
+  const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+  if ((e.key === '~' && !typing) || (e.ctrlKey && e.altKey && e.key.toLowerCase() === 't')) {
+    e.preventDefault();
+    openShell();
+  }
+});
+$('#term-open').addEventListener('click', () => { if (!window.__term) openShell(); });
+addEventListener('load', () => {
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
+  idle(() => loadShell().catch(() => {}), { timeout: 4000 });
+});
+
+/* "scroll tourist" achievement. Recorded here rather than in the shell so that
+   sections seen before it loads still count. terminal.js reads SHELL_SECTIONS. */
+const SHELL_SECTIONS = ['top', 'rec-a', 'rec-txt', 'rec-mx'];
+if ('IntersectionObserver' in window) {
+  const markSeen = (id) => {
+    try {
+      const d = JSON.parse(localStorage.getItem('ach') || '{}');
+      d.seen = d.seen || [];
+      if (!d.seen.includes(id)) { d.seen.push(id); localStorage.setItem('ach', JSON.stringify(d)); }
+    } catch { /* storage blocked */ }
+    if (window.__term) window.__term.checkSections();
+  };
+  // a section counts once it crosses the middle of the screen
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { markSeen(e.target.id); io.unobserve(e.target); }
+  }), { rootMargin: '-45% 0px -45% 0px' });
+  SHELL_SECTIONS.forEach((id) => { const s = document.getElementById(id); if (s) io.observe(s); });
 }
 
 /* ---------------- copy email ---------------- */

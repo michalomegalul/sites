@@ -107,7 +107,6 @@
 <link rel="preload" href="/fonts/ArchivoBlack-400-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/achievements.css">
 </head>
 <body data-bg="ink">
 
@@ -273,7 +272,8 @@
 
 <!-- GSAP vendored at 3.12.5 rather than pulled from cdnjs: one less origin to
      trust, and the animation no longer depends on someone else's uptime.
-     ALL FOUR are deferred, and that is load-bearing. Deferred scripts run in
+     shell/terminal.js is not here: app.js loads it on demand (loadShell).
+     All of them are deferred, and that is load-bearing. Deferred scripts run in
      document order after parsing, so app.js still sees window.gsap; deferring
      only the GSAP pair would have app.js run first, find no gsap, and silently
      drop every animation on the page. -->
@@ -281,6 +281,5 @@
 <script defer src="vendor/ScrollTrigger.min.js"></script>
 <script defer src="js/app.js"></script>
 <script defer src="js/cursor.js"></script>
-<script defer src="js/terminal.js"></script>
 </body>
 </html>
