@@ -68,9 +68,23 @@ document.addEventListener('visibilitychange', () => {
   /* Alt-tabbing away froze the hero mid-tween: requestAnimationFrame stops in a
      background tab, so ScrollTrigger's scrubbed progress was left wherever it
      was and the name stayed shifted left and faded even though the page was
-     scrolled to the top. Recomputing on return puts every trigger back in sync
-     with the actual scroll position. */
-  if (window.ScrollTrigger) ScrollTrigger.refresh();
+     scrolled to the top. update() puts every trigger back in sync with the
+     actual scroll position. It used to be refresh(), which re-measures by
+     scrolling to the top and back - with smooth scrolling that left the page
+     and the hero tween stranded halfway, the very bug it was meant to fix. */
+  if (window.ScrollTrigger) ScrollTrigger.update();
+});
+
+/* Smooth scrolling for in-page links only. A global `scroll-behavior: smooth`
+   also animates the scrolls ScrollTrigger does while measuring, which is what
+   stranded the hero name after a tab switch. */
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="#"]');
+  const target = a && a.getAttribute('href').length > 1 && document.querySelector(a.getAttribute('href'));
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+  history.pushState(null, '', a.getAttribute('href'));
 });
 
 if (window.gsap && !reducedMotion) {
