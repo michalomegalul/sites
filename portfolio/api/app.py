@@ -58,6 +58,9 @@ STEAM_VANITY = os.getenv("STEAM_VANITY", "ahoj_a_koukni_lul")
 
 QUIZ_COUNT_URL = os.getenv("QUIZ_COUNT_URL", "https://quiz.dobsinsky.dev/api/public/count")
 
+GITHUB_USER = os.getenv("GITHUB_USER", "michalomegalul")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")  # optional, read-only; lifts 60/h to 5000/h
+
 NTFY_URL = os.getenv("NTFY_URL", "")        # e.g. https://ntfy.dobsinsky.dev/portfolio
 NTFY_TOKEN = os.getenv("NTFY_TOKEN", "")    # optional bearer token
 
@@ -175,10 +178,33 @@ def now():
     # fresh box serves before anyone has set one. The old code only read the
     # repo copy, so every `git reset --hard` silently threw away whatever had
     # been posted to /api/now.
+    data = {"working_on": "nothing logged", "updated": "never"}
     for f in (NOW_FILE, BASE / "now.json"):
         if f.exists():
-            return app.response_class(f.read_text(), mimetype="application/json")
-    return jsonify({"working_on": "nothing logged", "updated": "never"})
+            data = json.loads(f.read_text())
+            break
+
+    # Live sources win over the notebook, and `updated` is the newest of all of
+    # them - the notebook date, the last Steam session and the last GitHub push -
+    # so the panel only goes stale when nothing at all has happened. Each source
+    # is optional; a failing one just leaves the notebook value standing.
+    dates = [data.get("updated") or ""]
+    try:
+        last = _steam_data()["last_played"]
+        if last:
+            data["playing"] = last["name"]
+            dates.append(last["date"])
+    except Exception:  # noqa: BLE001 - not configured, Steam down
+        pass
+    try:
+        push = _github_data()["last_push"]
+        if push:
+            dates.append(push["at"][:10])
+    except Exception:  # noqa: BLE001 - GitHub down or rate-limited
+        pass
+    # ISO dates sort as strings; "never" or junk loses to any real date.
+    data["updated"] = max(dates, key=lambda d: d if d[:2] == "20" else "")
+    return jsonify(data)
 
 
 @app.get("/api/services")
@@ -222,15 +248,17 @@ def visits():
     totals = d.execute(
         "SELECT count(*) AS people, COALESCE(sum(visits), 0) AS visits FROM visitors"
     ).fetchone()
+    now_t = int(time.time())
     recent = d.execute(
-        "SELECT count(*) AS n FROM visitors WHERE last_seen >= ?",
-        (int(time.time()) - 7 * 86400,),
+        "SELECT sum(last_seen >= ?) AS d7, sum(last_seen >= ?) AS d30 FROM visitors",
+        (now_t - 7 * 86400, now_t - 30 * 86400),
     ).fetchone()
     return jsonify(
         {
             "people": totals["people"],
             "visits": totals["visits"],
-            "people_7d": recent["n"],
+            "people_7d": recent["d7"] or 0,
+            "people_30d": recent["d30"] or 0,
         }
     )
 
@@ -465,7 +493,63 @@ def crowdsec():
         return jsonify({"error": "crowdsec unavailable"}), 502
 
 
-_steam_cache = {"t": 0, "data": None, "sid": None}
+_steam_cache = {"t": 0, "data": None, "sid": None, "failed": 0}
+
+
+def _steam_data():
+    """Recent games plus the single most recently played one, cached 5 min.
+
+    GetRecentlyPlayedGames orders by two-week playtime, not recency, so the
+    "what am I playing right now" answer comes from GetOwnedGames'
+    rtime_last_played instead. Raises when Steam is not configured or down.
+    """
+    if not STEAM_API_KEY:
+        raise RuntimeError("steam not configured")
+    if time.time() - _steam_cache["t"] < 300 and _steam_cache["data"]:
+        return _steam_cache["data"]
+    # Same as GitHub: /api/now calls this on every page view, and Steam has a
+    # weekly maintenance window. Don't make every visitor wait out the timeouts.
+    if time.time() - _steam_cache["failed"] < 300:
+        raise RuntimeError("steam backing off")
+
+    def get(path, **params):
+        r = requests.get(
+            f"https://api.steampowered.com/{path}",
+            params={"key": STEAM_API_KEY, **params},
+            timeout=5,
+        )
+        r.raise_for_status()
+        return r.json()["response"]
+
+    try:
+        if not _steam_cache["sid"]:
+            _steam_cache["sid"] = get("ISteamUser/ResolveVanityURL/v1/", vanityurl=STEAM_VANITY)["steamid"]
+        sid = _steam_cache["sid"]
+        recent = get("IPlayerService/GetRecentlyPlayedGames/v1/", steamid=sid, count=3).get("games", [])
+        owned = get(
+            "IPlayerService/GetOwnedGames/v1/",
+            steamid=sid, include_appinfo=1, include_played_free_games=1,
+        ).get("games", [])
+    except Exception:
+        _steam_cache["failed"] = time.time()
+        raise
+    last = max(owned, key=lambda x: x.get("rtime_last_played", 0), default=None)
+    data = {
+        "games": [
+            {"name": x["name"], "hours_2w": round(x.get("playtime_2weeks", 0) / 60, 1)}
+            for x in recent
+        ],
+        "last_played": (
+            {
+                "name": last["name"],
+                "date": time.strftime("%Y-%m-%d", time.localtime(last["rtime_last_played"])),
+            }
+            if last and last.get("rtime_last_played")
+            else None
+        ),
+    }
+    _steam_cache.update(t=time.time(), data=data)
+    return data
 
 
 @app.get("/api/steam")
@@ -473,32 +557,86 @@ def steam():
     """Latest played game, public, cached 5 min."""
     if not STEAM_API_KEY:
         return jsonify({"error": "not configured"}), 503
-    if time.time() - _steam_cache["t"] < 300 and _steam_cache["data"]:
-        return jsonify(_steam_cache["data"])
     try:
-        if not _steam_cache["sid"]:
-            r = requests.get(
-                "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/",
-                params={"key": STEAM_API_KEY, "vanityurl": STEAM_VANITY},
-                timeout=5,
-            ).json()["response"]
-            _steam_cache["sid"] = r["steamid"]
-        g = requests.get(
-            "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/",
-            params={"key": STEAM_API_KEY, "steamid": _steam_cache["sid"], "count": 3},
-            timeout=5,
-        ).json()["response"]
-        games = g.get("games", [])
-        data = {
-            "games": [
-                {"name": x["name"], "hours_2w": round(x.get("playtime_2weeks", 0) / 60, 1)}
-                for x in games
-            ]
-        }
-        _steam_cache.update(t=time.time(), data=data)
-        return jsonify(data)
-    except Exception:
+        return jsonify(_steam_data())
+    except Exception:  # noqa: BLE001
         return jsonify({"error": "steam unreachable"}), 502
+
+
+_gh_cache = {"t": 0, "data": None, "failed": 0}
+
+
+def _github_data():
+    """Public repos and the last push, cached 30 min.
+
+    Fetched here rather than by every visitor's browser: GitHub allows 60
+    unauthenticated requests an hour per IP, which a shared office or school
+    address burns through, and the page's CSP stays connect-src 'self'.
+    """
+    if time.time() - _gh_cache["t"] < 1800 and _gh_cache["data"]:
+        return _gh_cache["data"]
+    # /api/now calls this on every page view. After a failure (usually the rate
+    # limit) wait five minutes instead of making every visitor wait for it again.
+    if time.time() - _gh_cache["failed"] < 300:
+        raise RuntimeError("github backing off")
+    h = {"Accept": "application/vnd.github+json"}
+    if GITHUB_TOKEN:
+        h["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+
+    def get(path):
+        r = requests.get(f"https://api.github.com{path}", headers=h, timeout=5)
+        r.raise_for_status()
+        return r.json()
+
+    try:
+        repos = get(f"/users/{GITHUB_USER}/repos?per_page=100&sort=pushed")
+        events = get(f"/users/{GITHUB_USER}/events/public?per_page=30")
+    except Exception:
+        _gh_cache["failed"] = time.time()
+        raise
+    # PushEvent payloads in the Events API no longer list commits, only the head
+    # sha, so the message costs one more request per refresh. Without it the
+    # line still shows the repo and the date.
+    last_push = None
+    push = next((e for e in events if e["type"] == "PushEvent"), None)
+    if push:
+        repo = push["repo"]["name"]
+        message = ""
+        if push["payload"].get("head"):
+            try:
+                commit = get(f"/repos/{repo}/commits/{push['payload']['head']}")
+                message = commit["commit"]["message"].split("\n")[0][:60]
+            except Exception:  # noqa: BLE001
+                pass
+        last_push = {"repo": repo.split("/")[-1], "message": message, "at": push["created_at"]}
+    data = {
+        "repos": [
+            {
+                "name": r["name"],
+                "description": r["description"] or "",
+                "language": r["language"] or "",
+                "pushed_at": r["pushed_at"],
+                "html_url": r["html_url"],
+            }
+            for r in repos
+            if not r["fork"]
+        ],
+        "last_push": last_push,
+    }
+    _gh_cache.update(t=time.time(), data=data)
+    return data
+
+
+@app.get("/api/github")
+def github():
+    """Public repos and the last push, relayed from GitHub."""
+    try:
+        return jsonify(_github_data())
+    except Exception:  # noqa: BLE001 - network, rate limit, bad JSON
+        # A stale answer beats none when GitHub rate-limits us.
+        if _gh_cache["data"]:
+            return jsonify(_gh_cache["data"])
+        return jsonify({"error": "github unreachable"}), 502
 
 
 _quiz_cache = {"t": 0, "data": None}

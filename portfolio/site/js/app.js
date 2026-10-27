@@ -248,6 +248,14 @@ function attachTilt(el, holo) {
 document.querySelectorAll('[data-tilt]').forEach((el) => attachTilt(el));
 
 /* ---------------- projects ---------------- */
+/* GitHub comes through our own API (api/app.py, cached on the box): visitors'
+   browsers never talk to api.github.com, which rate-limits shared IPs and would
+   need a hole in the CSP. One request feeds both the archive and the NOW panel. */
+const githubData = fetch(`${API}/github`)
+  .then((r) => r.json())
+  .then((d) => (d.error ? null : d))
+  .catch(() => null);
+
 async function loadProjects() {
   let data;
   try {
@@ -368,13 +376,12 @@ async function loadNow() {
     $('#now-label').textContent = stale ? 'NOW (from my notebook)' : 'NOW (live from my notebook)';
     $('#now-output').classList.toggle('now--stale', stale);
     const age = days === null ? '' : ` (${stale ? 'last updated ' : ''}${ageText(days)})`;
+    /* Only the keys the notebook actually has - a missing one used to print
+       "undefined". `updated` is computed by the API from the live sources. */
+    const keys = ['working_on', 'listening', 'playing', 'reading', 'mood'].filter((k) => now[k]);
     $('#now-output').textContent = [
       `$ cat /proc/michal/status`,
-      `working_on : ${now.working_on}`,
-      `listening  : ${now.listening}`,
-      `playing    : ${now.playing}`,
-      `reading    : ${now.reading}`,
-      `mood       : ${now.mood}`,
+      ...keys.map((k) => `${k.padEnd(10)} : ${now[k]}`),
       `updated    : ${now.updated}${age}`,
     ].join('\n');
   } catch {
@@ -390,21 +397,12 @@ async function loadNow() {
 loadNow();
 window.__reloadNow = loadNow;
 
-/* last GitHub push (public API, no key needed) */
+/* last GitHub push, relayed by our API */
 async function loadCommit() {
-  try {
-    const ev = await (
-      await fetch('https://api.github.com/users/michalomegalul/events/public?per_page=10')
-    ).json();
-    const push = ev.find((e) => e.type === 'PushEvent');
-    if (!push) throw 0;
-    const msg = push.payload.commits.at(-1).message.split('\n')[0].slice(0, 60);
-    const repo = push.repo.name.split('/')[1];
-    const when = new Date(push.created_at).toLocaleDateString('cs-CZ');
-    $('#last-commit').textContent = `last push → ${repo}: "${msg}" (${when})`;
-  } catch {
-    $('#last-commit').textContent = 'last push → unavailable';
-  }
+  const push = (await githubData)?.last_push;
+  $('#last-commit').textContent = push
+    ? `last push → ${push.repo}${push.message ? `: "${push.message}"` : ''} (${new Date(push.at).toLocaleDateString('cs-CZ')})`
+    : 'last push → unavailable';
 }
 loadCommit();
 
@@ -441,6 +439,10 @@ setInterval(loadPulse, 30000);
 /* ---------------- crowdsec: what the edge turned away ---------------- */
 const compact = (n) =>
   n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
+
+/* Below this many people in a week the 7-day number looks like an empty room,
+   so the panel shows the 30-day count instead. */
+const VISITORS_MIN_7D = 20;
 
 const row = (label, n) => `${label.padEnd(14)}${String(n).padStart(7)}`;
 
@@ -487,7 +489,9 @@ async function loadDefence() {
       : [
           row('  people', vis.people),
           row('  visits', vis.visits),
-          row('  active 7d', vis.people_7d),
+          vis.people_7d >= VISITORS_MIN_7D || vis.people_30d === undefined
+            ? row('  active 7d', vis.people_7d)
+            : row('  active 30d', vis.people_30d),
         ])
   );
   $('#defence-output').textContent = lines.join('\n');
