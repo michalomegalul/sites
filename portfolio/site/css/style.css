@@ -95,7 +95,13 @@ a:hover { background: var(--signal); color: var(--ink); }
 .dig-line--dim { color: var(--fg-dim); }
 
 /* ---------- hero ---------- */
-.sec--hero { display: flex; flex-direction: column; justify-content: center; }
+.sec--hero {
+  display: flex; flex-direction: column; justify-content: center;
+  /* The name drifts sideways as it scrolls away (app.js), and body's
+     overflow-x: hidden didn't stop the page from scrolling after it. clip, not
+     hidden: it cuts the overflow without making the section a scroll box. */
+  overflow-x: clip;
+}
 
 .hero__name {
   font-family: var(--display);
