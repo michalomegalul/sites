@@ -172,7 +172,7 @@ a:hover { background: var(--signal); color: var(--ink); }
 }
 .stack__track {
   display: flex; gap: 2.5rem; width: max-content;
-  animation: marquee 28s linear infinite;
+  animation: marquee 58s linear infinite;
   font-family: var(--display); font-size: 1.1rem;
 }
 @keyframes marquee { to { transform: translateX(-50%); } }
