@@ -1,0 +1,5 @@
+# Found something wrong with dobsinsky.dev or one of its subdomains? Tell me.
+Contact: mailto:michal@dobsinsky.dev
+Expires: 2027-11-06T00:00:00.000Z
+Preferred-Languages: en, cs, sk
+Canonical: https://dobsinsky.dev/.well-known/security.txt
